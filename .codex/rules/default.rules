@@ -1,0 +1,115 @@
+# AUTO-GENERATED from .agents/permissions.toml by scripts/gen_agent_permissions.py. Do not edit.
+# Codex execution policy. See https://developers.openai.com/codex/rules/
+
+# ========================================================================
+# FORBIDDEN
+# ========================================================================
+
+prefix_rule(
+    pattern = ["git", "push"],
+    decision = "forbidden",
+    justification = "Pushing is a human decision. Agents prepare commits; a person sends them.",
+)
+
+prefix_rule(
+    pattern = ["git", "reset", "--hard"],
+    decision = "forbidden",
+    justification = "Discards uncommitted work with no recovery path, including work the agent did not create.",
+)
+
+prefix_rule(
+    pattern = ["git", "checkout", "--"],
+    decision = "forbidden",
+    justification = "Silently reverts unstaged changes in the named paths. Revert with a targeted edit instead.",
+)
+
+prefix_rule(
+    pattern = ["git", "clean"],
+    decision = "forbidden",
+    justification = "Deletes untracked files, which includes local env files and scratch work.",
+)
+
+prefix_rule(
+    pattern = ["gh", "pr", "merge"],
+    decision = "forbidden",
+    justification = "Merging is a human decision.",
+)
+
+prefix_rule(
+    pattern = ["ruff"],
+    decision = "forbidden",
+    justification = "Must run through uv to use the project-pinned version. Use `uv run ruff` or `make fmt`.",
+)
+
+prefix_rule(
+    pattern = ["pytest"],
+    decision = "forbidden",
+    justification = "Must run through uv to pick up project settings and plugins. Use `uv run pytest` or `make test`.",
+)
+
+prefix_rule(
+    pattern = ["pre-commit"],
+    decision = "forbidden",
+    justification = "Must run through uv to use the project-pinned version. Use `uv run pre-commit`.",
+)
+
+prefix_rule(
+    pattern = ["pip", "install"],
+    decision = "forbidden",
+    justification = "Dependencies are managed by uv and locked in uv.lock. Use `uv add`.",
+)
+
+prefix_rule(
+    pattern = ["python", "manage.py", "migrate"],
+    decision = "forbidden",
+    justification = "Schema changes against a real database are a human decision. Generating a migration file is fine.",
+)
+
+# ========================================================================
+# ALLOWED
+# ========================================================================
+
+prefix_rule(
+    pattern = ["uv", "run"],
+    decision = "allowed",
+)
+
+prefix_rule(
+    pattern = ["make"],
+    decision = "allowed",
+)
+
+prefix_rule(
+    pattern = ["git", "status"],
+    decision = "allowed",
+)
+
+prefix_rule(
+    pattern = ["git", "diff"],
+    decision = "allowed",
+)
+
+prefix_rule(
+    pattern = ["git", "log"],
+    decision = "allowed",
+)
+
+prefix_rule(
+    pattern = ["git", "show"],
+    decision = "allowed",
+)
+
+prefix_rule(
+    pattern = ["git", "branch"],
+    decision = "allowed",
+)
+
+prefix_rule(
+    pattern = ["rg"],
+    decision = "allowed",
+)
+
+prefix_rule(
+    pattern = ["ls"],
+    decision = "allowed",
+)

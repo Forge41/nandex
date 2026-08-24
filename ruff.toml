@@ -1,0 +1,30 @@
+# Standalone so ruff works before pyproject.toml exists. Fold into
+# [tool.ruff] once the project is named and pyproject is created.
+
+line-length = 100
+target-version = "py313"
+
+exclude = [".venv", "migrations", "__pycache__"]
+
+[format]
+quote-style = "double"
+
+[lint]
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "W",    # pycodestyle warnings
+    "I",    # isort — import sorting, so no separate isort tool
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "DJ",   # flake8-django
+    "SIM",  # flake8-simplify
+    "RUF",
+]
+# E501 is the formatter's job, not the linter's.
+ignore = ["E501"]
+
+[lint.per-file-ignores]
+"**/migrations/*" = ["E501", "I001"]
+"**/settings/*" = ["F403", "F405"]

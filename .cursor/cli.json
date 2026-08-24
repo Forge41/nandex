@@ -1,0 +1,27 @@
+{
+    "permissions": {
+        "allow": [
+            "Shell(uv run:*)",
+            "Shell(make:*)",
+            "Shell(git status:*)",
+            "Shell(git diff:*)",
+            "Shell(git log:*)",
+            "Shell(git show:*)",
+            "Shell(git branch:*)",
+            "Shell(rg:*)",
+            "Shell(ls:*)"
+        ],
+        "deny": [
+            "Shell(git push:*)",
+            "Shell(git reset --hard:*)",
+            "Shell(git checkout --:*)",
+            "Shell(git clean:*)",
+            "Shell(gh pr merge:*)",
+            "Shell(ruff:*)",
+            "Shell(pytest:*)",
+            "Shell(pre-commit:*)",
+            "Shell(pip install:*)",
+            "Shell(python manage.py migrate:*)"
+        ]
+    }
+}

@@ -1,0 +1,76 @@
+# See https://pre-commit.com
+#
+# Tests are NOT run here. Commit hooks stay fast; `make test` and CI run pytest.
+# Slow checks belong in `stages: [manual]` and are invoked by `make lint-ci` in CI.
+
+default_language_version:
+  python: python3.13
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '\.(md|txt|diff|patch)$'
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-toml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+      - id: check-symlinks
+      - id: destroyed-symlinks
+      - id: detect-private-key
+      - id: debug-statements
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.8
+    hooks:
+      - id: ruff-check
+        args: [--fix, --exit-non-zero-on-fix, --show-fixes]
+      - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: validate-agent-assets
+        name: Validate .agents/ skills and per-tool symlinks
+        description: >
+          Enforces skill naming prefixes, SKILL.md frontmatter, and that the
+          .claude/.codex/.cursor symlinks still resolve into .agents/.
+        entry: uv run python scripts/validate_agent_assets.py
+        language: system
+        pass_filenames: false
+        files: '^\.agents/|^\.claude/|^\.codex/|^\.cursor/|^scripts/validate_agent_assets\.py$'
+
+      - id: no-agent-attribution
+        name: Reject agent attribution in the commit message
+        description: >
+          Blocks Co-Authored-By trailers crediting an agent, generator footers, and
+          agent name tags. Mentioning an agent in the subject is fine — only
+          attribution is blocked.
+        entry: uv run python scripts/check_commit_message.py
+        language: system
+        stages: [commit-msg]
+
+      - id: no-agent-attribution-history
+        name: Reject agent attribution in commits being pushed
+        description: >
+          Catches history that skipped the commit-msg hook, via --no-verify, a rebase,
+          or a tool that does not run hooks.
+        entry: uv run python scripts/check_commit_message.py --range
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
+      - id: check-agent-permissions
+        name: Check agent permissions are in sync across Claude/Codex/Cursor
+        description: >
+          Fails if .agents/permissions.toml was edited without regenerating the
+          per-tool configs. Run `make agent-permissions` to fix.
+        entry: uv run python scripts/gen_agent_permissions.py --check
+        language: system
+        pass_filenames: false
+        files: >-
+          ^(\.agents/permissions\.toml|\.claude/settings\.json|\.codex/rules/default\.rules|\.cursor/cli\.json|scripts/gen_agent_permissions\.py)$

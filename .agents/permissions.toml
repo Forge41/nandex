@@ -1,0 +1,100 @@
+# Single source of truth for agent tool permissions across Claude Code, Codex, and Cursor.
+#
+# Generated targets — do not edit those directly:
+#   .claude/settings.json        (merge-write: preserves hooks and other keys)
+#   .codex/rules/default.rules
+#   .cursor/cli.json
+#
+# Regenerate:  make agent-permissions
+# Verify:      uv run python scripts/gen_agent_permissions.py --check   (pre-commit hook)
+#
+# TOML rather than YAML so the generator runs on stdlib `tomllib` with no
+# dependencies — it must work before `uv sync` has ever run.
+#
+# `pattern` is a token list matched as a command prefix. `justification` is required
+# on every deny so the reason survives the person who added it.
+
+# ---------------------------------------------------------------------------
+# Allowed — read-only inspection and the project's own entry points
+# ---------------------------------------------------------------------------
+
+[[shell]]
+pattern = ["uv", "run"]
+
+[[shell]]
+pattern = ["make"]
+
+[[shell]]
+pattern = ["git", "status"]
+
+[[shell]]
+pattern = ["git", "diff"]
+
+[[shell]]
+pattern = ["git", "log"]
+
+[[shell]]
+pattern = ["git", "show"]
+
+[[shell]]
+pattern = ["git", "branch"]
+
+[[shell]]
+pattern = ["rg"]
+
+[[shell]]
+pattern = ["ls"]
+
+# ---------------------------------------------------------------------------
+# Denied
+# ---------------------------------------------------------------------------
+
+[[shell]]
+pattern = ["git", "push"]
+decision = "deny"
+justification = "Pushing is a human decision. Agents prepare commits; a person sends them."
+
+[[shell]]
+pattern = ["git", "reset", "--hard"]
+decision = "deny"
+justification = "Discards uncommitted work with no recovery path, including work the agent did not create."
+
+[[shell]]
+pattern = ["git", "checkout", "--"]
+decision = "deny"
+justification = "Silently reverts unstaged changes in the named paths. Revert with a targeted edit instead."
+
+[[shell]]
+pattern = ["git", "clean"]
+decision = "deny"
+justification = "Deletes untracked files, which includes local env files and scratch work."
+
+[[shell]]
+pattern = ["gh", "pr", "merge"]
+decision = "deny"
+justification = "Merging is a human decision."
+
+[[shell]]
+pattern = ["ruff"]
+decision = "deny"
+justification = "Must run through uv to use the project-pinned version. Use `uv run ruff` or `make fmt`."
+
+[[shell]]
+pattern = ["pytest"]
+decision = "deny"
+justification = "Must run through uv to pick up project settings and plugins. Use `uv run pytest` or `make test`."
+
+[[shell]]
+pattern = ["pre-commit"]
+decision = "deny"
+justification = "Must run through uv to use the project-pinned version. Use `uv run pre-commit`."
+
+[[shell]]
+pattern = ["pip", "install"]
+decision = "deny"
+justification = "Dependencies are managed by uv and locked in uv.lock. Use `uv add`."
+
+[[shell]]
+pattern = ["python", "manage.py", "migrate"]
+decision = "deny"
+justification = "Schema changes against a real database are a human decision. Generating a migration file is fine."
