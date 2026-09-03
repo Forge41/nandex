@@ -52,6 +52,25 @@ shared canonical reference.
   applies to every language and every file in this repo, no exceptions for "just this once."
 - Run everything through `uv run` — no activated virtualenvs in docs or scripts.
 
+## Branching
+
+`main` is protected — no direct pushes, every change lands through a PR. Name branches:
+
+```
+<type>-<developer>-<short-kebab-title>
+```
+
+`<type>` is one of:
+
+- `feat` — a new feature or capability
+- `fix` — a bug fix
+- `enhancement` — an improvement to existing behavior that is neither a new feature nor a fix
+- `hotfix` — an urgent fix, typically branched straight from `main`
+
+`<developer>` is the author's name or handle. `<short-kebab-title>` is a few hyphenated words,
+not a sentence. Examples: `feat-nandisha-tps-provider-registry`,
+`fix-nandisha-token-refresh-race`, `hotfix-nandisha-csrf-exempt-missing`.
+
 ## Commits
 
 **Never add agent attribution to a commit.** No `Co-Authored-By` trailer naming an agent, no
