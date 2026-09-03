@@ -52,6 +52,42 @@ shared canonical reference.
   applies to every language and every file in this repo, no exceptions for "just this once."
 - Run everything through `uv run` — no activated virtualenvs in docs or scripts.
 
+## Branching
+
+`main` is protected — no direct pushes, every change lands through a PR. Name branches:
+
+```
+<type>-<developer>-<short-kebab-title>
+```
+
+`<type>` is one of:
+
+- `feat` — a new feature or capability
+- `fix` — a bug fix
+- `enhancement` — an improvement to existing behavior that is neither a new feature nor a fix
+- `hotfix` — an urgent fix, typically branched straight from `main`
+
+`<developer>` is the author's name or handle. `<short-kebab-title>` is a few hyphenated words,
+not a sentence. Examples: `feat-nandisha-tps-provider-registry`,
+`fix-nandisha-token-refresh-race`, `hotfix-nandisha-csrf-exempt-missing`.
+
+### Opening a PR
+
+```
+git checkout -b <type>-<developer>-<short-title>
+# make the change, commit it (see Commits below)
+git push -u origin <type>-<developer>-<short-title>
+gh pr create   # or open the PR from the GitHub UI
+```
+
+GitHub fills the PR description from `.github/PULL_REQUEST_TEMPLATE.md` — fill in the Summary
+and Test plan, don't leave the checklist unchecked without reason. `main` only accepts merges
+through a PR; there is no direct-push path around this.
+
+**Squash and merge only.** "Merge" and "Rebase and merge" are disabled at the repo level — every
+PR becomes exactly one commit on `main`, regardless of how many commits it had while open. Write
+the PR title as that commit's eventual subject line.
+
 ## Commits
 
 **Never add agent attribution to a commit.** No `Co-Authored-By` trailer naming an agent, no

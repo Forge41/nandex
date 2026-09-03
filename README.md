@@ -2,6 +2,8 @@
 
 An open-source RAG system: connect third-party apps, import their data, and query it.
 
+[MIT licensed](LICENSE).
+
 Four pipeline stages — see [AGENTS.md](AGENTS.md) for the full breakdown and hard rules:
 
 - **`tps`** — third-party connection/credential broker. Proves a connection has a valid,
@@ -60,6 +62,14 @@ curl -H "X-TPS-Secret: <value>" http://localhost:8000/apps
 ## Contributing
 
 Read [AGENTS.md](AGENTS.md) first — it's the canonical source for this repo's hard rules
-(module boundaries, comment discipline, commit conventions) and is read directly by Codex and
-Cursor, imported by Claude Code via `CLAUDE.md`. Procedural how-tos live under
+(module boundaries, comment discipline, branch naming, commit conventions) and is read directly
+by Codex and Cursor, imported by Claude Code via `CLAUDE.md`. Procedural how-tos live under
 `.agents/skills/`.
+
+`main` is protected: every change goes through a PR from a branch named
+`<type>-<developer>-<short-title>` (`feat`/`fix`/`enhancement`/`hotfix`) — see AGENTS.md's
+Branching section for the full convention.
+
+## License
+
+[MIT](LICENSE) — see the LICENSE file for the full text.
