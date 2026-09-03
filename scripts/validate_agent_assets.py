@@ -45,9 +45,7 @@ def check_skills() -> list[str]:
             continue
 
         if not path.name.startswith(VALID_PREFIXES):
-            errors.append(
-                f"{path.name}: name must start with one of {', '.join(VALID_PREFIXES)}"
-            )
+            errors.append(f"{path.name}: name must start with one of {', '.join(VALID_PREFIXES)}")
 
         skill_md = path / "SKILL.md"
         if not skill_md.exists():
@@ -59,11 +57,11 @@ def check_skills() -> list[str]:
             errors.append(f"{path.name}/SKILL.md: missing --- frontmatter block")
             continue
 
-        fields = dict(
-            (k.strip(), v.strip())
+        fields = {
+            k.strip(): v.strip()
             for k, _, v in (line.partition(":") for line in match.group(1).splitlines())
             if k.strip()
-        )
+        }
         for required in ("name", "description"):
             if not fields.get(required):
                 errors.append(f"{path.name}/SKILL.md: frontmatter missing `{required}`")

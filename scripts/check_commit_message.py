@@ -31,8 +31,9 @@ VIOLATIONS: list[tuple[re.Pattern[str], str]] = [
         "Co-Authored-By trailer crediting an agent",
     ),
     (
-        re.compile(rf"^\s*(signed-off-by|assisted-by|generated-by):.*{AGENT}",
-                   re.IGNORECASE | re.MULTILINE),
+        re.compile(
+            rf"^\s*(signed-off-by|assisted-by|generated-by):.*{AGENT}", re.IGNORECASE | re.MULTILINE
+        ),
         "attribution trailer crediting an agent",
     ),
     (
@@ -99,7 +100,8 @@ def main() -> int:
             ).stdout
             errors += check(message, f"commit {sha[:8]}")
     elif args.path:
-        errors += check(open(args.path, encoding="utf-8").read(), "commit message")
+        with open(args.path, encoding="utf-8") as f:
+            errors += check(f.read(), "commit message")
     else:
         parser.error("pass a commit message path or --range")
 
