@@ -71,6 +71,19 @@ shared canonical reference.
 not a sentence. Examples: `feat-nandisha-tps-provider-registry`,
 `fix-nandisha-token-refresh-race`, `hotfix-nandisha-csrf-exempt-missing`.
 
+### Opening a PR
+
+```
+git checkout -b <type>-<developer>-<short-title>
+# make the change, commit it (see Commits below)
+git push -u origin <type>-<developer>-<short-title>
+gh pr create   # or open the PR from the GitHub UI
+```
+
+GitHub fills the PR description from `.github/PULL_REQUEST_TEMPLATE.md` — fill in the Summary
+and Test plan, don't leave the checklist unchecked without reason. `main` only accepts merges
+through a PR; there is no direct-push path around this.
+
 ## Commits
 
 **Never add agent attribution to a commit.** No `Co-Authored-By` trailer naming an agent, no
