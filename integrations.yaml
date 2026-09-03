@@ -1,0 +1,17 @@
+# Single source of truth for every third-party integration this project knows about, at
+# any stage. `backend/apps/tps/catalog.py` loads this into IntegrationManifest objects and
+# a derived IntegrationSlug enum; `tps.handlers.HANDLER_REGISTRY` and
+# `importer.providers.PROVIDER_REGISTRY` keys are validated against it (see
+# `manage.py check_integrations`). A future frontend reads this same file rather than
+# duplicating the list.
+#
+# Fields:
+#   slug          unique identifier, matches tps.Connector.app_name and the registry keys
+#   display_name  human-readable name
+#   category      source_control | hosting | distribution | productivity | storage | ...
+#   auth_type     oauth2 | api_key | basic_auth | form_based_oauth2 | mtls
+#   status        planned | built
+#   icon          URL, optional
+#   keywords      list of strings, optional
+#   form_fields   list of {reference_key, type, display_name, required}, credential-flow only
+integrations: []
