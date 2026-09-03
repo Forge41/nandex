@@ -7,20 +7,28 @@ Codex and Cursor read it directly; Claude Code imports it via `CLAUDE.md`.
 
 An open-source RAG system in four parts:
 
-- **import** — pull documents and data out of third-party apps (per-source auth, incremental sync).
+- **import** — split into two apps: `tps` (connection/credential broker only — per-source auth,
+  no sync logic) and `importer` (owns sync/orchestration: uses a `tps` connection's token to pull
+  data, tracks cursors, writes documents).
 - **ingest** — document processing: normalize, chunk, embed.
 - **retrieval** — hybrid search: keyword (Postgres full-text) + semantic (pgvector).
 - **chat** — minimal UI where a user connects apps, imports their data, and queries it.
 
 ## Layout
 
+The repo splits into a Next.js frontend and a Django backend, both under the root tooling below.
+
 | Path | Contents |
 | --- | --- |
-| `config/` | Django project (settings, urls, asgi, celery) |
-| `apps/` | Django apps, one per pipeline stage |
-| `ai/` | Prompts, model registry, Anthropic client wrapper, tool definitions |
+| `frontend/` | Next.js app: connect-app OAuth flows, import status, chat UI |
+| `backend/config/` | Django project (settings, urls, asgi, celery) |
+| `backend/apps/` | Django apps, one per pipeline stage (`tps`, `importer`, `ingest`, `retrieval`, `chat`) |
+| `backend/ai/` | Prompts, model registry, Anthropic client wrapper, tool definitions |
 | `.agents/` | Agent assets shared across tools (skills, subagents) |
-| `docs/` | Architecture, ADRs, per-connector notes |
+
+Longer-form architecture rationale and directory-tree planning docs are not checked into git —
+they live locally under `.claude/plans/docs/` (gitignored) as developer planning material, not
+shared canonical reference.
 
 ## Hard rules
 
@@ -28,9 +36,20 @@ An open-source RAG system in four parts:
   prompts and model config testable without a database.
 - **Prompts are files, not string literals.** They live in `ai/prompts/` as `.md`. An f-string
   prompt is invisible to review and silently breaks prompt caching.
-- **`RawDocument` is immutable.** Re-chunking or changing embedding models must not require
-  re-hitting a rate-limited third-party API.
-- **Import and ingest run as background jobs.** Never inside a request/response cycle.
+- **`RawDocument` is immutable, and owned by `importer`.** Re-chunking or changing embedding
+  models must not require re-hitting a rate-limited third-party API. `tps` never writes it;
+  `ingest` only reads it.
+- **`tps` never depends on anything above it.** `importer`, `ingest`, `retrieval`, and `chat` may
+  depend on `tps`; `tps` must not import any of them. It exposes connections and tokens, nothing
+  else.
+- **Import and ingest run as Temporal workflows/activities.** Never inside a request/response
+  cycle, and never on a bare task queue without Temporal's retry/replay guarantees.
+- **Minimize comments.** Default to none. Well-named code explains itself; a comment repeating
+  what the next line already says is noise, not documentation. Add one only where the code
+  genuinely cannot speak for itself — a non-obvious invariant, a concurrency/locking constraint,
+  a workaround for a specific external limitation, a "why," never a "what." Where a comment is
+  warranted, keep it minimal and precise: one line stating the constraint, not a paragraph. This
+  applies to every language and every file in this repo, no exceptions for "just this once."
 - Run everything through `uv run` — no activated virtualenvs in docs or scripts.
 
 ## Commits

@@ -18,6 +18,8 @@ htmlcov/
 
 .claude/settings.local.json
 .claude/plans/
+# developer planning docs — local-only, not shared via git
+.claude/plans/docs/
 .cursor/settings.local.json
 
 .DS_Store
