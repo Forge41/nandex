@@ -84,6 +84,10 @@ GitHub fills the PR description from `.github/PULL_REQUEST_TEMPLATE.md` — fill
 and Test plan, don't leave the checklist unchecked without reason. `main` only accepts merges
 through a PR; there is no direct-push path around this.
 
+**Squash and merge only.** "Merge" and "Rebase and merge" are disabled at the repo level — every
+PR becomes exactly one commit on `main`, regardless of how many commits it had while open. Write
+the PR title as that commit's eventual subject line.
+
 ## Commits
 
 **Never add agent attribution to a commit.** No `Co-Authored-By` trailer naming an agent, no
