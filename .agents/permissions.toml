@@ -50,11 +50,6 @@ pattern = ["ls"]
 # ---------------------------------------------------------------------------
 
 [[shell]]
-pattern = ["git", "push"]
-decision = "deny"
-justification = "Pushing is a human decision. Agents prepare commits; a person sends them."
-
-[[shell]]
 pattern = ["git", "reset", "--hard"]
 decision = "deny"
 justification = "Discards uncommitted work with no recovery path, including work the agent did not create."

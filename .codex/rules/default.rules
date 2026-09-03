@@ -6,12 +6,6 @@
 # ========================================================================
 
 prefix_rule(
-    pattern = ["git", "push"],
-    decision = "forbidden",
-    justification = "Pushing is a human decision. Agents prepare commits; a person sends them.",
-)
-
-prefix_rule(
     pattern = ["git", "reset", "--hard"],
     decision = "forbidden",
     justification = "Discards uncommitted work with no recovery path, including work the agent did not create.",

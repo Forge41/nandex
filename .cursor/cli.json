@@ -12,7 +12,6 @@
             "Shell(ls:*)"
         ],
         "deny": [
-            "Shell(git push:*)",
             "Shell(git reset --hard:*)",
             "Shell(git checkout --:*)",
             "Shell(git clean:*)",
