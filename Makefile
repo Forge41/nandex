@@ -1,5 +1,6 @@
 .DEFAULT_GOAL := help
-.PHONY: help install hooks agent-permissions link-agents fmt lint lint-ci test check
+.PHONY: help install hooks agent-permissions link-agents fmt lint lint-ci test check \
+	serve-all tps tps-migrate
 
 help: ## List available targets
 	@grep -hE '^[a-z][a-zA-Z0-9_-]*:.*?## ' $(MAKEFILE_LIST) \
@@ -26,6 +27,19 @@ link-agents: ## Point each tool's config dir at the shared .agents/ tree
 
 agent-permissions: ## Regenerate per-tool permission configs from .agents/permissions.toml
 	uv run python scripts/gen_agent_permissions.py
+
+# ---------------------------------------------------------------------------
+# Backend services
+# ---------------------------------------------------------------------------
+
+serve-all: ## Start every backend service (currently just tps)
+	$(MAKE) tps
+
+tps: ## Run the Django dev server (tps is currently its only app)
+	cd backend && uv run manage.py runserver
+
+tps-migrate: ## Apply pending database migrations for the tps app
+	cd backend && uv run manage.py migrate tps
 
 # ---------------------------------------------------------------------------
 # Quality
