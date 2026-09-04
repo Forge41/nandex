@@ -47,9 +47,13 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.13"
-      - run: uv sync
+      - run: uv sync --all-groups
         working-directory: backend
       - run: uv run manage.py check
         working-directory: backend
       - run: uv run manage.py makemigrations --check --dry-run
+        working-directory: backend
+      - run: uv run manage.py check_integrations
+        working-directory: backend
+      - run: uv run pytest
         working-directory: backend
