@@ -6,13 +6,15 @@ auth flow its connector uses.
 
 from typing import Protocol, runtime_checkable
 
+from apps.tps.catalog import IntegrationSlug
+
 
 @runtime_checkable
 class AppHandler(Protocol):
     """Base protocol — every handler implements these two."""
 
-    def get_app_name(self) -> str:
-        """The app slug, e.g. 'github'."""
+    def get_app_name(self) -> IntegrationSlug:
+        """The app slug, e.g. IntegrationSlug.GOOGLE_DRIVE."""
         ...
 
     async def get_user_info(self, config: dict) -> dict:

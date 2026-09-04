@@ -16,6 +16,7 @@ service TpsService {
   rpc GetConnection(GetConnectionRequest) returns (ConnectionSummary);
   rpc GetToken(GetTokenRequest) returns (GetTokenResponse);
   rpc DeleteConnection(DeleteConnectionRequest) returns (DeleteConnectionResponse);
+  rpc MarkReauthRequired(MarkReauthRequiredRequest) returns (MarkReauthRequiredResponse);
 }
 
 message App {
@@ -101,5 +102,14 @@ message DeleteConnectionRequest {
 }
 
 message DeleteConnectionResponse {
+  bool ok = 1;
+}
+
+message MarkReauthRequiredRequest {
+  string project_id = 1;
+  string connection_id = 2;
+}
+
+message MarkReauthRequiredResponse {
   bool ok = 1;
 }

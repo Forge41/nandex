@@ -6,10 +6,12 @@ exchange. Core is the only party that ever decodes it.
 
 from django.core import signing
 
+from apps.tps.catalog import IntegrationSlug
+
 OAUTH_STATE_MAX_AGE = 15 * 60
 
 
-def encode_state(*, project_id: str, app_name: str, callback_path: str) -> str:
+def encode_state(*, project_id: str, app_name: IntegrationSlug, callback_path: str) -> str:
     return signing.dumps(
         {"project_id": project_id, "app_name": app_name, "callback_path": callback_path}
     )

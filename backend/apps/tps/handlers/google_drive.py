@@ -12,6 +12,7 @@ from urllib.parse import urlencode
 
 import httpx
 
+from apps.tps.catalog import IntegrationSlug
 from apps.tps.config import settings
 
 logger = logging.getLogger(__name__)
@@ -23,8 +24,8 @@ class GoogleDriveHandler:
     USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo"
     REVOKE_URL = "https://oauth2.googleapis.com/revoke"
 
-    def get_app_name(self) -> str:
-        return "google_drive"
+    def get_app_name(self) -> IntegrationSlug:
+        return IntegrationSlug.GOOGLE_DRIVE
 
     def get_authorize_url(
         self, redirect_uri: str, form_data: dict | None = None

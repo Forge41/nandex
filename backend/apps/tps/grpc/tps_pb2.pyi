@@ -145,3 +145,17 @@ class DeleteConnectionResponse(_message.Message):
     OK_FIELD_NUMBER: _ClassVar[int]
     ok: bool
     def __init__(self, ok: _Optional[bool] = ...) -> None: ...
+
+class MarkReauthRequiredRequest(_message.Message):
+    __slots__ = ("project_id", "connection_id")
+    PROJECT_ID_FIELD_NUMBER: _ClassVar[int]
+    CONNECTION_ID_FIELD_NUMBER: _ClassVar[int]
+    project_id: str
+    connection_id: str
+    def __init__(self, project_id: _Optional[str] = ..., connection_id: _Optional[str] = ...) -> None: ...
+
+class MarkReauthRequiredResponse(_message.Message):
+    __slots__ = ("ok",)
+    OK_FIELD_NUMBER: _ClassVar[int]
+    ok: bool
+    def __init__(self, ok: _Optional[bool] = ...) -> None: ...

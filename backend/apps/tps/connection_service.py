@@ -15,6 +15,7 @@ from asgiref.sync import sync_to_async
 from django.db import transaction
 from django.utils import timezone
 
+from apps.tps.catalog import IntegrationSlug
 from apps.tps.crypto import decrypt_config, encrypt_config
 from apps.tps.handlers import get_handler
 from apps.tps.handlers.base import OAuthHandler
@@ -79,7 +80,7 @@ async def get_or_refresh(connection_id: str, project_id: str) -> dict:
 
 def _upsert_connection_sync(
     project_id: str,
-    app_name: str,
+    app_name: IntegrationSlug,
     config: dict,
     identifier: str | None,
     expires_at: float | None,
@@ -114,7 +115,7 @@ def _upsert_connection_sync(
 
 async def create_connection(
     project_id: str,
-    app_name: str,
+    app_name: IntegrationSlug,
     config: dict,
     identifier: str | None = None,
     expires_at: float | None = None,
