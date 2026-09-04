@@ -69,7 +69,7 @@ lint-ci: ## Everything lint does, plus the slow manual-stage hooks
 	uv run pre-commit run --all-files --verbose
 	uv run pre-commit run --all-files --hook-stage manual --verbose
 
-test: ## Run the test suite
-	uv run pytest -n auto
+test: ## Run the backend test suite
+	cd backend && uv run pytest
 
 check: fmt lint test ## Format, lint, and test
