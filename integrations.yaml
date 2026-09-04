@@ -14,4 +14,12 @@
 #   icon          URL, optional
 #   keywords      list of strings, optional
 #   form_fields   list of {reference_key, type, display_name, required}, credential-flow only
-integrations: []
+integrations:
+  - slug: google_drive
+    display_name: Google Drive
+    category: storage
+    auth_type: oauth2
+    status: built
+    icon: https://cdn.simpleicons.org/googledrive
+    keywords: [Google Drive, storage, documents]
+

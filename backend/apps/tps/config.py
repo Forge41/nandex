@@ -17,9 +17,11 @@ class Settings(BaseSettings):
     # gRPC server — the only interface apps.core is allowed to reach tps through
     grpc_port: int = 50051
 
-    # Per-provider OAuth credentials go here as connectors are added, e.g.:
-    #   github_client_id: str = ""
-    #   github_client_secret: str = ""
+    # Per-provider OAuth credentials
+    google_drive_client_id: str = ""
+    google_drive_client_secret: str = ""
+    google_drive_redirect_uri: str = "http://localhost:3000/connect/google_drive/callback"
+    google_drive_scopes: str = "https://www.googleapis.com/auth/drive.readonly openid email"
 
     model_config = {"env_prefix": "TPS_"}
 

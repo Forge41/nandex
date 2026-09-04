@@ -26,6 +26,7 @@ class AppCategory(models.IntegerChoices):
     HOSTING = 2, "hosting"
     DISTRIBUTION = 3, "distribution"
     COMING_SOON = 4, "coming_soon"
+    STORAGE = 5, "storage"
 
 
 class AppProvider(models.IntegerChoices):
