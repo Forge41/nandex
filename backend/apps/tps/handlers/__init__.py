@@ -1,12 +1,11 @@
-"""Handler registry — one entry per connector, keyed by app_name.
-
-Empty until a connector actually ships: add an entry (and a matching handler module,
-plus a catalog-seed migration) per provider as they're built.
-"""
+"""Handler registry — one entry per connector, keyed by app_name."""
 
 from apps.tps.handlers.base import CredentialHandler, OAuthHandler
+from apps.tps.handlers.google_drive import GoogleDriveHandler
 
-HANDLER_REGISTRY: dict[str, type] = {}
+HANDLER_REGISTRY: dict[str, type] = {
+    "google_drive": GoogleDriveHandler,
+}
 
 
 def get_handler(app_name: str) -> OAuthHandler | CredentialHandler:
