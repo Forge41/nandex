@@ -25,10 +25,12 @@ logger = logging.getLogger(__name__)
 REFRESH_BUFFER_SECONDS = 120  # refresh 2 minutes before actual expiry
 
 
-def _read_and_maybe_flag_refresh(connection_id: str, user_id: str) -> tuple[Connection, dict, bool]:
+def _read_and_maybe_flag_refresh(
+    connection_id: str, project_id: str
+) -> tuple[Connection, dict, bool]:
     with transaction.atomic():
         connection = Connection.objects.select_for_update().get(
-            id=connection_id, user_id=user_id, status=Connection.Status.ACTIVE
+            id=connection_id, project_id=project_id, status=Connection.Status.ACTIVE
         )
         config = decrypt_config(connection.config_encrypted)
         handler = get_handler(connection.app_name)
@@ -44,24 +46,24 @@ def _read_and_maybe_flag_refresh(connection_id: str, user_id: str) -> tuple[Conn
         return connection, config, needs_refresh
 
 
-def _write_refreshed_config(connection_id: str, user_id: str, config: dict) -> None:
+def _write_refreshed_config(connection_id: str, project_id: str, config: dict) -> None:
     with transaction.atomic():
         connection = Connection.objects.select_for_update().get(
-            id=connection_id, user_id=user_id, status=Connection.Status.ACTIVE
+            id=connection_id, project_id=project_id, status=Connection.Status.ACTIVE
         )
         connection.config_encrypted = encrypt_config(config)
         connection.expires_at = config.get("expires_at")
         connection.save(update_fields=["config_encrypted", "expires_at", "updated_at"])
 
 
-async def get_or_refresh(connection_id: str, user_id: str) -> dict:
+async def get_or_refresh(connection_id: str, project_id: str) -> dict:
     """Get a connection's decrypted config, refreshing the token if it's expired."""
     try:
         connection, config, needs_refresh = await sync_to_async(
             _read_and_maybe_flag_refresh, thread_sensitive=True
-        )(connection_id, user_id)
+        )(connection_id, project_id)
     except Connection.DoesNotExist:
-        raise ValueError(f"Connection {connection_id} not found for user {user_id}") from None
+        raise ValueError(f"Connection {connection_id} not found for project {project_id}") from None
 
     if not needs_refresh:
         return config
@@ -70,13 +72,13 @@ async def get_or_refresh(connection_id: str, user_id: str) -> dict:
     handler = get_handler(connection.app_name)
     config = await handler.refresh_token(config)
     await sync_to_async(_write_refreshed_config, thread_sensitive=True)(
-        connection_id, user_id, config
+        connection_id, project_id, config
     )
     return config
 
 
 def _upsert_connection_sync(
-    user_id: str,
+    project_id: str,
     app_name: str,
     config: dict,
     identifier: str | None,
@@ -90,7 +92,7 @@ def _upsert_connection_sync(
             raise ValueError(f"App '{app_name}' not found in the connector catalog") from None
 
         connection, created = Connection.objects.select_for_update().get_or_create(
-            user_id=user_id,
+            project_id=project_id,
             app_name=app_name,
             status=Connection.Status.ACTIVE,
             defaults={
@@ -111,7 +113,7 @@ def _upsert_connection_sync(
 
 
 async def create_connection(
-    user_id: str,
+    project_id: str,
     app_name: str,
     config: dict,
     identifier: str | None = None,
@@ -119,13 +121,15 @@ async def create_connection(
 ) -> Connection:
     """Create or update the user's active connection for a connector — upserts."""
     return await sync_to_async(_upsert_connection_sync, thread_sensitive=True)(
-        user_id, app_name, config, identifier, expires_at
+        project_id, app_name, config, identifier, expires_at
     )
 
 
-def _revoke_connection_sync(connection_id: str, user_id: str) -> None:
+def _revoke_connection_sync(connection_id: str, project_id: str) -> None:
     with transaction.atomic():
-        connection = Connection.objects.select_for_update().get(id=connection_id, user_id=user_id)
+        connection = Connection.objects.select_for_update().get(
+            id=connection_id, project_id=project_id
+        )
         connection.status = Connection.Status.REVOKED
         connection.config_encrypted = encrypt_config({})
         connection.expires_at = None
@@ -133,10 +137,10 @@ def _revoke_connection_sync(connection_id: str, user_id: str) -> None:
         connection.save(update_fields=["status", "config_encrypted", "expires_at", "updated_at"])
 
 
-async def delete_connection(connection_id: str, user_id: str) -> bool:
+async def delete_connection(connection_id: str, project_id: str) -> bool:
     """Revoke a connection — best-effort provider-side revoke, then wipe stored credentials."""
     try:
-        connection = await Connection.objects.aget(id=connection_id, user_id=user_id)
+        connection = await Connection.objects.aget(id=connection_id, project_id=project_id)
     except Connection.DoesNotExist:
         return False
 
@@ -148,5 +152,24 @@ async def delete_connection(connection_id: str, user_id: str) -> bool:
     except Exception:
         logger.warning("Token revocation failed for %s", connection.app_name, exc_info=True)
 
-    await sync_to_async(_revoke_connection_sync, thread_sensitive=True)(connection_id, user_id)
+    await sync_to_async(_revoke_connection_sync, thread_sensitive=True)(connection_id, project_id)
     return True
+
+
+def _mark_reauth_required_sync(connection_id: str, project_id: str) -> bool:
+    try:
+        connection = Connection.objects.get(id=connection_id, project_id=project_id)
+    except Connection.DoesNotExist:
+        return False
+    connection.status = Connection.Status.REAUTH_REQUIRED
+    connection.save(update_fields=["status", "updated_at"])
+    return True
+
+
+async def mark_reauth_required(connection_id: str, project_id: str) -> bool:
+    """Flip a connection to REAUTH_REQUIRED — called by apps.importer when token refresh
+    fails even after tps's own retry. importer never writes this table directly; this is
+    the one entry point it goes through, keeping tps the sole owner of Connection state."""
+    return await sync_to_async(_mark_reauth_required_sync, thread_sensitive=True)(
+        connection_id, project_id
+    )

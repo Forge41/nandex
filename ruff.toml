@@ -4,7 +4,7 @@
 line-length = 100
 target-version = "py313"
 
-exclude = [".venv", "migrations", "__pycache__"]
+exclude = [".venv", "migrations", "__pycache__", "*_pb2.py", "*_pb2.pyi", "*_pb2_grpc.py"]
 
 [format]
 quote-style = "double"
