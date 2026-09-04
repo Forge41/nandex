@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 .PHONY: help install hooks agent-permissions link-agents fmt lint lint-ci test check \
-	serve-all tps tps-migrate
+	serve-all tps tps-migrate tps-grpc grpc-gen
 
 help: ## List available targets
 	@grep -hE '^[a-z][a-zA-Z0-9_-]*:.*?## ' $(MAKEFILE_LIST) \
@@ -40,6 +40,19 @@ tps: ## Run the Django dev server (tps is currently its only app)
 
 tps-migrate: ## Apply pending database migrations for the tps app
 	cd backend && uv run manage.py migrate tps
+
+tps-grpc: ## Run tps's gRPC server (core talks to tps only via this, never HTTP)
+	cd backend && uv run manage.py rungrpc
+
+grpc-gen: ## Regenerate apps/tps/grpc/tps_pb2*.py from tps.proto
+	cd backend && uv run python -m grpc_tools.protoc \
+		-I apps/tps/grpc \
+		--python_out=apps/tps/grpc \
+		--grpc_python_out=apps/tps/grpc \
+		--pyi_out=apps/tps/grpc \
+		apps/tps/grpc/tps.proto
+	cd backend && sed -i.bak 's/^import tps_pb2 as tps__pb2$$/from . import tps_pb2 as tps__pb2/' \
+		apps/tps/grpc/tps_pb2_grpc.py && rm apps/tps/grpc/tps_pb2_grpc.py.bak
 
 # ---------------------------------------------------------------------------
 # Quality

@@ -56,15 +56,21 @@ class Connector(models.Model):
 
 
 class Connection(models.Model):
-    """A user's credentials for one connector. Encrypted at rest, never mutated in place
-    except by refresh (new token) or revoke (wipe)."""
+    """A project's credentials for one connector. Encrypted at rest, never mutated in place
+    except by refresh (new token) or revoke (wipe).
+
+    project_id is a plain id, not a Django ForeignKey to apps.core.Project — cross-app
+    references stay plain ids throughout this codebase so apps don't import each other's
+    models directly (see apps.importer.SyncRun.connection_id for the same convention).
+    """
 
     class Status(models.TextChoices):
         ACTIVE = "active", "active"
         REVOKED = "revoked", "revoked"
+        REAUTH_REQUIRED = "reauth_required", "reauth_required"
 
     id = models.CharField(primary_key=True, max_length=24, default=generate_id, editable=False)
-    user_id = models.CharField(db_index=True, max_length=128)
+    project_id = models.CharField(db_index=True, max_length=24)
     connector = models.ForeignKey(Connector, on_delete=models.CASCADE, db_index=True)
     app_name = models.CharField(db_index=True, max_length=64)  # denormalized for quick lookups
     config_encrypted = models.TextField()  # MultiFernet ciphertext
@@ -82,4 +88,4 @@ class Connection(models.Model):
         db_table = "tps_connection"
 
     def __str__(self) -> str:
-        return f"{self.app_name}:{self.user_id}"
+        return f"{self.app_name}:{self.project_id}"

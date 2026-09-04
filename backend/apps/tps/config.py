@@ -11,8 +11,11 @@ class Settings(BaseSettings):
     # Encryption — comma-separated for key rotation (first key is active)
     fernet_keys: str = ""  # Generate: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 
-    # Internal service auth — shared secret required on every tps request
+    # Internal service auth — shared secret required on every tps gRPC call
     tps_secret: str = "dev-tps-secret-change-in-production"
+
+    # gRPC server — the only interface apps.core is allowed to reach tps through
+    grpc_port: int = 50051
 
     # Per-provider OAuth credentials go here as connectors are added, e.g.:
     #   github_client_id: str = ""

@@ -41,9 +41,19 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "apps.core",
     "apps.tps",
     "apps.importer",
 ]
+
+AUTH_USER_MODEL = "core.User"
+
+APP_URL = os.environ.get("APP_URL", "http://localhost:3000")
+
+EMAIL_BACKEND = os.environ.get(
+    "DJANGO_EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
+)
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "nandex <noreply@localhost>")
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

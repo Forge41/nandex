@@ -1,0 +1,105 @@
+syntax = "proto3";
+
+package tps;
+
+// tps proves a Connection has a valid, refreshable token. This is the entire
+// interface anything else (apps.core) is allowed to depend on.
+service TpsService {
+  rpc ListApps(ListAppsRequest) returns (ListAppsResponse);
+  rpc GetApp(GetAppRequest) returns (App);
+
+  rpc InstallApp(InstallAppRequest) returns (InstallAppResponse);
+  rpc ExchangeCode(ExchangeCodeRequest) returns (ConnectionSummary);
+  rpc ConnectCredentials(ConnectCredentialsRequest) returns (ConnectionSummary);
+
+  rpc ListConnections(ListConnectionsRequest) returns (ListConnectionsResponse);
+  rpc GetConnection(GetConnectionRequest) returns (ConnectionSummary);
+  rpc GetToken(GetTokenRequest) returns (GetTokenResponse);
+  rpc DeleteConnection(DeleteConnectionRequest) returns (DeleteConnectionResponse);
+}
+
+message App {
+  string id = 1;
+  int32 app_code = 2;
+  string app_name = 3;
+  string display_name = 4;
+  string auth_type = 5;
+  string category = 6;
+  string provider = 7;
+  string meta_json = 8; // JSON-encoded meta dict (icon, description, form_fields, keywords)
+  bool is_install_required = 9;
+}
+
+message ListAppsRequest {
+  optional int32 category = 1;
+}
+
+message ListAppsResponse {
+  repeated App apps = 1;
+}
+
+message GetAppRequest {
+  string identifier = 1; // app_name or app_code
+}
+
+message InstallAppRequest {
+  string app_name = 1;
+  string state = 2;
+  string redirect_uri = 3;
+}
+
+message InstallAppResponse {
+  string authorize_url = 1;
+}
+
+message ExchangeCodeRequest {
+  string app_name = 1;
+  string project_id = 2;
+  string code = 3;
+  string redirect_uri = 4;
+}
+
+message ConnectCredentialsRequest {
+  string app_name = 1;
+  string project_id = 2;
+  string credentials_json = 3; // JSON-encoded credentials dict
+}
+
+message ConnectionSummary {
+  string id = 1;
+  string app_name = 2;
+  string identifier = 3;
+  string status = 4;
+  string created_at = 5;
+}
+
+message ListConnectionsRequest {
+  string project_id = 1;
+}
+
+message ListConnectionsResponse {
+  repeated ConnectionSummary connections = 1;
+}
+
+message GetConnectionRequest {
+  string project_id = 1;
+  string identifier = 2; // app_name or connection id
+}
+
+message GetTokenRequest {
+  string project_id = 1;
+  string connection_id = 2;
+}
+
+message GetTokenResponse {
+  string access_token = 1;
+}
+
+message DeleteConnectionRequest {
+  string project_id = 1;
+  string connection_id = 2;
+}
+
+message DeleteConnectionResponse {
+  bool ok = 1;
+}
