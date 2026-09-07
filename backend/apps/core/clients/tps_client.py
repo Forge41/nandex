@@ -66,7 +66,9 @@ async def exchange_code(
     return _connection_to_dict(response)
 
 
-async def connect_credentials(project_id: str, app_name: IntegrationSlug, credentials: dict) -> dict:
+async def connect_credentials(
+    project_id: str, app_name: IntegrationSlug, credentials: dict
+) -> dict:
     stub = tps_pb2_grpc.TpsServiceStub(_get_channel())
     response = await stub.ConnectCredentials(
         tps_pb2.ConnectCredentialsRequest(
