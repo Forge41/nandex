@@ -25,6 +25,8 @@ backend/
   config/           Django project (settings, urls, asgi)
   apps/
     tps/            connector catalog, encrypted connections, OAuth/credential handlers
+    importer/       Temporal-orchestrated sync; owns the immutable RawDocument
+    ingest/         parse -> chunk -> embed -> index pipeline (not yet Temporal-orchestrated)
 ```
 
 ## Setup
