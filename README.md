@@ -25,6 +25,8 @@ backend/
   config/           Django project (settings, urls, asgi)
   apps/
     tps/            connector catalog, encrypted connections, OAuth/credential handlers
+    importer/       Temporal-orchestrated sync; owns the immutable RawDocument
+    ingest/         parse -> chunk -> embed -> index pipeline (not yet Temporal-orchestrated)
 ```
 
 ## Setup
@@ -40,8 +42,13 @@ cp backend/.env.example backend/.env
 # fill in TPS_FERNET_KEYS — generate one with:
 uv run --project backend python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 
-make tps-migrate
+make migrate
 ```
+
+`importer`'s sync workflows and `ingest`'s future orchestration both run on
+[Temporal](https://temporal.io) — for local dev, run a disposable dev server in its own terminal
+(`brew install temporal` on macOS, then `temporal server start-dev`; the test suite doesn't need
+this, it spins up its own ephemeral server per run).
 
 `apps.ingest`'s migration runs `CREATE EXTENSION vector`, so Postgres itself needs the
 `pgvector` extension installed at the OS/package level (a separate step from the `pgvector`
@@ -60,12 +67,20 @@ there).
 
 | Command | What it does |
 | --- | --- |
-| `make tps` | Run the Django dev server (`tps` is currently its only app) |
-| `make serve-all` | Start every backend service — today that's just `tps` |
-| `make tps-migrate` | Apply pending database migrations for the `tps` app |
+| `make tps` | Run the Django dev server (`tps`'s HTTP API) |
+| `make tps-grpc` | Run `tps`'s gRPC server (`core`/`importer` talk to `tps` only via this) |
+| `make importer-worker` | Run the Temporal worker for `importer`'s sync workflows |
+| `make serve-all` | Alias for `make tps` — run `tps-grpc`/`importer-worker` in their own terminals too |
+| `make migrate` | Apply pending database migrations for every app |
+| `make tps-migrate` / `importer-migrate` / `ingest-migrate` | Migrate just that one app |
 
 `make tps` defaults to port 8000; if that's taken locally, run
-`cd backend && uv run manage.py runserver <port>` directly.
+`cd backend && uv run manage.py runserver <port>` directly. `importer-worker` needs a Temporal
+server reachable (see Setup above) and `tps-grpc` running, since it fetches tokens through it.
+
+`ingest` has no Temporal worker yet (see its entry above) — run it directly against one
+`RawDocument` with `cd backend && uv run manage.py ingest_document <raw_document_id>`, or sweep
+every not-yet-ingested one with `manage.py ingest_pending`.
 
 Every `tps` endpoint requires an `X-TPS-Secret` header (`TPS_TPS_SECRET` in your `.env`), and
 `/integrations/*` routes also require `X-User-ID`:

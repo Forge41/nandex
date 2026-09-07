@@ -1,6 +1,7 @@
 .DEFAULT_GOAL := help
 .PHONY: help install hooks agent-permissions link-agents fmt lint lint-ci test check \
-	serve-all tps tps-migrate tps-grpc grpc-gen
+	serve-all tps tps-migrate tps-grpc grpc-gen migrate importer-migrate ingest-migrate \
+	importer-worker
 
 help: ## List available targets
 	@grep -hE '^[a-z][a-zA-Z0-9_-]*:.*?## ' $(MAKEFILE_LIST) \
@@ -32,10 +33,10 @@ agent-permissions: ## Regenerate per-tool permission configs from .agents/permis
 # Backend services
 # ---------------------------------------------------------------------------
 
-serve-all: ## Start every backend service (currently just tps)
+serve-all: ## Start the Django dev server (tps's HTTP API; run tps-grpc/importer-worker separately)
 	$(MAKE) tps
 
-tps: ## Run the Django dev server (tps is currently its only app)
+tps: ## Run the Django dev server (tps is currently its only HTTP-facing app)
 	cd backend && uv run manage.py runserver
 
 tps-migrate: ## Apply pending database migrations for the tps app
@@ -43,6 +44,18 @@ tps-migrate: ## Apply pending database migrations for the tps app
 
 tps-grpc: ## Run tps's gRPC server (core talks to tps only via this, never HTTP)
 	cd backend && uv run manage.py rungrpc
+
+migrate: ## Apply pending database migrations for every app
+	cd backend && uv run manage.py migrate
+
+importer-migrate: ## Apply pending database migrations for the importer app
+	cd backend && uv run manage.py migrate importer
+
+ingest-migrate: ## Apply pending database migrations for the ingest app
+	cd backend && uv run manage.py migrate ingest
+
+importer-worker: ## Run importer's Temporal worker (needs a Temporal server already running)
+	cd backend && uv run manage.py runworker
 
 grpc-gen: ## Regenerate apps/tps/grpc/tps_pb2*.py from tps.proto
 	cd backend && uv run python -m grpc_tools.protoc \
