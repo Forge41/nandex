@@ -1,78 +1,43 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { api, ApiError } from "./api";
+import { api } from "./api";
 
 type User = { id: string; email: string };
 type Workspace = { id: string; slug: string } | null;
 
-type SessionState =
-  | { status: "loading" }
-  | { status: "authenticated"; user: User; workspace: Workspace }
-  | { status: "unauthenticated" };
+// There is no login -- the backend auto-provisions an identity for any request with no
+// session cookie yet (see backend's AutoProvisionAnonymousUserMiddleware), so /auth/session
+// always resolves to a real user. "loading" only covers the moment before that first
+// response lands.
+type SessionState = { status: "loading" } | { status: "ready"; user: User; workspace: Workspace };
 
-type SessionContextValue = {
-  session: SessionState;
-  refresh: () => Promise<void>;
-  logout: () => Promise<void>;
-};
-
-const SessionContext = createContext<SessionContextValue | null>(null);
-
-async function fetchSession(): Promise<SessionState> {
-  try {
-    const data = await api.get<{ user: User; workspace: Workspace }>("/auth/session");
-    return { status: "authenticated", user: data.user, workspace: data.workspace };
-  } catch (err) {
-    if (err instanceof ApiError && err.status === 401) return { status: "unauthenticated" };
-    throw err;
-  }
-}
+const SessionContext = createContext<SessionState>({ status: "loading" });
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<SessionState>({ status: "loading" });
 
-  const refresh = async () => setSession(await fetchSession());
-
   useEffect(() => {
     let ignore = false;
-    fetchSession().then((next) => {
-      if (!ignore) setSession(next);
+    api.get<{ user: User; workspace: Workspace }>("/auth/session").then((data) => {
+      if (!ignore) setSession({ status: "ready", user: data.user, workspace: data.workspace });
     });
     return () => {
       ignore = true;
     };
   }, []);
 
-  const logout = async () => {
-    await api.post("/auth/logout");
-    setSession({ status: "unauthenticated" });
-  };
-
-  return (
-    <SessionContext.Provider value={{ session, refresh, logout }}>
-      {children}
-    </SessionContext.Provider>
-  );
+  return <SessionContext.Provider value={session}>{children}</SessionContext.Provider>;
 }
 
 export function useSession() {
-  const ctx = useContext(SessionContext);
-  if (!ctx) throw new Error("useSession must be used within a SessionProvider");
-  return ctx;
+  return useContext(SessionContext);
 }
 
-/** Redirects to /login once the session resolves to unauthenticated. Renders nothing
- * (not even children) until the session is known, to avoid a flash of protected content. */
+/** Renders nothing until the session resolves -- a moment's blank screen on first load,
+ * never a login redirect. */
 export function RequireSession({ children }: { children: React.ReactNode }) {
-  const { session } = useSession();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (session.status === "unauthenticated") router.replace("/login");
-  }, [session.status, router]);
-
-  if (session.status !== "authenticated") return null;
+  const session = useSession();
+  if (session.status !== "ready") return null;
   return <>{children}</>;
 }

@@ -2,7 +2,43 @@
   flex-shrink: 0;
   padding: 16px 24px 24px;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.uploadStatus {
+  width: 900px;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--nx-border-base);
+  border-radius: 10px;
+  background: var(--nx-bg-base);
+  font-size: 13px;
+}
+.uploadStatus[data-phase="error"] {
+  border-color: hsl(0 65% 50% / 0.4);
+}
+
+.uploadStatusPhase {
+  color: var(--nx-fg-muted);
+  flex-grow: 1;
+}
+.uploadStatus[data-phase="error"] .uploadStatusPhase {
+  color: hsl(0 65% 50%);
+}
+
+.uploadStatusDismiss {
+  border: none;
+  background: transparent;
+  color: var(--nx-fg-muted);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 4px;
 }
 
 .bar {
@@ -77,8 +113,7 @@
   z-index: 10;
 }
 
-.menuItem,
-.menuItemDisabled {
+.menuItem {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -87,16 +122,10 @@
   font-size: 13px;
   font-weight: 500;
   color: var(--nx-fg-base);
-}
-.menuItem {
   cursor: pointer;
 }
 .menuItem:hover {
   background: var(--nx-bg-subtle);
-}
-.menuItemDisabled {
-  color: var(--nx-fg-muted);
-  cursor: default;
 }
 
 .menuDivider {

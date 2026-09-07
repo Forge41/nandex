@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     temporal_task_queue: str = "importer"
     sweep_interval_seconds: int = 90
 
+    max_upload_bytes: int = 20 * 1024 * 1024
+
     model_config = {"env_prefix": "IMPORTER_"}
 
 

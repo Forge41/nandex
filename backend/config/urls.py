@@ -29,4 +29,6 @@ urlpatterns = [
     path("health", health),
     path("", include("apps.core.api.urls")),
     path("", include("apps.chat.api.urls")),
+    path("", include("apps.importer.api.urls")),
+    path("", include("apps.ingest.api.urls")),
 ]

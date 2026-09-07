@@ -29,6 +29,22 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+async function upload<T>(path: string, form: FormData): Promise<T> {
+  const response = await fetch(`/api${path}`, {
+    method: "POST",
+    credentials: "include",
+    // No Content-Type header -- the browser sets multipart/form-data with the right
+    // boundary itself; setting it manually breaks the boundary.
+    body: form,
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new ApiError(response.status, body);
+  }
+  return response.json() as Promise<T>;
+}
+
 export const api = {
   get: <T>(path: string) => request<T>(path),
   post: <T>(path: string, body?: unknown) =>
@@ -36,4 +52,5 @@ export const api = {
   patch: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: "PATCH", body: body !== undefined ? JSON.stringify(body) : undefined }),
   delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
+  upload,
 };

@@ -13,11 +13,11 @@ const ProjectContext = createContext<ProjectContextValue>({ project: null });
 /** No project-switcher for v1 -- every user has exactly one auto-created "Default"
  * project (see backend's verify_and_login); this just takes the first one. */
 export function ProjectProvider({ children }: { children: React.ReactNode }) {
-  const { session } = useSession();
+  const session = useSession();
   const [project, setProject] = useState<Project | null>(null);
 
   useEffect(() => {
-    if (session.status !== "authenticated") return;
+    if (session.status !== "ready") return;
     api.get<Project[]>("/projects").then((projects) => setProject(projects[0] ?? null));
   }, [session.status]);
 

@@ -5,9 +5,11 @@ from django.test import Client
 
 
 @pytest.mark.django_db
-def test_projects_requires_auth():
+def test_projects_auto_provisions_a_default_project():
     resp = Client().get("/projects")
-    assert resp.status_code == 401
+    assert resp.status_code == 200
+    names = [p["name"] for p in json.loads(resp.content)]
+    assert names == ["Default"]
 
 
 @pytest.mark.django_db
@@ -54,7 +56,12 @@ def test_get_unknown_project_404s(logged_in_client):
 
 
 @pytest.mark.django_db
-def test_logout_then_projects_requires_auth_again(logged_in_client):
+def test_logout_then_projects_gets_a_fresh_identity(logged_in_client):
+    original_id = json.loads(logged_in_client.get("/projects").content)[0]["id"]
+
     logged_in_client.post("/auth/logout")
     resp = logged_in_client.get("/projects")
-    assert resp.status_code == 401
+    assert resp.status_code == 200
+    project = json.loads(resp.content)[0]
+    assert project["name"] == "Default"
+    assert project["id"] != original_id

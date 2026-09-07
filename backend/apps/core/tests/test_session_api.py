@@ -5,9 +5,17 @@ from django.test import Client
 
 
 @pytest.mark.django_db
-def test_session_requires_auth():
-    resp = Client().get("/auth/session")
-    assert resp.status_code == 401
+def test_session_auto_provisions_a_brand_new_visitor():
+    client = Client()
+    resp = client.get("/auth/session")
+    assert resp.status_code == 200
+    body = json.loads(resp.content)
+    assert body["user"]["id"]
+    assert body["workspace"]["slug"]
+
+    # Same browser (same session cookie) -> the same identity on a second request.
+    second = json.loads(client.get("/auth/session").content)
+    assert second["user"]["id"] == body["user"]["id"]
 
 
 @pytest.mark.django_db

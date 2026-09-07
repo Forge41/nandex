@@ -69,8 +69,18 @@ EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "true").lower() == "true"
 # Secure defaults to false for local dev (plain HTTP); flip true in production env.
 SESSION_COOKIE_SECURE = os.environ.get("DJANGO_SESSION_COOKIE_SECURE", "false").lower() == "true"
 SESSION_COOKIE_SAMESITE = os.environ.get("DJANGO_SESSION_COOKIE_SAMESITE", "Lax")
-SESSION_COOKIE_AGE = int(os.environ.get("DJANGO_SESSION_COOKIE_AGE", 60 * 60 * 24 * 14))
+# A year, not the Django default two weeks -- there's no login to fall back on, so this
+# cookie *is* the user's identity; SESSION_SAVE_EVERY_REQUEST keeps it rolling forward for
+# anyone still active instead of expiring exactly a year after their first visit.
+SESSION_COOKIE_AGE = int(os.environ.get("DJANGO_SESSION_COOKIE_AGE", 60 * 60 * 24 * 365))
+SESSION_SAVE_EVERY_REQUEST = True
 CSRF_COOKIE_SECURE = os.environ.get("DJANGO_CSRF_COOKIE_SECURE", "false").lower() == "true"
+
+# Direct document uploads (apps.importer's upload endpoint) enforce their own explicit cap
+# with a clear error -- this just raises Django's own silent-rejection default (2.5MB) enough
+# that a real upload isn't refused before that check ever runs.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 25 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 25 * 1024 * 1024
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -78,6 +88,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.core.middleware.AutoProvisionAnonymousUserMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
