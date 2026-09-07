@@ -1,5 +1,6 @@
 from fastembed.rerank.cross_encoder import TextCrossEncoder
 
+from apps.ingest.config import settings as ingest_settings
 from apps.retrieval.config import settings
 
 _model: TextCrossEncoder | None = None
@@ -8,7 +9,10 @@ _model: TextCrossEncoder | None = None
 def _get_model() -> TextCrossEncoder:
     global _model
     if _model is None:
-        _model = TextCrossEncoder(model_name=settings.reranker_model_name)
+        _model = TextCrossEncoder(
+            model_name=settings.reranker_model_name,
+            cache_dir=settings.reranker_cache_dir or ingest_settings.fastembed_cache_dir,
+        )
     return _model
 
 

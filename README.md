@@ -13,8 +13,9 @@ Four pipeline stages — see [AGENTS.md](AGENTS.md) for the full breakdown and h
 - **`ingest`** — normalizes, chunks, and embeds imported documents. **Pipeline built**
   (parse → chunk → embed → index, runnable via `manage.py ingest_document`); Temporal
   orchestration for it is not yet built.
-- **`retrieval`** — hybrid search (Postgres full-text + pgvector) over ingested content. Not yet
-  built.
+- **`retrieval`** — hybrid search (Postgres full-text + pgvector), fused with Reciprocal Rank
+  Fusion and reranked with a free cross-encoder. **Built** — a plain Python function today, no
+  HTTP layer yet.
 - **`chat`** — the UI tying it all together. Not yet built.
 
 ## Layout
@@ -27,6 +28,7 @@ backend/
     tps/            connector catalog, encrypted connections, OAuth/credential handlers
     importer/       Temporal-orchestrated sync; owns the immutable RawDocument
     ingest/         parse -> chunk -> embed -> index pipeline (not yet Temporal-orchestrated)
+    retrieval/      hybrid search (pgvector + Postgres FTS) -> RRF fusion -> rerank
 ```
 
 ## Setup

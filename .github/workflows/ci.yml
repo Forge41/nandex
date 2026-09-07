@@ -52,8 +52,10 @@ jobs:
           python-version: "3.13"
       - uses: actions/cache@v4
         with:
+          # apps.retrieval's reranker shares this same directory (see rerank.py) rather than
+          # needing its own cache key, so this one step covers both models.
           path: ${{ env.INGEST_FASTEMBED_CACHE_DIR }}
-          key: fastembed-BAAI-bge-small-en-v1.5
+          key: fastembed-BAAI-bge-small-en-v1.5-Xenova-ms-marco-MiniLM-L-6-v2
       - run: uv sync --all-groups
         working-directory: backend
       - run: uv run manage.py check
