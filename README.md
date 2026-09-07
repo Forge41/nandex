@@ -9,8 +9,10 @@ Four pipeline stages — see [AGENTS.md](AGENTS.md) for the full breakdown and h
 - **`tps`** — third-party connection/credential broker. Proves a connection has a valid,
   refreshable token. Owns no sync logic. **Built.**
 - **`importer`** — uses a `tps` connection's token to actually pull data, tracks sync cursors,
-  writes documents. Not yet built.
-- **`ingest`** — normalizes, chunks, and embeds imported documents. Not yet built.
+  writes documents. **Built** (Google Drive, orchestrated as Temporal workflows).
+- **`ingest`** — normalizes, chunks, and embeds imported documents. **Pipeline built**
+  (parse → chunk → embed → index, runnable via `manage.py ingest_document`); Temporal
+  orchestration for it is not yet built.
 - **`retrieval`** — hybrid search (Postgres full-text + pgvector) over ingested content. Not yet
   built.
 - **`chat`** — the UI tying it all together. Not yet built.
@@ -40,6 +42,19 @@ uv run --project backend python -c "from cryptography.fernet import Fernet; prin
 
 make tps-migrate
 ```
+
+`apps.ingest`'s migration runs `CREATE EXTENSION vector`, so Postgres itself needs the
+`pgvector` extension installed at the OS/package level (a separate step from the `pgvector`
+Python package, which is just a Django field type):
+
+```bash
+brew install pgvector   # macOS; see https://github.com/pgvector/pgvector#installation for others
+```
+
+The role creating the extension needs `CREATEROLE`/superuser-equivalent privilege for that one
+statement — for local dev, the simplest fix is `psql postgres -c "ALTER ROLE ragdb SUPERUSER;"`
+(CI's Postgres container already runs as a superuser by default, so no extra step is needed
+there).
 
 ## Running
 

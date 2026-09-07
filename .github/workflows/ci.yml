@@ -24,7 +24,9 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16
+        # pgvector's own image, not plain postgres:16 -- apps.ingest's migration runs
+        # CREATE EXTENSION vector, which the official postgres image doesn't bundle.
+        image: pgvector/pgvector:pg16
         env:
           POSTGRES_USER: ragdb
           POSTGRES_PASSWORD: ragdb
@@ -42,11 +44,16 @@ jobs:
       DB_USER: ragdb
       DB_PASSWORD: ragdb
       DJANGO_SECRET_KEY: ci-only-key
+      INGEST_FASTEMBED_CACHE_DIR: ${{ github.workspace }}/.cache/fastembed
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.13"
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.INGEST_FASTEMBED_CACHE_DIR }}
+          key: fastembed-BAAI-bge-small-en-v1.5
       - run: uv sync --all-groups
         working-directory: backend
       - run: uv run manage.py check
