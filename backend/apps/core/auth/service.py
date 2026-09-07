@@ -31,6 +31,30 @@ def request_magic_link(email: str) -> None:
     )
 
 
+def ensure_workspace_and_project(user: User) -> Workspace:
+    """A user's first workspace+project, created on demand. Shared by the magic-link flow
+    and anonymous auto-provisioning (see apps.core.middleware) -- identical bootstrap either
+    way, the only difference is how `user` itself came to exist.
+    """
+    workspace = Workspace.objects.filter(members__user=user).first()
+    if workspace is None:
+        slug = _generate_slug(user.email, user.id)
+        workspace = Workspace.objects.create(name=f"{slug}'s workspace", slug=slug, owner=user)
+        WorkspaceMember.objects.create(
+            workspace=workspace, user=user, role=WorkspaceMember.Role.OWNER
+        )
+        Project.objects.create(
+            workspace=workspace, name="Default", description="Your first project"
+        )
+    return workspace
+
+
+def log_in_as(request: HttpRequest, user: User) -> None:
+    """login() requires `backend` set when not coming through authenticate()."""
+    user.backend = "django.contrib.auth.backends.ModelBackend"
+    login(request, user)
+
+
 def verify_and_login(request: HttpRequest, token: str) -> tuple[User, Workspace, bool]:
     """Verify a magic link token, ensure a workspace+project exist, and log in.
 
@@ -45,19 +69,8 @@ def verify_and_login(request: HttpRequest, token: str) -> tuple[User, Workspace,
         user.email_verified = True
         user.save(update_fields=["email_verified"])
 
-    workspace = Workspace.objects.filter(members__user=user).first()
-    if workspace is None:
-        slug = _generate_slug(email, user.id)
-        workspace = Workspace.objects.create(name=f"{slug}'s workspace", slug=slug, owner=user)
-        WorkspaceMember.objects.create(
-            workspace=workspace, user=user, role=WorkspaceMember.Role.OWNER
-        )
-        Project.objects.create(
-            workspace=workspace, name="Default", description="Your first project"
-        )
-
-    user.backend = "django.contrib.auth.backends.ModelBackend"
-    login(request, user)
+    workspace = ensure_workspace_and_project(user)
+    log_in_as(request, user)
 
     return user, workspace, is_new_user
 

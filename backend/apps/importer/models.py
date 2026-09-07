@@ -53,6 +53,11 @@ class RawDocument(models.Model):
 
     id = models.CharField(primary_key=True, max_length=24, default=generate_id, editable=False)
     connection_id = models.CharField(db_index=True, max_length=24)
+    # Set only for a document uploaded directly (connection_id="upload") rather than synced
+    # from a connected app -- there's no Connection row to resolve a project through for
+    # those, so apps.chat.scoping matches on this directly. Blank for every connector-synced
+    # row, which keeps resolving visibility through connection_id as before.
+    project_id = models.CharField(db_index=True, max_length=24, blank=True, default="")
     provider_document_id = models.CharField(db_index=True, max_length=256)
     provider_version = models.CharField(blank=True, default="", max_length=256)
     payload = models.BinaryField()

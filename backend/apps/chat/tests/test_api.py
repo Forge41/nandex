@@ -29,11 +29,12 @@ def logged_in_async_client(db, settings):
 
 
 @pytest.mark.django_db(transaction=True)
-async def test_conversations_requires_auth():
+async def test_conversations_auto_provisions_a_brand_new_visitor():
     from django.test import AsyncClient
 
     resp = await AsyncClient().get("/chat/conversations")
-    assert resp.status_code == 401
+    assert resp.status_code == 200
+    assert json.loads(resp.content) == []
 
 
 @pytest.mark.django_db(transaction=True)

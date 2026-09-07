@@ -9,9 +9,11 @@ Four pipeline stages — see [AGENTS.md](AGENTS.md) for the full breakdown and h
 - **`tps`** — third-party connection/credential broker. Proves a connection has a valid,
   refreshable token. Owns no sync logic. **Built.**
 - **`importer`** — uses a `tps` connection's token to actually pull data, tracks sync cursors,
-  writes documents. **Built** (Google Drive, orchestrated as Temporal workflows; a Temporal
-  Schedule sweeps every active connection every couple of minutes, so a newly-connected app gets
-  synced without anything having to trigger it directly).
+  writes documents; also owns direct document uploads (`POST /documents/upload`), since it's the
+  only app allowed to write a `RawDocument`, connector-synced or not. **Built** (Google Drive,
+  orchestrated as Temporal workflows; a Temporal Schedule sweeps every active connection every
+  couple of minutes, so a newly-connected app gets synced without anything having to trigger it
+  directly).
 - **`ingest`** — normalizes, chunks, and embeds imported documents. **Built** (parse → chunk →
   embed → index, orchestrated as Temporal workflows the same way as `importer` — its own sweep
   schedule picks up any not-yet-ingested `RawDocument`; `manage.py ingest_document`/`ingest_pending`
@@ -142,18 +144,32 @@ setup. Run the backend under `make asgi` (see the note above), plus `make tps-gr
 or just `make serve-all` for all of it together.
 
 The marketplace (`GET /apps`, `GET/POST /connections`, `POST /apps/<name>/install|connect`,
-`GET /oauth/callback`) and `chat` (`/chat/conversations`, `/chat/conversations/<id>/messages`)
-endpoints are all under `core`'s session-cookie auth, not `tps`'s `X-TPS-Secret` header — log in
-via `POST /auth/login` + `/auth/verify` first (see `apps/core/tests/test_marketplace_api.py` for
-a working example against a mocked `tps_client`).
+`GET /oauth/callback`), `chat` (`/chat/conversations`, `/chat/conversations/<id>/messages`), and
+document upload (`POST /documents/upload`, `GET /documents/<id>/ingest-status`) endpoints are all
+under `core`'s session-cookie auth, not `tps`'s `X-TPS-Secret` header. **There is no login** —
+`AutoProvisionAnonymousUserMiddleware` (`apps/core/middleware.py`) transparently creates a
+`User`/`Workspace`/`Project` for any request with no session cookie yet and logs it in, so a
+session cookie alone is what makes a visitor "the same person" on a return visit (a year-long,
+sliding-expiry cookie — see `config/settings.py`'s `SESSION_COOKIE_AGE`). The magic-link flow
+(`POST /auth/login` + `/auth/verify`) still exists and is still tested, just unused by the
+frontend — nothing currently links to it.
 
 For a one-off manual run outside its Temporal worker, `ingest` can still be invoked directly
 against one `RawDocument` with `cd backend && uv run manage.py ingest_document <raw_document_id>`,
 or every not-yet-ingested one with `manage.py ingest_pending`.
 
-`GET /auth/session` returns the logged-in user and their current workspace (401 if not
-authenticated) — the cheap "am I logged in" check a frontend makes on page load, before hitting
-anything else under `core`'s session-cookie auth.
+`POST /documents/upload` (multipart, `project_id` + `file`) lets a user add a document directly
+without connecting any third-party app — it creates a `RawDocument` the same way a connector sync
+would (`connection_id="upload"`, plus a `project_id` connector-synced rows don't have, so
+`apps.chat.scoping` can resolve it without a real `Connection`), and `ingest`'s existing sweep
+picks it up within ~90s, same as a connector-synced document. `GET /documents/<id>/ingest-status`
+lets a frontend poll for "pending" → "completed"/"failed" instead of blindly waiting. Accepted
+content types mirror `apps.ingest.pipeline.parsers.PARSER_REGISTRY` exactly (PDF, DOCX, XLSX,
+PPTX, plain text, Markdown, CSV); size is capped by `IMPORTER_MAX_UPLOAD_BYTES` (default 20MB).
+
+`GET /auth/session` returns the current user and workspace — always 200 now that every request
+auto-provisions one, never 401. It's still the cheap "who is this" check a frontend makes on page
+load, just no longer a login gate.
 
 `retrieval` still has no HTTP endpoint of its own — it's a plain Python function,
 `apps.retrieval.search.search(query, raw_document_ids, top_k)`, that `apps.chat.service.ask`
