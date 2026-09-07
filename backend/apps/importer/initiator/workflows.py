@@ -43,6 +43,8 @@ class ImportInitiatorWorkflow:
                 args=[target["connection_id"], input.trigger],
                 start_to_close_timeout=timedelta(seconds=30),
             )
+            # Default parent_close_policy is TERMINATE -- without ABANDON, this workflow
+            # returning (it never awaits its children) would kill every sync mid-flight.
             await workflow.start_child_workflow(
                 SyncWorkflow.run,
                 SyncWorkflowInput(
@@ -52,4 +54,5 @@ class ImportInitiatorWorkflow:
                     sync_run_id=sync_run_id,
                 ),
                 id=f"import-sync-{target['connection_id']}",
+                parent_close_policy=workflow.ParentClosePolicy.ABANDON,
             )

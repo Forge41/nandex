@@ -12,6 +12,7 @@ class Settings(BaseSettings):
 
     temporal_address: str = "localhost:7233"
     temporal_task_queue: str = "importer"
+    sweep_interval_seconds: int = 90
 
     model_config = {"env_prefix": "IMPORTER_"}
 

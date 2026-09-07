@@ -8,6 +8,7 @@ urlpatterns = [
     path("auth/login", views.request_login),
     path("auth/verify", views.verify_login),
     path("auth/logout", views.logout_view),
+    path("auth/session", views.session),
     path("projects", views.projects),
     path("projects/<str:project_id>", views.project_detail),
     path("apps", marketplace_views.list_apps),

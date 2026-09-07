@@ -9,10 +9,13 @@ Four pipeline stages — see [AGENTS.md](AGENTS.md) for the full breakdown and h
 - **`tps`** — third-party connection/credential broker. Proves a connection has a valid,
   refreshable token. Owns no sync logic. **Built.**
 - **`importer`** — uses a `tps` connection's token to actually pull data, tracks sync cursors,
-  writes documents. **Built** (Google Drive, orchestrated as Temporal workflows).
-- **`ingest`** — normalizes, chunks, and embeds imported documents. **Pipeline built**
-  (parse → chunk → embed → index, runnable via `manage.py ingest_document`); Temporal
-  orchestration for it is not yet built.
+  writes documents. **Built** (Google Drive, orchestrated as Temporal workflows; a Temporal
+  Schedule sweeps every active connection every couple of minutes, so a newly-connected app gets
+  synced without anything having to trigger it directly).
+- **`ingest`** — normalizes, chunks, and embeds imported documents. **Built** (parse → chunk →
+  embed → index, orchestrated as Temporal workflows the same way as `importer` — its own sweep
+  schedule picks up any not-yet-ingested `RawDocument`; `manage.py ingest_document`/`ingest_pending`
+  still work for a manual one-off run).
 - **`retrieval`** — hybrid search (Postgres full-text + pgvector), fused with Reciprocal Rank
   Fusion and reranked with a free cross-encoder. **Built** — a plain Python function today, no
   HTTP layer yet.
@@ -33,7 +36,7 @@ backend/
   apps/
     tps/            connector catalog, encrypted connections, OAuth/credential handlers
     importer/       Temporal-orchestrated sync; owns the immutable RawDocument
-    ingest/         parse -> chunk -> embed -> index pipeline (not yet Temporal-orchestrated)
+    ingest/         parse -> chunk -> embed -> index pipeline, Temporal-orchestrated
     retrieval/      hybrid search (pgvector + Postgres FTS) -> RRF fusion -> rerank
     chat/           Conversation/Message models; streams an ai/-generated, cited answer
 ```
@@ -54,7 +57,7 @@ uv run --project backend python -c "from cryptography.fernet import Fernet; prin
 make migrate
 ```
 
-`importer`'s sync workflows and `ingest`'s future orchestration both run on
+`importer`'s sync workflows and `ingest`'s ingestion workflows both run on
 [Temporal](https://temporal.io) — for local dev, run a disposable dev server in its own terminal
 (`brew install temporal` on macOS, then `temporal server start-dev`; the test suite doesn't need
 this, it spins up its own ephemeral server per run).
@@ -83,14 +86,18 @@ without a valid key.
 | `make tps` | Run the Django dev server (`tps`'s HTTP API) |
 | `make tps-grpc` | Run `tps`'s gRPC server (`core`/`importer` talk to `tps` only via this) |
 | `make importer-worker` | Run the Temporal worker for `importer`'s sync workflows |
+| `make ingest-worker` | Run the Temporal worker for `ingest`'s parse/chunk/embed workflows |
 | `make asgi` | Run the whole API (`core`, marketplace, `chat`) under a real ASGI server |
-| `make serve-all` | Alias for `make tps` — run `tps-grpc`/`importer-worker` in their own terminals too |
+| `make serve-all` | Alias for `make tps` — run `tps-grpc`/`importer-worker`/`ingest-worker` in their own terminals too |
 | `make migrate` | Apply pending database migrations for every app |
 | `make tps-migrate` / `importer-migrate` / `ingest-migrate` | Migrate just that one app |
 
 `make tps` defaults to port 8000; if that's taken locally, run
 `cd backend && uv run manage.py runserver <port>` directly. `importer-worker` needs a Temporal
 server reachable (see Setup above) and `tps-grpc` running, since it fetches tokens through it.
+Both `importer-worker` and `ingest-worker` register their own sweep schedule (`import-sweep`,
+`ingest-sweep`) the first time they start, idempotently — a connection or document created while
+neither worker is running just gets picked up on the next sweep once it is.
 
 `chat`'s message endpoint streams its answer over SSE — Django's dev `runserver` (WSGI) buffers
 that instead of flushing it incrementally, so use `make asgi` (`uvicorn`) whenever you're actually
@@ -102,9 +109,13 @@ endpoints are all under `core`'s session-cookie auth, not `tps`'s `X-TPS-Secret`
 via `POST /auth/login` + `/auth/verify` first (see `apps/core/tests/test_marketplace_api.py` for
 a working example against a mocked `tps_client`).
 
-`ingest` has no Temporal worker yet (see its entry above) — run it directly against one
-`RawDocument` with `cd backend && uv run manage.py ingest_document <raw_document_id>`, or sweep
-every not-yet-ingested one with `manage.py ingest_pending`.
+For a one-off manual run outside its Temporal worker, `ingest` can still be invoked directly
+against one `RawDocument` with `cd backend && uv run manage.py ingest_document <raw_document_id>`,
+or every not-yet-ingested one with `manage.py ingest_pending`.
+
+`GET /auth/session` returns the logged-in user and their current workspace (401 if not
+authenticated) — the cheap "am I logged in" check a frontend makes on page load, before hitting
+anything else under `core`'s session-cookie auth.
 
 `retrieval` still has no HTTP endpoint of its own — it's a plain Python function,
 `apps.retrieval.search.search(query, raw_document_ids, top_k)`, that `apps.chat.service.ask`
