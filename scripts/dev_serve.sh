@@ -83,4 +83,31 @@ fi
 (cd backend && uv run manage.py run_ingest_worker; kill 0) &
 (cd frontend && pnpm dev; kill 0) &
 
+# ---------------------------------------------------------------------------
+# Wait for the two HTTP-facing services to actually accept connections, then
+# print exactly what's running and where -- `make serve-all` should answer
+# "what ports, which services" on its own, not send you digging through logs.
+# ---------------------------------------------------------------------------
+
+for _ in $(seq 1 30); do
+    nc -z localhost "$HTTP_PORT" 2>/dev/null && nc -z localhost "$FRONTEND_PORT" 2>/dev/null && break
+    sleep 1
+done
+
+TEMPORAL_UI_PORT=$((TEMPORAL_PORT + 1000))
+
+echo ""
+echo "┌─────────────────────────────────────────────────────────────┐"
+echo "│                   nandex -- all systems go                  │"
+echo "├─────────────────────────────────────────────────────────────┤"
+printf "│  %-15s →  %-40s│\n" "Frontend" "http://localhost:$FRONTEND_PORT"
+printf "│  %-15s →  %-40s│\n" "Backend API" "http://localhost:$HTTP_PORT"
+printf "│  %-15s →  %-40s│\n" "tps gRPC" "localhost:$GRPC_PORT"
+printf "│  %-15s →  %-40s│\n" "Temporal UI" "http://localhost:$TEMPORAL_UI_PORT"
+printf "│  %-15s →  %-40s│\n" "Temporal gRPC" "localhost:$TEMPORAL_PORT"
+printf "│  %-15s →  %-40s│\n" "importer worker" "(no port -- task queue \"importer\")"
+printf "│  %-15s →  %-40s│\n" "ingest worker" "(no port -- task queue \"ingest\")"
+echo "└─────────────────────────────────────────────────────────────┘"
+echo ""
+
 wait
