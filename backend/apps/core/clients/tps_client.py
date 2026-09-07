@@ -10,6 +10,7 @@ import json
 import grpc
 
 from apps.core.config import settings
+from apps.tps.catalog import IntegrationSlug
 from apps.tps.grpc import tps_pb2, tps_pb2_grpc
 
 _channel: grpc.aio.Channel | None = None
@@ -43,7 +44,7 @@ async def get_app(identifier: str) -> dict:
     return _app_to_dict(response)
 
 
-async def install_app(app_name: str, state: str, redirect_uri: str) -> str:
+async def install_app(app_name: IntegrationSlug, state: str, redirect_uri: str) -> str:
     stub = tps_pb2_grpc.TpsServiceStub(_get_channel())
     response = await stub.InstallApp(
         tps_pb2.InstallAppRequest(app_name=app_name, state=state, redirect_uri=redirect_uri),
@@ -52,7 +53,9 @@ async def install_app(app_name: str, state: str, redirect_uri: str) -> str:
     return response.authorize_url
 
 
-async def exchange_code(project_id: str, app_name: str, code: str, redirect_uri: str) -> dict:
+async def exchange_code(
+    project_id: str, app_name: IntegrationSlug, code: str, redirect_uri: str
+) -> dict:
     stub = tps_pb2_grpc.TpsServiceStub(_get_channel())
     response = await stub.ExchangeCode(
         tps_pb2.ExchangeCodeRequest(
@@ -63,7 +66,9 @@ async def exchange_code(project_id: str, app_name: str, code: str, redirect_uri:
     return _connection_to_dict(response)
 
 
-async def connect_credentials(project_id: str, app_name: str, credentials: dict) -> dict:
+async def connect_credentials(
+    project_id: str, app_name: IntegrationSlug, credentials: dict
+) -> dict:
     stub = tps_pb2_grpc.TpsServiceStub(_get_channel())
     response = await stub.ConnectCredentials(
         tps_pb2.ConnectCredentialsRequest(

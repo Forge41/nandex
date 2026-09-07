@@ -7,7 +7,12 @@ import logging
 
 import grpc
 
-from apps.tps.connection_service import create_connection, delete_connection, get_or_refresh
+from apps.tps.connection_service import (
+    create_connection,
+    delete_connection,
+    get_or_refresh,
+    mark_reauth_required,
+)
 from apps.tps.grpc import tps_pb2, tps_pb2_grpc
 from apps.tps.handlers import get_credential_handler, get_oauth_handler
 from apps.tps.models import AppCategory, AppProvider, AuthType, Connection, Connector
@@ -60,23 +65,33 @@ class TpsServicer(tps_pb2_grpc.TpsServiceServicer):
         return _app_to_proto(connector)
 
     async def InstallApp(self, request, context):
+        app_name = request.app_name
         try:
-            connector = await Connector.objects.aget(app_name=request.app_name, active=True)
+            connector = await Connector.objects.aget(app_name=app_name, active=True)
         except Connector.DoesNotExist:
-            await context.abort(grpc.StatusCode.NOT_FOUND, f"App '{request.app_name}' not found")
+            await context.abort(grpc.StatusCode.NOT_FOUND, f"App '{app_name}' not found")
         if not connector.is_install_required:
             await context.abort(
-                grpc.StatusCode.INVALID_ARGUMENT,
-                f"App '{request.app_name}' uses the credential flow",
+                grpc.StatusCode.INVALID_ARGUMENT, f"App '{app_name}' uses the credential flow"
             )
 
-        handler = get_oauth_handler(request.app_name)
+        handler = get_oauth_handler(app_name)
         authorize_url, generated_state = handler.get_authorize_url(request.redirect_uri)
         authorize_url = authorize_url.replace(f"state={generated_state}", f"state={request.state}")
         return tps_pb2.InstallAppResponse(authorize_url=authorize_url)
 
     async def ExchangeCode(self, request, context):
-        handler = get_oauth_handler(request.app_name)
+        app_name = request.app_name
+        try:
+            connector = await Connector.objects.aget(app_name=app_name, active=True)
+        except Connector.DoesNotExist:
+            await context.abort(grpc.StatusCode.NOT_FOUND, f"App '{app_name}' not found")
+        if not connector.is_install_required:
+            await context.abort(
+                grpc.StatusCode.INVALID_ARGUMENT, f"App '{app_name}' uses the credential flow"
+            )
+
+        handler = get_oauth_handler(app_name)
         try:
             config = await handler.exchange_code(request.code, request.redirect_uri)
         except ValueError as e:
@@ -90,7 +105,7 @@ class TpsServicer(tps_pb2_grpc.TpsServiceServicer):
         identifier = user_info.get("login") or user_info.get("email")
         connection = await create_connection(
             project_id=request.project_id,
-            app_name=request.app_name,
+            app_name=app_name,
             config=config,
             identifier=identifier,
             expires_at=config.get("expires_at"),
@@ -98,13 +113,14 @@ class TpsServicer(tps_pb2_grpc.TpsServiceServicer):
         return _connection_to_proto(connection)
 
     async def ConnectCredentials(self, request, context):
+        app_name = request.app_name
         try:
-            connector = await Connector.objects.aget(app_name=request.app_name, active=True)
+            connector = await Connector.objects.aget(app_name=app_name, active=True)
         except Connector.DoesNotExist:
-            await context.abort(grpc.StatusCode.NOT_FOUND, f"App '{request.app_name}' not found")
+            await context.abort(grpc.StatusCode.NOT_FOUND, f"App '{app_name}' not found")
         if connector.is_install_required:
             await context.abort(
-                grpc.StatusCode.INVALID_ARGUMENT, f"App '{request.app_name}' uses the OAuth flow"
+                grpc.StatusCode.INVALID_ARGUMENT, f"App '{app_name}' uses the OAuth flow"
             )
 
         credentials = json.loads(request.credentials_json)
@@ -115,13 +131,13 @@ class TpsServicer(tps_pb2_grpc.TpsServiceServicer):
                     f"Missing required field: {field['display_name']}",
                 )
 
-        handler = get_credential_handler(request.app_name)
+        handler = get_credential_handler(app_name)
         if not await handler.validate_credentials(credentials):
             await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Credentials are invalid")
 
         connection = await create_connection(
             project_id=request.project_id,
-            app_name=request.app_name,
+            app_name=app_name,
             config=credentials,
             identifier=credentials.get("email") or credentials.get("username"),
         )
@@ -168,3 +184,9 @@ class TpsServicer(tps_pb2_grpc.TpsServiceServicer):
         if not deleted:
             await context.abort(grpc.StatusCode.NOT_FOUND, "Connection not found")
         return tps_pb2.DeleteConnectionResponse(ok=True)
+
+    async def MarkReauthRequired(self, request, context):
+        ok = await mark_reauth_required(request.connection_id, request.project_id)
+        if not ok:
+            await context.abort(grpc.StatusCode.NOT_FOUND, "Connection not found")
+        return tps_pb2.MarkReauthRequiredResponse(ok=True)

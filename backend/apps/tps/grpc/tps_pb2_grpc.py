@@ -81,6 +81,11 @@ class TpsServiceStub:
                 request_serializer=tps__pb2.DeleteConnectionRequest.SerializeToString,
                 response_deserializer=tps__pb2.DeleteConnectionResponse.FromString,
                 _registered_method=True)
+        self.MarkReauthRequired = channel.unary_unary(
+                '/tps.TpsService/MarkReauthRequired',
+                request_serializer=tps__pb2.MarkReauthRequiredRequest.SerializeToString,
+                response_deserializer=tps__pb2.MarkReauthRequiredResponse.FromString,
+                _registered_method=True)
 
 
 class TpsServiceServicer:
@@ -142,6 +147,12 @@ class TpsServiceServicer:
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def MarkReauthRequired(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_TpsServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -189,6 +200,11 @@ def add_TpsServiceServicer_to_server(servicer, server):
                     servicer.DeleteConnection,
                     request_deserializer=tps__pb2.DeleteConnectionRequest.FromString,
                     response_serializer=tps__pb2.DeleteConnectionResponse.SerializeToString,
+            ),
+            'MarkReauthRequired': grpc.unary_unary_rpc_method_handler(
+                    servicer.MarkReauthRequired,
+                    request_deserializer=tps__pb2.MarkReauthRequiredRequest.FromString,
+                    response_serializer=tps__pb2.MarkReauthRequiredResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -436,6 +452,33 @@ class TpsService:
             '/tps.TpsService/DeleteConnection',
             tps__pb2.DeleteConnectionRequest.SerializeToString,
             tps__pb2.DeleteConnectionResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def MarkReauthRequired(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/tps.TpsService/MarkReauthRequired',
+            tps__pb2.MarkReauthRequiredRequest.SerializeToString,
+            tps__pb2.MarkReauthRequiredResponse.FromString,
             options,
             channel_credentials,
             insecure,
