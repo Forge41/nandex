@@ -1,0 +1,78 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+:root {
+  color-scheme: light;
+
+  --nx-bg-base: hsl(0 0% 100%);
+  --nx-bg-subtle: hsl(40 16% 96%);
+  --nx-fg-base: hsl(40 6% 10%);
+  --nx-fg-muted: hsl(38 4% 50%);
+  --nx-border-base: hsl(36 15% 94%);
+  --nx-border-strong: hsl(34 11% 88%);
+  --nx-button-inverted: hsl(40 6% 10%);
+  --nx-button-inverted-fg: hsl(0 0% 100%);
+  --nx-success-fg: hsl(142 71% 35%);
+  --nx-link: hsl(220 79% 48%);
+  --nx-link-hover: hsl(220 79% 40%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --nx-bg-base: hsl(30 7% 5%);
+    --nx-bg-subtle: hsl(40 6% 10%);
+    --nx-fg-base: hsl(34 11% 88%);
+    --nx-fg-muted: hsl(40 4% 60%);
+    --nx-border-base: hsl(0 0% 100% / 0.1);
+    --nx-border-strong: hsl(0 0% 100% / 0.16);
+    --nx-button-inverted: hsl(37 5% 29%);
+    --nx-button-inverted-fg: hsl(34 11% 88%);
+    --nx-success-fg: hsl(142 55% 45%);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --nx-bg-base: hsl(30 7% 5%);
+  --nx-bg-subtle: hsl(40 6% 10%);
+  --nx-fg-base: hsl(34 11% 88%);
+  --nx-fg-muted: hsl(40 4% 60%);
+  --nx-border-base: hsl(0 0% 100% / 0.1);
+  --nx-border-strong: hsl(0 0% 100% / 0.16);
+  --nx-button-inverted: hsl(37 5% 29%);
+  --nx-button-inverted-fg: hsl(34 11% 88%);
+  --nx-success-fg: hsl(142 55% 45%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--nx-bg-base);
+  color: var(--nx-fg-base);
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+a {
+  color: var(--nx-link);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--nx-link-hover);
+}
+
+::placeholder {
+  color: hsl(38 4% 50% / 70%);
+}
+
+button {
+  font-family: inherit;
+}

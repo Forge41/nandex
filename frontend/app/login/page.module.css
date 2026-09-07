@@ -1,0 +1,72 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--nx-bg-base);
+}
+
+.card {
+  width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.logo {
+  font-weight: 700;
+  font-size: 15px;
+  margin-bottom: 24px;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: var(--nx-fg-muted);
+  margin: 0 0 16px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.input {
+  padding: 10px 12px;
+  border: 1px solid var(--nx-border-base);
+  border-radius: 8px;
+  background: var(--nx-bg-base);
+  color: var(--nx-fg-base);
+  font-size: 14px;
+  outline: none;
+}
+.input:focus {
+  border-color: var(--nx-border-strong);
+}
+
+.button {
+  padding: 10px 16px;
+  background: var(--nx-button-inverted);
+  color: var(--nx-button-inverted-fg);
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.error {
+  font-size: 13px;
+  color: hsl(0 65% 50%);
+  margin: 0;
+}

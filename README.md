@@ -19,17 +19,21 @@ Four pipeline stages — see [AGENTS.md](AGENTS.md) for the full breakdown and h
 - **`retrieval`** — hybrid search (Postgres full-text + pgvector), fused with Reciprocal Rank
   Fusion and reranked with a free cross-encoder. **Built** — a plain Python function today, no
   HTTP layer yet.
-- **`chat`** — ties `retrieval` to an LLM to generate a streamed, cited answer. **Backend built**
+- **`chat`** — ties `retrieval` to an LLM to generate a streamed, cited answer. **Built**
   (`Conversation`/`Message` models, a streaming REST API, sources attached as structured
-  citations rather than parsed from the model's own text); no frontend yet.
+  citations rather than parsed from the model's own text; a Next.js chat UI streams the answer
+  live).
 
 `backend/ai/` is a small, Django-free layer wrapping the Anthropic SDK (client, model registry,
 prompts as `.md` files) that `chat` calls into — not one of the four pipeline stages itself.
 
+A Next.js frontend (`frontend/`) covers the chat UI and an integrations marketplace for
+connecting apps — see [Running the frontend](#running-the-frontend) below.
+
 ## Layout
 
 ```
-frontend/          Next.js app (not yet built)
+frontend/          Next.js app: chat UI + integrations marketplace
 backend/
   config/           Django project (settings, urls, asgi)
   ai/               Anthropic client, model registry, prompts as .md files -- no Django import
@@ -43,7 +47,8 @@ backend/
 
 ## Setup
 
-Requires [uv](https://docs.astral.sh/uv/) and a local Postgres.
+Requires [uv](https://docs.astral.sh/uv/), a local Postgres, and — for the frontend —
+[pnpm](https://pnpm.io) with Node 22+.
 
 ```bash
 # once: create the dev role and database
@@ -55,6 +60,9 @@ cp backend/.env.example backend/.env
 uv run --project backend python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 
 make migrate
+
+# once: frontend dependencies + env (defaults are enough for local dev)
+cd frontend && pnpm install && cp .env.example .env && cd ..
 ```
 
 `importer`'s sync workflows and `ingest`'s ingestion workflows both run on
@@ -83,25 +91,51 @@ without a valid key.
 
 | Command | What it does |
 | --- | --- |
-| `make tps` | Run the Django dev server (`tps`'s HTTP API) |
+| `make serve-all` | Run everything at once: backend (ASGI), `tps-grpc`, `importer`/`ingest` workers, frontend |
+| `make asgi` | Run just the backend, under a real ASGI server (needed for `core`/`chat`/marketplace to work) |
+| `make tps` | Run the Django dev server under WSGI — only reliable for `tps`'s own HTTP API, see below |
 | `make tps-grpc` | Run `tps`'s gRPC server (`core`/`importer` talk to `tps` only via this) |
 | `make importer-worker` | Run the Temporal worker for `importer`'s sync workflows |
 | `make ingest-worker` | Run the Temporal worker for `ingest`'s parse/chunk/embed workflows |
-| `make asgi` | Run the whole API (`core`, marketplace, `chat`) under a real ASGI server |
-| `make serve-all` | Alias for `make tps` — run `tps-grpc`/`importer-worker`/`ingest-worker` in their own terminals too |
+| `make frontend` | Run the Next.js dev server (proxies `/api/*` to the backend) |
 | `make migrate` | Apply pending database migrations for every app |
 | `make tps-migrate` / `importer-migrate` / `ingest-migrate` | Migrate just that one app |
 
-`make tps` defaults to port 8000; if that's taken locally, run
-`cd backend && uv run manage.py runserver <port>` directly. `importer-worker` needs a Temporal
-server reachable (see Setup above) and `tps-grpc` running, since it fetches tokens through it.
-Both `importer-worker` and `ingest-worker` register their own sweep schedule (`import-sweep`,
-`ingest-sweep`) the first time they start, idempotently — a connection or document created while
-neither worker is running just gets picked up on the next sweep once it is.
+`make serve-all` needs a local Postgres and a `temporal server start-dev` already running (see
+Setup above) — it doesn't start either of those for you, just the five application processes,
+each in the foreground of one shared terminal; Ctrl-C stops all of them together. It also
+expects `frontend/.env` and `frontend/node_modules` to already exist (`cd frontend && pnpm
+install && cp .env.example .env` once) — see [Running the frontend](#running-the-frontend)
+below. For working on one piece at a time, run its target (`make asgi`, `make tps-grpc`, etc.)
+in its own terminal instead.
+
+`importer-worker` needs a Temporal server reachable and `tps-grpc` running, since it fetches
+tokens through it. Both `importer-worker` and `ingest-worker` register their own sweep schedule
+(`import-sweep`, `ingest-sweep`) the first time they start, idempotently — a connection or
+document created while neither worker is running just gets picked up on the next sweep once it
+is.
 
 `chat`'s message endpoint streams its answer over SSE — Django's dev `runserver` (WSGI) buffers
 that instead of flushing it incrementally, so use `make asgi` (`uvicorn`) whenever you're actually
-testing streaming, not `make tps`.
+testing streaming, not `make tps`. The marketplace endpoints (`core`'s gRPC calls into `tps` via
+`apps.core.clients.tps_client`) need `make asgi` too, for a different reason: `tps_client` caches
+one `grpc.aio` channel at module scope, and under WSGI `runserver` each request can land on a
+different thread with its own event loop, breaking that cached channel with an "Event loop is
+closed" 500 the moment a second request arrives on a different thread. `make tps` is fine for
+`tps`'s own HTTP API and for a single one-off request, but treat `make asgi` (or `make serve-all`,
+which already uses it) as the default for any real session against `core`, `chat`, or the
+marketplace.
+
+## Running the frontend
+
+Once Setup's one-time `pnpm install`/`cp .env.example .env` is done, `make frontend` (or
+`make serve-all` for the whole stack) runs it — or `cd frontend && pnpm dev` directly.
+
+Every `/api/*` request from the browser is proxied straight to the Django backend
+(`next.config.ts`'s `rewrites()`), same-origin, so the session cookie just works with no CORS
+setup. Run the backend under `make asgi` (see the note above), plus `make tps-grpc` and
+`make importer-worker`/`make ingest-worker` if you want a real end-to-end connect-and-sync test —
+or just `make serve-all` for all of it together.
 
 The marketplace (`GET /apps`, `GET/POST /connections`, `POST /apps/<name>/install|connect`,
 `GET /oauth/callback`) and `chat` (`/chat/conversations`, `/chat/conversations/<id>/messages`)

@@ -66,3 +66,28 @@ jobs:
         working-directory: backend
       - run: uv run pytest
         working-directory: backend
+
+  frontend:
+    runs-on: ubuntu-latest
+    env:
+      # next build reads this at build time (see next.config.ts); it doesn't need a live
+      # backend to reach, just to be present.
+      BACKEND_ORIGIN: http://localhost:8000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+        working-directory: frontend
+      - run: pnpm exec tsc --noEmit
+        working-directory: frontend
+      - run: pnpm exec eslint
+        working-directory: frontend
+      - run: pnpm build
+        working-directory: frontend
