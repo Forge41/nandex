@@ -33,15 +33,8 @@ agent-permissions: ## Regenerate per-tool permission configs from .agents/permis
 # Backend services
 # ---------------------------------------------------------------------------
 
-serve-all: ## Run the whole local stack: backend (ASGI), tps-grpc, importer/ingest workers, frontend
-	@echo "Requires a local Postgres and a running 'temporal server start-dev' -- see README Setup."
-	@trap 'kill 0' EXIT INT TERM; \
-	(cd backend && uv run uvicorn config.asgi:application --reload) & \
-	(cd backend && uv run manage.py rungrpc) & \
-	(cd backend && uv run manage.py run_importer_worker) & \
-	(cd backend && uv run manage.py run_ingest_worker) & \
-	(cd frontend && pnpm dev) & \
-	wait
+serve-all: ## Run the whole local stack: Temporal, backend (ASGI), tps-grpc, importer/ingest workers, frontend
+	bash scripts/dev_serve.sh
 
 tps: ## Run the Django dev server under WSGI -- only reliable for tps's own HTTP API (see README)
 	cd backend && uv run manage.py runserver
