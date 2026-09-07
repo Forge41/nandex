@@ -19,6 +19,9 @@ MAGIC_LINK_MAX_AGE = 15 * 60
 def request_magic_link(email: str) -> None:
     """Always succeeds — never reveal whether the email is registered."""
     token = create_magic_token(email)
+    # Must stay a frontend URL: the verify flow depends on the browser landing on frontend
+    # JS first (which strips the token from the URL, then POSTs it to /api/auth/verify),
+    # not on Django serving this route directly.
     link = f"{settings.APP_URL}/auth/verify?token={token}"
     send_mail(
         subject="Your sign-in link",

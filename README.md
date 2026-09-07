@@ -16,7 +16,12 @@ Four pipeline stages — see [AGENTS.md](AGENTS.md) for the full breakdown and h
 - **`retrieval`** — hybrid search (Postgres full-text + pgvector), fused with Reciprocal Rank
   Fusion and reranked with a free cross-encoder. **Built** — a plain Python function today, no
   HTTP layer yet.
-- **`chat`** — the UI tying it all together. Not yet built.
+- **`chat`** — ties `retrieval` to an LLM to generate a streamed, cited answer. **Backend built**
+  (`Conversation`/`Message` models, a streaming REST API, sources attached as structured
+  citations rather than parsed from the model's own text); no frontend yet.
+
+`backend/ai/` is a small, Django-free layer wrapping the Anthropic SDK (client, model registry,
+prompts as `.md` files) that `chat` calls into — not one of the four pipeline stages itself.
 
 ## Layout
 
@@ -24,11 +29,13 @@ Four pipeline stages — see [AGENTS.md](AGENTS.md) for the full breakdown and h
 frontend/          Next.js app (not yet built)
 backend/
   config/           Django project (settings, urls, asgi)
+  ai/               Anthropic client, model registry, prompts as .md files -- no Django import
   apps/
     tps/            connector catalog, encrypted connections, OAuth/credential handlers
     importer/       Temporal-orchestrated sync; owns the immutable RawDocument
     ingest/         parse -> chunk -> embed -> index pipeline (not yet Temporal-orchestrated)
     retrieval/      hybrid search (pgvector + Postgres FTS) -> RRF fusion -> rerank
+    chat/           Conversation/Message models; streams an ai/-generated, cited answer
 ```
 
 ## Setup
@@ -65,6 +72,10 @@ statement — for local dev, the simplest fix is `psql postgres -c "ALTER ROLE r
 (CI's Postgres container already runs as a superuser by default, so no extra step is needed
 there).
 
+`chat` needs a real `AI_ANTHROPIC_API_KEY` in your `.env` to generate answers — everything else
+(retrieval, citations, persistence) works without one, but `ai.client.stream_answer` will fail
+without a valid key.
+
 ## Running
 
 | Command | What it does |
@@ -72,6 +83,7 @@ there).
 | `make tps` | Run the Django dev server (`tps`'s HTTP API) |
 | `make tps-grpc` | Run `tps`'s gRPC server (`core`/`importer` talk to `tps` only via this) |
 | `make importer-worker` | Run the Temporal worker for `importer`'s sync workflows |
+| `make asgi` | Run the whole API (`core`, marketplace, `chat`) under a real ASGI server |
 | `make serve-all` | Alias for `make tps` — run `tps-grpc`/`importer-worker` in their own terminals too |
 | `make migrate` | Apply pending database migrations for every app |
 | `make tps-migrate` / `importer-migrate` / `ingest-migrate` | Migrate just that one app |
@@ -80,13 +92,23 @@ there).
 `cd backend && uv run manage.py runserver <port>` directly. `importer-worker` needs a Temporal
 server reachable (see Setup above) and `tps-grpc` running, since it fetches tokens through it.
 
+`chat`'s message endpoint streams its answer over SSE — Django's dev `runserver` (WSGI) buffers
+that instead of flushing it incrementally, so use `make asgi` (`uvicorn`) whenever you're actually
+testing streaming, not `make tps`.
+
+The marketplace (`GET /apps`, `GET/POST /connections`, `POST /apps/<name>/install|connect`,
+`GET /oauth/callback`) and `chat` (`/chat/conversations`, `/chat/conversations/<id>/messages`)
+endpoints are all under `core`'s session-cookie auth, not `tps`'s `X-TPS-Secret` header — log in
+via `POST /auth/login` + `/auth/verify` first (see `apps/core/tests/test_marketplace_api.py` for
+a working example against a mocked `tps_client`).
+
 `ingest` has no Temporal worker yet (see its entry above) — run it directly against one
 `RawDocument` with `cd backend && uv run manage.py ingest_document <raw_document_id>`, or sweep
 every not-yet-ingested one with `manage.py ingest_pending`.
 
-`retrieval` has no CLI command or HTTP endpoint yet — it's a plain Python function,
-`apps.retrieval.search.search(query, raw_document_ids, top_k)`, called in-process (e.g. from
-`manage.py shell`) until `apps/chat` exists to call it for real.
+`retrieval` still has no HTTP endpoint of its own — it's a plain Python function,
+`apps.retrieval.search.search(query, raw_document_ids, top_k)`, that `apps.chat.service.ask`
+now calls in-process for every message.
 
 Every `tps` endpoint requires an `X-TPS-Secret` header (`TPS_TPS_SECRET` in your `.env`), and
 `/integrations/*` routes also require `X-User-ID`:

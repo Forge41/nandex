@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 .PHONY: help install hooks agent-permissions link-agents fmt lint lint-ci test check \
 	serve-all tps tps-migrate tps-grpc grpc-gen migrate importer-migrate ingest-migrate \
-	importer-worker
+	importer-worker asgi
 
 help: ## List available targets
 	@grep -hE '^[a-z][a-zA-Z0-9_-]*:.*?## ' $(MAKEFILE_LIST) \
@@ -56,6 +56,9 @@ ingest-migrate: ## Apply pending database migrations for the ingest app
 
 importer-worker: ## Run importer's Temporal worker (needs a Temporal server already running)
 	cd backend && uv run manage.py runworker
+
+asgi: ## Run the full API under a real ASGI server (needed for chat's SSE streaming to work)
+	cd backend && uv run uvicorn config.asgi:application --reload
 
 grpc-gen: ## Regenerate apps/tps/grpc/tps_pb2*.py from tps.proto
 	cd backend && uv run python -m grpc_tools.protoc \

@@ -28,4 +28,5 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("health", health),
     path("", include("apps.core.api.urls")),
+    path("", include("apps.chat.api.urls")),
 ]

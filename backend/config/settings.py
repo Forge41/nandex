@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "apps.importer",
     "apps.ingest",
     "apps.retrieval",
+    "apps.chat",
 ]
 
 AUTH_USER_MODEL = "core.User"
@@ -57,6 +58,19 @@ EMAIL_BACKEND = os.environ.get(
     "DJANGO_EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
 )
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "nandex <noreply@localhost>")
+
+# Inert until DJANGO_EMAIL_BACKEND is switched to smtp.EmailBackend for production.
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", 587))
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "true").lower() == "true"
+
+# Secure defaults to false for local dev (plain HTTP); flip true in production env.
+SESSION_COOKIE_SECURE = os.environ.get("DJANGO_SESSION_COOKIE_SECURE", "false").lower() == "true"
+SESSION_COOKIE_SAMESITE = os.environ.get("DJANGO_SESSION_COOKIE_SAMESITE", "Lax")
+SESSION_COOKIE_AGE = int(os.environ.get("DJANGO_SESSION_COOKIE_AGE", 60 * 60 * 24 * 14))
+CSRF_COOKIE_SECURE = os.environ.get("DJANGO_CSRF_COOKIE_SECURE", "false").lower() == "true"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
