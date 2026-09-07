@@ -12,6 +12,11 @@ class Settings(BaseSettings):
     embed_batch_size: int = 64
     fastembed_cache_dir: str | None = None  # None -> fastembed's own default cache dir
 
+    temporal_address: str = "localhost:7233"
+    temporal_task_queue: str = "ingest"
+    sweep_interval_seconds: int = 90
+    sweep_batch_size: int = 100
+
     model_config = {"env_prefix": "INGEST_"}
 
 

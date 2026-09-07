@@ -57,6 +57,20 @@ def _require_user(request: HttpRequest):
     return request.user
 
 
+@csrf_exempt
+async def session(request: HttpRequest) -> JsonResponse:
+    user = await sync_to_async(_require_user)(request)
+    if user is None:
+        return JsonResponse({"detail": "Authentication required"}, status=401)
+    workspace = await sync_to_async(current_workspace_for)(user)
+    return JsonResponse(
+        {
+            "user": {"id": user.id, "email": user.email},
+            "workspace": {"id": workspace.id, "slug": workspace.slug} if workspace else None,
+        }
+    )
+
+
 def _serialize_project(project: Project) -> dict:
     return {
         "id": project.id,
