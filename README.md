@@ -19,17 +19,21 @@ Four pipeline stages — see [AGENTS.md](AGENTS.md) for the full breakdown and h
 - **`retrieval`** — hybrid search (Postgres full-text + pgvector), fused with Reciprocal Rank
   Fusion and reranked with a free cross-encoder. **Built** — a plain Python function today, no
   HTTP layer yet.
-- **`chat`** — ties `retrieval` to an LLM to generate a streamed, cited answer. **Backend built**
+- **`chat`** — ties `retrieval` to an LLM to generate a streamed, cited answer. **Built**
   (`Conversation`/`Message` models, a streaming REST API, sources attached as structured
-  citations rather than parsed from the model's own text); no frontend yet.
+  citations rather than parsed from the model's own text; a Next.js chat UI streams the answer
+  live).
 
 `backend/ai/` is a small, Django-free layer wrapping the Anthropic SDK (client, model registry,
 prompts as `.md` files) that `chat` calls into — not one of the four pipeline stages itself.
 
+A Next.js frontend (`frontend/`) covers the chat UI and an integrations marketplace for
+connecting apps — see [Running the frontend](#running-the-frontend) below.
+
 ## Layout
 
 ```
-frontend/          Next.js app (not yet built)
+frontend/          Next.js app: chat UI + integrations marketplace
 backend/
   config/           Django project (settings, urls, asgi)
   ai/               Anthropic client, model registry, prompts as .md files -- no Django import
@@ -101,7 +105,27 @@ neither worker is running just gets picked up on the next sweep once it is.
 
 `chat`'s message endpoint streams its answer over SSE — Django's dev `runserver` (WSGI) buffers
 that instead of flushing it incrementally, so use `make asgi` (`uvicorn`) whenever you're actually
-testing streaming, not `make tps`.
+testing streaming, not `make tps`. The marketplace endpoints (`core`'s gRPC calls into `tps` via
+`apps.core.clients.tps_client`) need `make asgi` too, for a different reason: `tps_client` caches
+one `grpc.aio` channel at module scope, and under WSGI `runserver` each request can land on a
+different thread with its own event loop, breaking that cached channel with an "Event loop is
+closed" 500 the moment a second request arrives on a different thread. `make tps` is fine for
+`tps`'s own HTTP API and for a single one-off request, but treat `make asgi` as the default for
+any real session against `core`, `chat`, or the marketplace.
+
+## Running the frontend
+
+```bash
+cd frontend
+pnpm install
+cp .env.example .env    # BACKEND_ORIGIN, defaults to http://localhost:8000
+pnpm dev
+```
+
+Every `/api/*` request from the browser is proxied straight to the Django backend
+(`next.config.ts`'s `rewrites()`), same-origin, so the session cookie just works with no CORS
+setup. Run the backend under `make asgi` (see the note above), plus `make tps-grpc` and
+`make importer-worker`/`make ingest-worker` if you want a real end-to-end connect-and-sync test.
 
 The marketplace (`GET /apps`, `GET/POST /connections`, `POST /apps/<name>/install|connect`,
 `GET /oauth/callback`) and `chat` (`/chat/conversations`, `/chat/conversations/<id>/messages`)
