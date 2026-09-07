@@ -13,8 +13,17 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Nothing else in this codebase ever actually loaded backend/.env -- every os.environ.get()
+# below, and every app's own pydantic Settings (env_prefix="TPS_"/"AI_"/etc.), only ever see
+# real process environment variables. This makes the file real: override=False so already-set
+# env vars (CI, a real deployment) still win over a stray .env; a missing file is a silent
+# no-op, not an error.
+load_dotenv(BASE_DIR / ".env", override=False)
 
 
 # Quick-start development settings - unsuitable for production
