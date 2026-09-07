@@ -66,9 +66,10 @@ cd frontend && pnpm install && cp .env.example .env && cd ..
 ```
 
 `importer`'s sync workflows and `ingest`'s ingestion workflows both run on
-[Temporal](https://temporal.io) — for local dev, run a disposable dev server in its own terminal
-(`brew install temporal` on macOS, then `temporal server start-dev`; the test suite doesn't need
-this, it spins up its own ephemeral server per run).
+[Temporal](https://temporal.io) — install the CLI once (`brew install temporal` on macOS; the
+test suite doesn't need this, it spins up its own ephemeral server per run). `make serve-all`
+starts a disposable dev server itself; running `make importer-worker`/`make ingest-worker` on
+their own still expects one already running in its own terminal (`temporal server start-dev`).
 
 `apps.ingest`'s migration runs `CREATE EXTENSION vector`, so Postgres itself needs the
 `pgvector` extension installed at the OS/package level (a separate step from the `pgvector`
@@ -91,7 +92,7 @@ without a valid key.
 
 | Command | What it does |
 | --- | --- |
-| `make serve-all` | Run everything at once: backend (ASGI), `tps-grpc`, `importer`/`ingest` workers, frontend |
+| `make serve-all` | Run everything: Temporal, backend (ASGI), `tps-grpc`, `importer`/`ingest` workers, frontend |
 | `make asgi` | Run just the backend, under a real ASGI server (needed for `core`/`chat`/marketplace to work) |
 | `make tps` | Run the Django dev server under WSGI — only reliable for `tps`'s own HTTP API, see below |
 | `make tps-grpc` | Run `tps`'s gRPC server (`core`/`importer` talk to `tps` only via this) |
@@ -101,13 +102,16 @@ without a valid key.
 | `make migrate` | Apply pending database migrations for every app |
 | `make tps-migrate` / `importer-migrate` / `ingest-migrate` | Migrate just that one app |
 
-`make serve-all` needs a local Postgres and a `temporal server start-dev` already running (see
-Setup above) — it doesn't start either of those for you, just the five application processes,
-each in the foreground of one shared terminal; Ctrl-C stops all of them together. It also
-expects `frontend/.env` and `frontend/node_modules` to already exist (`cd frontend && pnpm
-install && cp .env.example .env` once) — see [Running the frontend](#running-the-frontend)
-below. For working on one piece at a time, run its target (`make asgi`, `make tps-grpc`, etc.)
-in its own terminal instead.
+`make serve-all` (`scripts/dev_serve.sh`) is genuinely a one-command "run everything": it starts
+a local Temporal dev server itself (reusing one that's already running instead of erroring),
+starts every application process, and tears the whole group down together — on Ctrl-C, or the
+moment any single one of them exits on its own, so a crashed worker can't silently leave the rest
+running half-broken. It does still need a local Postgres already running (see Setup above), and
+`frontend/.env`/`frontend/node_modules` already set up (`cd frontend && pnpm install && cp
+.env.example .env` once — see [Running the frontend](#running-the-frontend) below) — it checks
+for both up front and fails with a clear message rather than a stack trace if either is missing.
+For working on one piece at a time, run its target (`make asgi`, `make tps-grpc`, etc.) in its
+own terminal instead.
 
 `importer-worker` needs a Temporal server reachable and `tps-grpc` running, since it fetches
 tokens through it. Both `importer-worker` and `ingest-worker` register their own sweep schedule
