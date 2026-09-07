@@ -84,6 +84,10 @@ server reachable (see Setup above) and `tps-grpc` running, since it fetches toke
 `RawDocument` with `cd backend && uv run manage.py ingest_document <raw_document_id>`, or sweep
 every not-yet-ingested one with `manage.py ingest_pending`.
 
+`retrieval` has no CLI command or HTTP endpoint yet — it's a plain Python function,
+`apps.retrieval.search.search(query, raw_document_ids, top_k)`, called in-process (e.g. from
+`manage.py shell`) until `apps/chat` exists to call it for real.
+
 Every `tps` endpoint requires an `X-TPS-Secret` header (`TPS_TPS_SECRET` in your `.env`), and
 `/integrations/*` routes also require `X-User-ID`:
 
