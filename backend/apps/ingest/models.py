@@ -13,7 +13,7 @@ import secrets
 from django.contrib.postgres.indexes import GinIndex
 from django.contrib.postgres.search import SearchVectorField
 from django.db import models
-from pgvector.django import VectorField
+from pgvector.django import HnswIndex, VectorField
 
 from apps.ingest.config import settings
 
@@ -86,6 +86,15 @@ class ProcessedChunk(models.Model):
         indexes = (
             models.Index(fields=["raw_document_id", "chunk_idx"]),
             GinIndex(fields=["content_search"], name="ingest_chunk_search_gin"),
+            # Added in migration 0002, after retrieval needed cosine-ordered ANN search --
+            # a plain sequential scan was all CosineDistance ordering got before this.
+            HnswIndex(
+                name="ingest_chunk_embedding_hnsw",
+                fields=["embedding"],
+                m=16,
+                ef_construction=64,
+                opclasses=["vector_cosine_ops"],
+            ),
         )
 
     def __str__(self) -> str:

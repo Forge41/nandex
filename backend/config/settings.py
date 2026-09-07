@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "apps.tps",
     "apps.importer",
     "apps.ingest",
+    "apps.retrieval",
 ]
 
 AUTH_USER_MODEL = "core.User"
