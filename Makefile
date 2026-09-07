@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 .PHONY: help install hooks agent-permissions link-agents fmt lint lint-ci test check \
 	serve-all tps tps-migrate tps-grpc grpc-gen migrate importer-migrate ingest-migrate \
-	importer-worker ingest-worker asgi
+	importer-worker ingest-worker asgi frontend
 
 help: ## List available targets
 	@grep -hE '^[a-z][a-zA-Z0-9_-]*:.*?## ' $(MAKEFILE_LIST) \
@@ -33,10 +33,17 @@ agent-permissions: ## Regenerate per-tool permission configs from .agents/permis
 # Backend services
 # ---------------------------------------------------------------------------
 
-serve-all: ## Start the Django dev server (tps's HTTP API; run tps-grpc/importer-worker separately)
-	$(MAKE) tps
+serve-all: ## Run the whole local stack: backend (ASGI), tps-grpc, importer/ingest workers, frontend
+	@echo "Requires a local Postgres and a running 'temporal server start-dev' -- see README Setup."
+	@trap 'kill 0' EXIT INT TERM; \
+	(cd backend && uv run uvicorn config.asgi:application --reload) & \
+	(cd backend && uv run manage.py rungrpc) & \
+	(cd backend && uv run manage.py run_importer_worker) & \
+	(cd backend && uv run manage.py run_ingest_worker) & \
+	(cd frontend && pnpm dev) & \
+	wait
 
-tps: ## Run the Django dev server (tps is currently its only HTTP-facing app)
+tps: ## Run the Django dev server under WSGI -- only reliable for tps's own HTTP API (see README)
 	cd backend && uv run manage.py runserver
 
 tps-migrate: ## Apply pending database migrations for the tps app
@@ -60,8 +67,11 @@ importer-worker: ## Run importer's Temporal worker (needs a Temporal server alre
 ingest-worker: ## Run ingest's Temporal worker (needs a Temporal server already running)
 	cd backend && uv run manage.py run_ingest_worker
 
-asgi: ## Run the full API under a real ASGI server (needed for chat's SSE streaming to work)
+asgi: ## Run the full API under a real ASGI server (needed for core/chat/marketplace to work)
 	cd backend && uv run uvicorn config.asgi:application --reload
+
+frontend: ## Run the Next.js dev server (proxies /api/* to the backend -- see frontend/.env)
+	cd frontend && pnpm dev
 
 grpc-gen: ## Regenerate apps/tps/grpc/tps_pb2*.py from tps.proto
 	cd backend && uv run python -m grpc_tools.protoc \
