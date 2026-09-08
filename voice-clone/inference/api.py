@@ -20,7 +20,9 @@ async def convert_endpoint(voice_name: str, file: UploadFile, pitch_shift: int =
     if not (voice_model_dir(voice_name) / "model.pth").is_file():
         raise HTTPException(status_code=404, detail=f"No trained model for voice '{voice_name}'")
 
-    with tempfile.NamedTemporaryFile(suffix=Path(file.filename or "input.wav").suffix, delete=False) as tmp:
+    with tempfile.NamedTemporaryFile(
+        suffix=Path(file.filename or "input.wav").suffix, delete=False
+    ) as tmp:
         shutil.copyfileobj(file.file, tmp)
         input_path = Path(tmp.name)
 

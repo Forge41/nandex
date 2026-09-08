@@ -5,7 +5,6 @@ Writes vendor/rvc/assets/weights/<voice_name>.pth and an added_*.index under
 vendor/rvc/assets/indices/, then copies both into models/<voice_name>/.
 """
 
-import copy
 import json
 import shutil
 import subprocess
@@ -27,7 +26,8 @@ CONFIG_TEMPLATE = RVC_ROOT / "configs" / "v1" / f"{SAMPLE_RATE}.json"
 def _write_config(exp_dir: Path) -> None:
     config_data = json.loads(CONFIG_TEMPLATE.read_text(encoding="utf8"))
     (exp_dir / "config.json").write_text(
-        json.dumps(config_data, ensure_ascii=False, indent=4, sort_keys=True) + "\n", encoding="utf8"
+        json.dumps(config_data, ensure_ascii=False, indent=4, sort_keys=True) + "\n",
+        encoding="utf8",
     )
 
 
@@ -44,7 +44,9 @@ def _write_filelist(exp_dir: Path) -> None:
         & {p.stem for p in f0nsf_dir.iterdir()}
     )
     if not names:
-        raise RuntimeError("No audio survived preprocessing + feature extraction -- nothing to train on")
+        raise RuntimeError(
+            "No audio survived preprocessing + feature extraction -- nothing to train on"
+        )
 
     lines = [
         f"{gt_wavs_dir}/{name}.wav|{feature_dir}/{name}.npy|{f0_dir}/{name}.wav.npy|{f0nsf_dir}/{name}.wav.npy|{SPEAKER_ID}"
@@ -62,7 +64,9 @@ def _write_filelist(exp_dir: Path) -> None:
     (exp_dir / "filelist.txt").write_text("\n".join(lines), encoding="utf8")
 
 
-def train(voice_name: str, total_epoch: int = 200, save_every_epoch: int = 50, batch_size: int = 4) -> None:
+def train(
+    voice_name: str, total_epoch: int = 200, save_every_epoch: int = 50, batch_size: int = 4
+) -> None:
     exp_dir = RVC_ROOT / "logs" / voice_name
     _write_config(exp_dir)
     _write_filelist(exp_dir)
@@ -71,18 +75,30 @@ def train(voice_name: str, total_epoch: int = 200, save_every_epoch: int = 50, b
         [
             sys.executable,
             "train/train.py",
-            "-e", voice_name,
-            "-sr", SAMPLE_RATE,
-            "-f0", "1",
-            "-bs", str(batch_size),
-            "-te", str(total_epoch),
-            "-se", str(save_every_epoch),
-            "-pg", f"assets/pretrained_{VERSION}/f0G{SAMPLE_RATE}.pth",
-            "-pd", f"assets/pretrained_{VERSION}/f0D{SAMPLE_RATE}.pth",
-            "-l", "1",   # if_latest: keep only the newest checkpoint
-            "-c", "0",   # if_cache_data_in_gpu: no GPU assumed by default
-            "-sw", "0",  # save_every_weights: extract a model.pth at every save, not just at the end
-            "-v", VERSION,
+            "-e",
+            voice_name,
+            "-sr",
+            SAMPLE_RATE,
+            "-f0",
+            "1",
+            "-bs",
+            str(batch_size),
+            "-te",
+            str(total_epoch),
+            "-se",
+            str(save_every_epoch),
+            "-pg",
+            f"assets/pretrained_{VERSION}/f0G{SAMPLE_RATE}.pth",
+            "-pd",
+            f"assets/pretrained_{VERSION}/f0D{SAMPLE_RATE}.pth",
+            "-l",
+            "1",  # if_latest: keep only the newest checkpoint
+            "-c",
+            "0",  # if_cache_data_in_gpu: no GPU assumed by default
+            "-sw",
+            "0",  # save_every_weights: extract a model.pth at every save, not just at the end
+            "-v",
+            VERSION,
         ],
         cwd=RVC_ROOT,
         check=True,

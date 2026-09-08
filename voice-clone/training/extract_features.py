@@ -8,7 +8,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from paths import RVC_ROOT
 
-VERSION = "v2"  # fea_dim 768; matches the pretrained_v2/f0*40k.pth checkpoints train.py warm-starts from
+VERSION = (
+    "v2"  # fea_dim 768; matches the pretrained_v2/f0*40k.pth checkpoints train.py warm-starts from
+)
 
 
 def extract_features(voice_name: str) -> None:

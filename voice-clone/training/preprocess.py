@@ -13,7 +13,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from paths import DATA_DIR, RVC_ROOT
 
-
 AUDIO_EXTENSIONS = {".wav", ".flac", ".mp3", ".m4a", ".ogg"}
 
 
@@ -28,7 +27,16 @@ def isolate_vocals(voice_name: str) -> Path:
 
     # demucs's CLI takes explicit file args, not a directory.
     subprocess.run(
-        [sys.executable, "-m", "demucs", "--two-stems", "vocals", "-o", str(isolated_dir), *map(str, inputs)],
+        [
+            sys.executable,
+            "-m",
+            "demucs",
+            "--two-stems",
+            "vocals",
+            "-o",
+            str(isolated_dir),
+            *map(str, inputs),
+        ],
         check=True,
     )
     # demucs writes <isolated_dir>/<model_name>/<track>/vocals.wav per input file --
@@ -45,7 +53,9 @@ def isolate_vocals(voice_name: str) -> Path:
 def preprocess_voice(voice_name: str, sample_rate: int = 40000, slice_seconds: float = 3.7) -> Path:
     isolated_dir = isolate_vocals(voice_name)
     exp_dir = RVC_ROOT / "logs" / voice_name
-    exp_dir.mkdir(parents=True, exist_ok=True)  # train/preprocess.py appends to exp_dir/preprocess.log on import
+    exp_dir.mkdir(
+        parents=True, exist_ok=True
+    )  # train/preprocess.py appends to exp_dir/preprocess.log on import
 
     subprocess.run(
         [
