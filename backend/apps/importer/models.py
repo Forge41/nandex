@@ -60,6 +60,9 @@ class RawDocument(models.Model):
     project_id = models.CharField(db_index=True, max_length=24, blank=True, default="")
     provider_document_id = models.CharField(db_index=True, max_length=256)
     provider_version = models.CharField(blank=True, default="", max_length=256)
+    # Human-readable filename -- the uploaded file's own name, or the provider's ItemRef.name
+    # for a connector sync. Blank for any row written before this field existed.
+    display_name = models.CharField(blank=True, default="", max_length=512)
     payload = models.BinaryField()
     content_type = models.CharField(blank=True, default="", max_length=128)
     fetched_at = models.DateTimeField(auto_now_add=True)

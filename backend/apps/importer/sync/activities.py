@@ -123,12 +123,13 @@ def _write_results_sync(
                         provider_version=r.item.version,
                         payload=r.payload,
                         content_type=r.content_type,
+                        display_name=r.item.name,
                     )
                     for r in successes
                 ],
                 update_conflicts=True,
                 unique_fields=["connection_id", "provider_document_id", "provider_version"],
-                update_fields=["payload", "content_type", "fetched_at"],
+                update_fields=["payload", "content_type", "fetched_at", "display_name"],
             )
             bytes_written = sum(len(r.payload) for r in successes)
 
