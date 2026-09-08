@@ -23,10 +23,9 @@ async def test_ensure_sweep_schedule_is_idempotent(temporal_env):
     await ensure_sweep_schedule(temporal_env.client)
     await ensure_sweep_schedule(temporal_env.client)
 
-    matching = [
-        s async for s in await temporal_env.client.list_schedules() if s.id == SWEEP_SCHEDULE_ID
-    ]
-    assert len(matching) == 1
+    # describe() is a direct point lookup by id -- unlike list_schedules() (a visibility-index
+    # scan that can lag a just-created schedule), it doesn't raise if the schedule exists.
+    await temporal_env.client.get_schedule_handle(SWEEP_SCHEDULE_ID).describe()
 
 
 async def test_ensure_sweep_schedule_survives_a_concurrent_race(temporal_env):
@@ -38,7 +37,4 @@ async def test_ensure_sweep_schedule_survives_a_concurrent_race(temporal_env):
         ensure_sweep_schedule(temporal_env.client),
     )
 
-    matching = [
-        s async for s in await temporal_env.client.list_schedules() if s.id == SWEEP_SCHEDULE_ID
-    ]
-    assert len(matching) == 1
+    await temporal_env.client.get_schedule_handle(SWEEP_SCHEDULE_ID).describe()
