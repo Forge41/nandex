@@ -6,7 +6,7 @@ import asyncio
 import pytest
 from temporalio.testing import WorkflowEnvironment
 
-from apps.importer.management.commands.run_importer_worker import (
+from apps.ingest.management.commands.run_ingest_worker import (
     SWEEP_SCHEDULE_ID,
     ensure_sweep_schedule,
 )

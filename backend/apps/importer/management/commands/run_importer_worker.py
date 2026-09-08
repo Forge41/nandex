@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 from datetime import timedelta
 
 from django.core.management.base import BaseCommand
@@ -6,6 +7,7 @@ from temporalio.client import (
     Client,
     Schedule,
     ScheduleActionStartWorkflow,
+    ScheduleAlreadyRunningError,
     ScheduleIntervalSpec,
     ScheduleSpec,
 )
@@ -36,22 +38,29 @@ async def ensure_sweep_schedule(client: Client) -> None:
     async for scheduled in await client.list_schedules():
         if scheduled.id == SWEEP_SCHEDULE_ID:
             return
-    await client.create_schedule(
-        SWEEP_SCHEDULE_ID,
-        Schedule(
-            action=ScheduleActionStartWorkflow(
-                ImportInitiatorWorkflow.run,
-                ImportInitiatorInput(trigger=SyncRun.Trigger.SCHEDULED),
-                id="import-initiator-sweep",
-                task_queue=settings.temporal_task_queue,
+    # The list above can lag a just-created schedule (visibility is eventually consistent),
+    # so two near-simultaneous callers can both miss it there and race to create it -- the
+    # loser's create raises exactly this, and it means the schedule already exists, which is
+    # the outcome we wanted anyway.
+    with contextlib.suppress(ScheduleAlreadyRunningError):
+        await client.create_schedule(
+            SWEEP_SCHEDULE_ID,
+            Schedule(
+                action=ScheduleActionStartWorkflow(
+                    ImportInitiatorWorkflow.run,
+                    ImportInitiatorInput(trigger=SyncRun.Trigger.SCHEDULED),
+                    id="import-initiator-sweep",
+                    task_queue=settings.temporal_task_queue,
+                ),
+                spec=ScheduleSpec(
+                    intervals=[
+                        ScheduleIntervalSpec(
+                            every=timedelta(seconds=settings.sweep_interval_seconds)
+                        )
+                    ]
+                ),
             ),
-            spec=ScheduleSpec(
-                intervals=[
-                    ScheduleIntervalSpec(every=timedelta(seconds=settings.sweep_interval_seconds))
-                ]
-            ),
-        ),
-    )
+        )
 
 
 class Command(BaseCommand):
