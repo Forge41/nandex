@@ -18,10 +18,10 @@ def _select_connections_sync(connection_id: str | None, app_name: str | None) ->
 async def select_connections_activity(
     connection_id: str | None, app_name: str | None
 ) -> list[dict]:
-    """Manual trigger passes a specific connection_id; a per-app scheduled trigger passes
-    an app_name; the recurring full sweep (see runworker.py's schedule) passes neither,
-    syncing every active Connection regardless of app -- this is how a brand-new connection
-    gets picked up without anything having to notify this workflow directly.
+    """A specific connection_id is what apps.core's _trigger_sync passes for a just-connected
+    app (see marketplace_views.py); an app_name syncs every active Connection for that app;
+    neither syncs every active Connection regardless of app -- a manually-startable full
+    backfill, not run on any automatic schedule.
     """
     return await sync_to_async(_select_connections_sync, thread_sensitive=True)(
         connection_id, app_name

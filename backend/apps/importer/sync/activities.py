@@ -5,14 +5,17 @@ I/O" invariant for why that split matters.
 """
 
 import asyncio
+import logging
 
 from asgiref.sync import sync_to_async
 from django.db import transaction
-from django.db.models import F
+from django.db.models import F, Q
 from temporalio import activity
+from temporalio.client import Client
 
 from apps.importer.clients.tps_client import get_token as _tps_get_token
 from apps.importer.clients.tps_client import mark_reauth_required as _tps_mark_reauth_required
+from apps.importer.config import settings
 from apps.importer.errors import PermanentProviderError, ProviderError
 from apps.importer.models import RawDocument, SyncItemFailure, SyncRun
 from apps.importer.providers import PROVIDER_REGISTRY
@@ -104,11 +107,12 @@ async def download_batch_activity(
 
 def _write_results_sync(
     connection_id: str, sync_run_id: str, results: list[DownloadedItem | SyncItemFailureRecord]
-) -> tuple[int, int, int]:
+) -> tuple[int, int, int, list[str]]:
     successes = [r for r in results if isinstance(r, DownloadedItem)]
     failures = [r for r in results if isinstance(r, SyncItemFailureRecord)]
 
     bytes_written = 0
+    written_raw_document_ids: list[str] = []
     with transaction.atomic():
         if successes:
             RawDocument.objects.bulk_create(
@@ -127,6 +131,18 @@ def _write_results_sync(
                 update_fields=["payload", "content_type", "fetched_at"],
             )
             bytes_written = sum(len(r.payload) for r in successes)
+
+            # bulk_create(update_conflicts=True) doesn't reliably populate .id on the
+            # objects passed in (backend-dependent) -- re-select by the exact keys just
+            # written to get real ids for the ingest trigger below.
+            written_keys = Q()
+            for r in successes:
+                written_keys |= Q(provider_document_id=r.item.id, provider_version=r.item.version)
+            written_raw_document_ids = list(
+                RawDocument.objects.filter(written_keys, connection_id=connection_id).values_list(
+                    "id", flat=True
+                )
+            )
 
         if failures:
             SyncItemFailure.objects.bulk_create(
@@ -150,7 +166,27 @@ def _write_results_sync(
             bytes_written=F("bytes_written") + bytes_written,
         )
 
-    return len(successes), len(failures), bytes_written
+    return len(successes), len(failures), bytes_written, written_raw_document_ids
+
+
+async def _trigger_ingest(raw_document_id: str) -> None:
+    """Starts IngesterWorkflow by its registered name, never importing apps.ingest --
+    same convention as apps.importer.api.views's identical helper for a direct upload.
+    Best-effort: if this fails, there's no automatic retry today (see that helper's own
+    docstring for the same caveat) -- a future manual re-ingest is the recourse.
+    """
+    try:
+        client = await Client.connect(settings.temporal_address)
+        await client.start_workflow(
+            "IngesterWorkflow",
+            raw_document_id,
+            id=f"ingest-{raw_document_id}",
+            task_queue=settings.ingest_task_queue,
+        )
+    except Exception:
+        logging.getLogger(__name__).warning(
+            "Couldn't start an immediate ingest for %s.", raw_document_id, exc_info=True
+        )
 
 
 @activity.defn
@@ -159,9 +195,14 @@ async def write_raw_documents_activity(
 ) -> tuple[int, int, int]:
     """Returns (items_written, items_failed, bytes_written) so the workflow can
     accumulate run-level totals itself without doing any DB reads of its own."""
-    return await sync_to_async(_write_results_sync, thread_sensitive=True)(
-        connection_id, sync_run_id, results
-    )
+    items_written, items_failed, bytes_written, raw_document_ids = await sync_to_async(
+        _write_results_sync, thread_sensitive=True
+    )(connection_id, sync_run_id, results)
+
+    for raw_document_id in raw_document_ids:
+        await _trigger_ingest(raw_document_id)
+
+    return items_written, items_failed, bytes_written
 
 
 def _advance_cursor_sync(sync_run_id: str, cursor: str | None) -> None:

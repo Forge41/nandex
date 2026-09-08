@@ -14,7 +14,9 @@ class Settings(BaseSettings):
 
     temporal_address: str = "localhost:7233"
     temporal_task_queue: str = "ingest"
-    sweep_interval_seconds: int = 90
+    # Caps IngestInitiatorWorkflow's discovery query -- that workflow isn't run on any
+    # automatic schedule (documents are ingested the instant they're written or uploaded;
+    # see apps.importer's sync/upload triggers), just a manually-startable full backfill.
     sweep_batch_size: int = 100
 
     model_config = {"env_prefix": "INGEST_"}

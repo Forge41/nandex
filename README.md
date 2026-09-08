@@ -11,13 +11,16 @@ Four pipeline stages — see [AGENTS.md](AGENTS.md) for the full breakdown and h
 - **`importer`** — uses a `tps` connection's token to actually pull data, tracks sync cursors,
   writes documents; also owns direct document uploads (`POST /documents/upload`), since it's the
   only app allowed to write a `RawDocument`, connector-synced or not. **Built** (Google Drive,
-  orchestrated as Temporal workflows; a Temporal Schedule sweeps every active connection every
-  couple of minutes, so a newly-connected app gets synced without anything having to trigger it
-  directly).
+  orchestrated as Temporal workflows). A sync starts the moment an app is connected — `core`
+  starts `ImportInitiatorWorkflow` by name right after a successful connect, scoped to just that
+  one connection — and nothing runs on any recurring schedule.
 - **`ingest`** — normalizes, chunks, and embeds imported documents. **Built** (parse → chunk →
-  embed → index, orchestrated as Temporal workflows the same way as `importer` — its own sweep
-  schedule picks up any not-yet-ingested `RawDocument`; `manage.py ingest_document`/`ingest_pending`
-  still work for a manual one-off run).
+  embed → index, orchestrated as Temporal workflows the same way as `importer`). A document is
+  ingested the instant it's written — a direct upload and a connector sync both start
+  `IngesterWorkflow` by name right after creating the `RawDocument`, no polling involved;
+  `manage.py ingest_document`/`ingest_pending` still work for a manual one-off run, and
+  `IngestInitiatorWorkflow`/`ImportInitiatorWorkflow` remain manually startable full backfills
+  for an ops/recovery scenario, just never on an automatic timer.
 - **`retrieval`** — hybrid search (Postgres full-text + pgvector), fused with Reciprocal Rank
   Fusion and reranked with a free cross-encoder. **Built** — a plain Python function today, no
   HTTP layer yet.
@@ -116,10 +119,9 @@ For working on one piece at a time, run its target (`make asgi`, `make tps-grpc`
 own terminal instead.
 
 `importer-worker` needs a Temporal server reachable and `tps-grpc` running, since it fetches
-tokens through it. Both `importer-worker` and `ingest-worker` register their own sweep schedule
-(`import-sweep`, `ingest-sweep`) the first time they start, idempotently — a connection or
-document created while neither worker is running just gets picked up on the next sweep once it
-is.
+tokens through it. Neither worker registers a schedule of any kind — `importer-worker` needs to
+be up when a connection is created (so it can pick up the immediate sync trigger), and
+`ingest-worker` needs to be up when a document is written or uploaded, for the same reason.
 
 `chat`'s message endpoint streams its answer over SSE — Django's dev `runserver` (WSGI) buffers
 that instead of flushing it incrementally, so use `make asgi` (`uvicorn`) whenever you're actually
@@ -161,11 +163,19 @@ or every not-yet-ingested one with `manage.py ingest_pending`.
 `POST /documents/upload` (multipart, `project_id` + `file`) lets a user add a document directly
 without connecting any third-party app — it creates a `RawDocument` the same way a connector sync
 would (`connection_id="upload"`, plus a `project_id` connector-synced rows don't have, so
-`apps.chat.scoping` can resolve it without a real `Connection`), and `ingest`'s existing sweep
-picks it up within ~90s, same as a connector-synced document. `GET /documents/<id>/ingest-status`
-lets a frontend poll for "pending" → "completed"/"failed" instead of blindly waiting. Accepted
-content types mirror `apps.ingest.pipeline.parsers.PARSER_REGISTRY` exactly (PDF, DOCX, XLSX,
-PPTX, plain text, Markdown, CSV); size is capped by `IMPORTER_MAX_UPLOAD_BYTES` (default 20MB).
+`apps.chat.scoping` can resolve it without a real `Connection`). It then starts `ingest`'s
+`IngesterWorkflow` immediately — by its registered name as a plain string, the same
+never-import-across-the-boundary convention as every other cross-app reference in this codebase
+(`connection_id`, `raw_document_id`, ...), so `importer` never imports `apps.ingest`. A connector
+sync (`apps.importer.sync.activities.write_raw_documents_activity`) triggers the same way for
+every document it writes, and `core` triggers `ImportInitiatorWorkflow` the same way right after
+a connection is created — nothing in this pipeline runs on a recurring schedule; if an immediate
+trigger fails for any reason (Temporal briefly unreachable, etc.), it's logged and there's no
+automatic retry today. `GET /documents/<id>/ingest-status` lets a frontend poll for "pending" →
+"completed"/"failed" instead of blindly waiting. Accepted content types mirror
+`apps.ingest.pipeline.parsers.PARSER_REGISTRY`
+exactly (PDF, DOCX, XLSX, PPTX, plain text, Markdown, CSV); size is capped by
+`IMPORTER_MAX_UPLOAD_BYTES` (default 20MB).
 
 `GET /auth/session` returns the current user and workspace — always 200 now that every request
 auto-provisions one, never 401. It's still the cheap "who is this" check a frontend makes on page

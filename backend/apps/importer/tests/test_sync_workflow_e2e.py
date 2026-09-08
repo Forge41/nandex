@@ -3,6 +3,7 @@ a real Worker, the real SyncWorkflow and its real activities — only the provid
 HTTP calls and the tps gRPC client are stubbed, since there's no live Google/tps server here.
 """
 
+import asyncio
 import uuid
 
 import pytest
@@ -23,6 +24,7 @@ from apps.importer.sync.activities import (
     write_raw_documents_activity,
 )
 from apps.importer.sync.workflows import SyncWorkflow, SyncWorkflowInput
+from apps.ingest.tests.conftest import fake_embedder  # noqa: F401 -- reused as a fixture
 
 
 @pytest.fixture
@@ -372,3 +374,84 @@ async def test_sync_workflow_marks_run_errored_on_permanent_listing_failure(
 
     await sync_run.arefresh_from_db()
     assert sync_run.status == SyncRun.Status.ERRORED
+
+
+@pytest.mark.django_db(transaction=True)
+async def test_synced_documents_trigger_immediate_ingest(
+    temporal_env,
+    task_queue,
+    stub_drive_pages,
+    fake_embedder,  # noqa: F811
+    monkeypatch,
+):
+    """A synced document doesn't wait on any sweep: write_raw_documents_activity starts
+    IngesterWorkflow itself, by name, the moment each RawDocument is written."""
+    from apps.importer.config import settings as importer_settings
+    from apps.ingest.ingester.activities import ingest_document_activity
+    from apps.ingest.ingester.workflows import IngesterWorkflow
+    from apps.ingest.models import IngestRun, ProcessedChunk
+
+    monkeypatch.setattr(
+        importer_settings, "temporal_address", temporal_env.client.service_client.config.target_host
+    )
+    monkeypatch.setattr(importer_settings, "ingest_task_queue", "ingest")
+
+    sync_run = await SyncRun.objects.acreate(
+        connection_id="conn-instant", trigger=SyncRun.Trigger.MANUAL
+    )
+
+    async with (
+        Worker(
+            temporal_env.client,
+            task_queue=task_queue,
+            workflows=[SyncWorkflow],
+            activities=[
+                get_token_activity,
+                mark_reauth_required_activity,
+                list_page_activity,
+                skip_unchanged_activity,
+                download_batch_activity,
+                write_raw_documents_activity,
+                advance_cursor_activity,
+                finish_run_activity,
+            ],
+        ),
+        Worker(
+            temporal_env.client,
+            task_queue="ingest",
+            workflows=[IngesterWorkflow],
+            activities=[ingest_document_activity],
+        ),
+    ):
+        await temporal_env.client.execute_workflow(
+            SyncWorkflow.run,
+            SyncWorkflowInput(
+                connection_id="conn-instant",
+                project_id="proj-instant",
+                app_name="google_drive",
+                sync_run_id=sync_run.id,
+            ),
+            id=f"sync-instant-{uuid.uuid4().hex[:8]}",
+            task_queue=task_queue,
+        )
+
+        docs = [
+            d
+            async for d in RawDocument.objects.filter(connection_id="conn-instant").order_by(
+                "provider_document_id"
+            )
+        ]
+        assert len(docs) == 2
+
+        deadline = asyncio.get_event_loop().time() + 10.0
+        runs = {}
+        while asyncio.get_event_loop().time() < deadline and len(runs) < 2:
+            async for run in IngestRun.objects.filter(raw_document_id__in=[d.id for d in docs]):
+                runs[run.raw_document_id] = run
+            if len(runs) < 2:
+                await asyncio.sleep(0.2)
+
+    assert len(runs) == 2
+    assert all(r.status == IngestRun.Status.COMPLETED for r in runs.values())
+    for doc in docs:
+        assert await ProcessedChunk.objects.filter(raw_document_id=doc.id).aexists()
