@@ -4,13 +4,17 @@ here is re-checked against the caller's workspace the same way project_detail al
 since that's the only place authorization can happen.
 """
 
+import logging
+
 from asgiref.sync import sync_to_async
 from django.conf import settings as django_settings
 from django.http import HttpRequest, HttpResponseRedirect, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from temporalio.client import Client
 
 from apps.core.api.views import _parse_body, _require_user
 from apps.core.clients import tps_client
+from apps.core.config import settings
 from apps.core.models import Project
 from apps.core.oauth_state import decode_state, encode_state
 from apps.core.services.workspace_service import current_workspace_for
@@ -28,6 +32,29 @@ async def _owned_project(request: HttpRequest, project_id: str) -> Project | Non
         return await Project.objects.aget(id=project_id, workspace=workspace)
     except Project.DoesNotExist:
         return None
+
+
+async def _trigger_sync(connection_id: str) -> None:
+    """Starts ImportInitiatorWorkflow by its registered name, scoped to just this one
+    connection (the same "manual, sync exactly this one" input it already supports for
+    a retry) -- never importing apps.importer. Same plain-identifier convention as every
+    other cross-app reference in this codebase, applied to a workflow type instead of a
+    database row. If this fails for any reason, there's currently no automatic retry --
+    a future manual re-sync action or an admin re-running the initiator workflow by hand
+    is the recourse, the same way a stuck upload's ingest would need one today.
+    """
+    try:
+        client = await Client.connect(settings.temporal_address)
+        await client.start_workflow(
+            "ImportInitiatorWorkflow",
+            {"connection_id": connection_id, "app_name": None, "trigger": "manual"},
+            id=f"import-sync-connect-{connection_id}",
+            task_queue=settings.importer_task_queue,
+        )
+    except Exception:
+        logging.getLogger(__name__).warning(
+            "Couldn't start an immediate sync for connection %s.", connection_id, exc_info=True
+        )
 
 
 @csrf_exempt
@@ -85,6 +112,7 @@ async def connect_app(request: HttpRequest, app_name: str) -> JsonResponse:
 
     credentials = body.get("credentials") or {}
     connection = await tps_client.connect_credentials(project_id, app_name, credentials)
+    await _trigger_sync(connection["id"])
     return JsonResponse(connection, status=201)
 
 
@@ -102,7 +130,10 @@ async def oauth_callback(request: HttpRequest) -> HttpResponseRedirect:
         return HttpResponseRedirect(f"{django_settings.APP_URL}/integrations?error=invalid_state")
 
     redirect_uri = f"{django_settings.APP_URL}/api/oauth/callback"
-    await tps_client.exchange_code(payload["project_id"], payload["app_name"], code, redirect_uri)
+    connection = await tps_client.exchange_code(
+        payload["project_id"], payload["app_name"], code, redirect_uri
+    )
+    await _trigger_sync(connection["id"])
     callback_path = payload.get("callback_path", "/integrations")
     return HttpResponseRedirect(
         f"{django_settings.APP_URL}{callback_path}?connected={payload['app_name']}"
