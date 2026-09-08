@@ -12,8 +12,9 @@ data/
 models/       trained weights (model.pth + model.index) per voice, committed
 training/     preprocess -> extract_features -> train
 inference/    convert.py (core conversion), realtime.py, api.py (FastAPI wrapper)
+app/          text -> speech -> voice-conversion demo: tts.py, server.py, static/index.html
 vendor/rvc/   RVC-Project core, vendored as a pinned git submodule
-paths.py      shared path constants used by training/ and inference/
+paths.py      shared path constants used by training/, inference/, and app/
 ```
 
 `data/` is gitignored — source audio doesn't belong in this repo's history. `models/` is
@@ -56,3 +57,16 @@ rates/versions aren't wired up.
 One real quirk worth knowing: RVC has no `configs/v2/40k.json` -- 40k models always reuse the
 v1 architecture config (`configs/v1/40k.json`) regardless of feature version; only 32k/48k
 have distinct v2 configs. `training/train.py` accounts for this already.
+
+## Text -> speech -> voice-conversion app
+
+```bash
+./scripts/run_app.sh   # http://localhost:8765
+```
+
+A minimal page: pick a trained voice from `models/`, type text, hit Speak. Under the hood,
+`app/server.py`'s `POST /speak` synthesizes the text with a neutral TTS voice (`app/tts.py`,
+via `edge-tts`) into a temp file, then runs it through `inference.convert.convert()` for that
+voice. `GET /voices` lists every `models/<name>/` with a `model.pth` present -- there's
+nothing to select until a real model exists there (see Workflow above to train one, or drop
+in a `model.pth`/`model.index` pair you already have rights to).

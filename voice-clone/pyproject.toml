@@ -11,6 +11,8 @@ dependencies = [
     "demucs>=4.0.0",
     "fastapi>=0.115.0",
     "uvicorn>=0.30.0",
+    "edge-tts>=6.1.0",
+    "pydantic>=2.5.0",
 ]
 
 [tool.uv]

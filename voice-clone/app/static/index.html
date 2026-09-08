@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>voice-clone</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 640px; margin: 60px auto; padding: 0 20px; }
+  textarea { width: 100%; height: 120px; font-size: 15px; padding: 10px; box-sizing: border-box; }
+  select, button { font-size: 15px; padding: 8px 12px; margin-top: 10px; }
+  button { cursor: pointer; }
+  button:disabled { opacity: 0.5; cursor: default; }
+  audio { display: block; margin-top: 16px; width: 100%; }
+  #status { margin-top: 10px; color: #666; font-size: 14px; }
+</style>
+</head>
+<body>
+  <h1>voice-clone</h1>
+  <textarea id="text" placeholder="Type something to speak..."></textarea>
+  <div>
+    <select id="voice"></select>
+    <button id="speak">Speak</button>
+  </div>
+  <div id="status"></div>
+  <audio id="player" controls></audio>
+
+<script>
+async function loadVoices() {
+  const voices = await fetch("/voices").then(r => r.json());
+  const select = document.getElementById("voice");
+  select.innerHTML = voices.length
+    ? voices.map(v => `<option value="${v}">${v}</option>`).join("")
+    : `<option disabled>No trained models in models/</option>`;
+}
+
+document.getElementById("speak").addEventListener("click", async () => {
+  const text = document.getElementById("text").value;
+  const voice_name = document.getElementById("voice").value;
+  const status = document.getElementById("status");
+  const button = document.getElementById("speak");
+  if (!text.trim() || !voice_name) return;
+
+  button.disabled = true;
+  status.textContent = "Generating...";
+  try {
+    const response = await fetch("/speak", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, voice_name }),
+    });
+    if (!response.ok) throw new Error((await response.json()).detail || "Request failed");
+    const blob = await response.blob();
+    document.getElementById("player").src = URL.createObjectURL(blob);
+    status.textContent = "";
+  } catch (err) {
+    status.textContent = err.message;
+  } finally {
+    button.disabled = false;
+  }
+});
+
+loadVoices();
+</script>
+</body>
+</html>
