@@ -1,0 +1,17 @@
+[project]
+name = "voice-clone"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "torch>=2.2.0",
+    "torchaudio>=2.2.0",
+    "librosa>=0.10.0",
+    "soundfile>=0.12.0",
+    "numpy>=1.26.0",
+    "demucs>=4.0.0",
+    "fastapi>=0.115.0",
+    "uvicorn>=0.30.0",
+]
+
+[tool.uv]
+package = false
