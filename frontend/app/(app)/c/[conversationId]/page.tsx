@@ -31,6 +31,14 @@ export default function ConversationPage({
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages]);
 
+  const revealTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (revealTimerRef.current !== null) window.clearInterval(revealTimerRef.current);
+    };
+  }, []);
+
   const send = async (text: string) => {
     setMessages((prev) => [
       ...prev,
@@ -40,6 +48,30 @@ export default function ConversationPage({
 
     const assistantId = `local-assistant-${Date.now()}`;
     setMessages((prev) => [...prev, { id: assistantId, role: "assistant", content: "", citations: [] }]);
+
+    // The backend streams real deltas, but each one lands as a whole sentence fragment
+    // every ~1s -- rendered as-is, that reads as chunky jumps rather than a typing effect.
+    // fullText accumulates every delta as it arrives (network pace); revealedLength is
+    // driven by a fixed-tick timer so the UI always reveals character-by-character, and
+    // speeds up (revealing a fraction of the backlog per tick) if it ever falls behind.
+    let fullText = "";
+    let revealedLength = 0;
+    let receiving = true;
+
+    if (revealTimerRef.current !== null) window.clearInterval(revealTimerRef.current);
+    revealTimerRef.current = window.setInterval(() => {
+      if (revealedLength >= fullText.length) {
+        if (!receiving && revealTimerRef.current !== null) {
+          window.clearInterval(revealTimerRef.current);
+          revealTimerRef.current = null;
+        }
+        return;
+      }
+      const backlog = fullText.length - revealedLength;
+      revealedLength = Math.min(fullText.length, revealedLength + Math.max(2, Math.ceil(backlog * 0.15)));
+      const revealed = fullText.slice(0, revealedLength);
+      setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, content: revealed } : m)));
+    }, 20);
 
     try {
       const response = await fetch(`/api/chat/conversations/${conversationId}/messages`, {
@@ -53,9 +85,7 @@ export default function ConversationPage({
 
       for await (const frame of parseSSEStream(response)) {
         if ("delta" in frame) {
-          setMessages((prev) =>
-            prev.map((m) => (m.id === assistantId ? { ...m, content: m.content + frame.delta } : m))
-          );
+          fullText += frame.delta;
         } else if ("done" in frame) {
           setMessages((prev) =>
             prev.map((m) => (m.id === assistantId ? { ...m, citations: frame.citations } : m))
@@ -63,12 +93,17 @@ export default function ConversationPage({
         }
       }
     } catch {
+      if (revealTimerRef.current !== null) {
+        window.clearInterval(revealTimerRef.current);
+        revealTimerRef.current = null;
+      }
       setMessages((prev) =>
         prev.map((m) =>
           m.id === assistantId ? { ...m, content: "Something went wrong generating a response." } : m
         )
       );
     } finally {
+      receiving = false;
       setStreaming(false);
     }
   };

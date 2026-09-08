@@ -50,12 +50,15 @@ async def _owned_project(request: HttpRequest, project_id: str) -> Project | Non
         return None
 
 
-def _create_raw_document_sync(*, project_id: str, content_type: str, payload: bytes) -> RawDocument:
+def _create_raw_document_sync(
+    *, project_id: str, content_type: str, payload: bytes, display_name: str
+) -> RawDocument:
     return RawDocument.objects.create(
         connection_id=UPLOAD_CONNECTION_ID,
         project_id=project_id,
         provider_document_id=generate_id(),
         content_type=content_type,
+        display_name=display_name,
         payload=payload,
     )
 
@@ -63,10 +66,9 @@ def _create_raw_document_sync(*, project_id: str, content_type: str, payload: by
 async def _trigger_ingest(raw_document_id: str) -> None:
     """Starts IngesterWorkflow by its registered name, never importing apps.ingest --
     same plain-identifier convention as connection_id/raw_document_id everywhere else in
-    this codebase, just applied to a workflow type instead of a database row. If this
-    fails for any reason (Temporal briefly unreachable, etc.), ingest's own sweep still
-    picks the document up within sweep_interval_seconds -- this call is purely a latency
-    optimization on top of that existing guarantee, never a new way for an upload to fail.
+    this codebase, just applied to a workflow type instead of a database row. Nothing else
+    triggers ingestion for this document if this fails (Temporal briefly unreachable,
+    etc.) -- there is no sweep to fall back on, so a failure here is a real, logged gap.
     """
     try:
         client = await Client.connect(settings.temporal_address)
@@ -78,7 +80,7 @@ async def _trigger_ingest(raw_document_id: str) -> None:
         )
     except Exception:
         logging.getLogger(__name__).warning(
-            "Couldn't start an immediate ingest for %s; the sweep will pick it up instead.",
+            "Couldn't start an immediate ingest for %s; no sweep exists to retry it.",
             raw_document_id,
             exc_info=True,
         )
@@ -110,7 +112,10 @@ async def upload_document(request: HttpRequest) -> JsonResponse:
         return JsonResponse({"detail": f"Unsupported file type: {content_type}"}, status=400)
 
     raw_document = await sync_to_async(_create_raw_document_sync, thread_sensitive=True)(
-        project_id=project_id, content_type=content_type, payload=upload.read()
+        project_id=project_id,
+        content_type=content_type,
+        payload=upload.read(),
+        display_name=upload.name or "",
     )
     await _trigger_ingest(raw_document.id)
     return JsonResponse({"id": raw_document.id}, status=201)

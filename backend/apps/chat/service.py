@@ -13,7 +13,14 @@ from asgiref.sync import sync_to_async
 from apps.chat.config import settings
 from apps.chat.models import Conversation, Message
 from apps.chat.scoping import resolve_visible_raw_document_ids
+from apps.importer.models import RawDocument
 from apps.retrieval.search import search
+
+
+def _display_names_sync(raw_document_ids: list[str]) -> dict[str, str]:
+    return dict(
+        RawDocument.objects.filter(id__in=raw_document_ids).values_list("id", "display_name")
+    )
 
 
 async def ask(*, conversation: Conversation, question: str) -> AsyncIterator[str]:
@@ -37,8 +44,16 @@ async def ask(*, conversation: Conversation, question: str) -> AsyncIterator[str
         answer_parts.append(delta)
         yield f"data: {json.dumps({'delta': delta})}\n\n"
 
+    display_names = await sync_to_async(_display_names_sync, thread_sensitive=True)(
+        list({r.raw_document_id for r in results})
+    )
     citations = [
-        {"chunk_id": r.chunk_id, "raw_document_id": r.raw_document_id, "page_idx": r.page_idx}
+        {
+            "chunk_id": r.chunk_id,
+            "raw_document_id": r.raw_document_id,
+            "page_idx": r.page_idx,
+            "display_name": display_names.get(r.raw_document_id, ""),
+        }
         for r in results
     ]
     await Message.objects.acreate(

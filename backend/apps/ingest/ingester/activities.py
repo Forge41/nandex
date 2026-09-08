@@ -10,7 +10,8 @@ def _run_sync(raw_document_id: str) -> str:
         return run.status
     except IngestAlreadyInFlightError:
         # Another run already owns this document (e.g. a manual ingest_document CLI call
-        # racing the sweep) -- an expected outcome, not something Temporal should retry.
+        # racing IngestInitiatorWorkflow's own backfill) -- an expected outcome, not
+        # something Temporal should retry.
         return "already_in_flight"
 
 

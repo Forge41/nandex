@@ -1,7 +1,7 @@
 """Read-only status for a single ingest -- lets the uploader poll "uploading -> indexing ->
-ready" instead of blindly waiting for ingest's sweep to pick their document up (see
-apps.ingest.initiator, ~90s worst case). ingest may read apps.importer's RawDocument
-directly (its own pipeline entrypoint already does), just never write it.
+ready" instead of blindly waiting, since IngesterWorkflow runs asynchronously once triggered.
+ingest may read apps.importer's RawDocument directly (its own pipeline entrypoint already
+does), just never write it.
 """
 
 from asgiref.sync import sync_to_async

@@ -1,4 +1,9 @@
-export type Citation = { chunk_id: string; raw_document_id: string; page_idx: number };
+export type Citation = {
+  chunk_id: string;
+  raw_document_id: string;
+  page_idx: number;
+  display_name: string;
+};
 export type ChatStreamFrame = { delta: string } | { done: true; citations: Citation[] };
 
 /** apps/chat/service.py's SSE format: zero-or-more `data: {"delta": "..."}\n\n` frames,
