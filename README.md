@@ -161,11 +161,17 @@ or every not-yet-ingested one with `manage.py ingest_pending`.
 `POST /documents/upload` (multipart, `project_id` + `file`) lets a user add a document directly
 without connecting any third-party app — it creates a `RawDocument` the same way a connector sync
 would (`connection_id="upload"`, plus a `project_id` connector-synced rows don't have, so
-`apps.chat.scoping` can resolve it without a real `Connection`), and `ingest`'s existing sweep
-picks it up within ~90s, same as a connector-synced document. `GET /documents/<id>/ingest-status`
-lets a frontend poll for "pending" → "completed"/"failed" instead of blindly waiting. Accepted
-content types mirror `apps.ingest.pipeline.parsers.PARSER_REGISTRY` exactly (PDF, DOCX, XLSX,
-PPTX, plain text, Markdown, CSV); size is capped by `IMPORTER_MAX_UPLOAD_BYTES` (default 20MB).
+`apps.chat.scoping` can resolve it without a real `Connection`). It then starts `ingest`'s
+`IngesterWorkflow` immediately — by its registered name as a plain string, the same
+never-import-across-the-boundary convention as every other cross-app reference in this codebase
+(`connection_id`, `raw_document_id`, ...), so `importer` never imports `apps.ingest`. If that
+immediate start fails for any reason, `ingest`'s existing sweep still picks the document up
+within `INGEST_SWEEP_INTERVAL_SECONDS` (default 90s) regardless — the instant trigger is a
+latency optimization on top of that guarantee, never a new way for an upload to fail. `GET
+/documents/<id>/ingest-status` lets a frontend poll for "pending" → "completed"/"failed" instead
+of blindly waiting. Accepted content types mirror `apps.ingest.pipeline.parsers.PARSER_REGISTRY`
+exactly (PDF, DOCX, XLSX, PPTX, plain text, Markdown, CSV); size is capped by
+`IMPORTER_MAX_UPLOAD_BYTES` (default 20MB).
 
 `GET /auth/session` returns the current user and workspace — always 200 now that every request
 auto-provisions one, never 401. It's still the cheap "who is this" check a frontend makes on page

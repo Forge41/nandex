@@ -3,9 +3,12 @@ immutable and owned by importer (tps never writes it, ingest only reads it) -- s
 one, from any source, belongs here, not in apps.core or apps.ingest.
 """
 
+import logging
+
 from asgiref.sync import sync_to_async
 from django.http import HttpRequest, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from temporalio.client import Client
 
 from apps.core.api.views import _require_user
 from apps.core.models import Project
@@ -57,6 +60,30 @@ def _create_raw_document_sync(*, project_id: str, content_type: str, payload: by
     )
 
 
+async def _trigger_ingest(raw_document_id: str) -> None:
+    """Starts IngesterWorkflow by its registered name, never importing apps.ingest --
+    same plain-identifier convention as connection_id/raw_document_id everywhere else in
+    this codebase, just applied to a workflow type instead of a database row. If this
+    fails for any reason (Temporal briefly unreachable, etc.), ingest's own sweep still
+    picks the document up within sweep_interval_seconds -- this call is purely a latency
+    optimization on top of that existing guarantee, never a new way for an upload to fail.
+    """
+    try:
+        client = await Client.connect(settings.temporal_address)
+        await client.start_workflow(
+            "IngesterWorkflow",
+            raw_document_id,
+            id=f"ingest-{raw_document_id}",
+            task_queue=settings.ingest_task_queue,
+        )
+    except Exception:
+        logging.getLogger(__name__).warning(
+            "Couldn't start an immediate ingest for %s; the sweep will pick it up instead.",
+            raw_document_id,
+            exc_info=True,
+        )
+
+
 @csrf_exempt
 async def upload_document(request: HttpRequest) -> JsonResponse:
     if request.method != "POST":
@@ -85,4 +112,5 @@ async def upload_document(request: HttpRequest) -> JsonResponse:
     raw_document = await sync_to_async(_create_raw_document_sync, thread_sensitive=True)(
         project_id=project_id, content_type=content_type, payload=upload.read()
     )
+    await _trigger_ingest(raw_document.id)
     return JsonResponse({"id": raw_document.id}, status=201)
