@@ -21,3 +21,7 @@ if [[ "$(uname)" == "Darwin" ]]; then
 else
     uv pip install -r vendor/rvc/requirments_cpu_py312.txt
 fi
+
+# gradio (an RVC dependency, used only by webui.py -- which this project never runs)
+# downgrades websockets to a version incompatible with our pinned uvicorn.
+uv pip install "websockets>=13"
