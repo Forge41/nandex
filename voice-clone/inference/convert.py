@@ -3,10 +3,19 @@ vendor/rvc's infer/cli.py."""
 
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from paths import RVC_ROOT, voice_model_dir
+
+# infer/cli.py reliably finishes its real work (logs a success status and writes the
+# output file) but then hangs indefinitely instead of exiting -- some non-daemon thread
+# from torch/faiss never joins. Rather than patch vendored RVC internals for that, poll
+# for a stable output file instead of waiting on the process to exit; kill it once done.
+POLL_INTERVAL_S = 0.5
+STABLE_FOR_S = 1.0
+TIMEOUT_S = 180
 
 
 def convert(input_path: Path, voice_name: str, pitch_shift: int = 0) -> Path:
@@ -17,7 +26,7 @@ def convert(input_path: Path, voice_name: str, pitch_shift: int = 0) -> Path:
         raise FileNotFoundError(f"No trained model at {model_path}")
 
     output_path = input_path.with_name(f"{input_path.stem}.{voice_name}.wav")
-    subprocess.run(
+    process = subprocess.Popen(
         [
             sys.executable,
             "-m",
@@ -40,6 +49,31 @@ def convert(input_path: Path, voice_name: str, pitch_shift: int = 0) -> Path:
             "--overwrite",
         ],
         cwd=RVC_ROOT,
-        check=True,
     )
+
+    deadline = time.monotonic() + TIMEOUT_S
+    last_size, stable_since = -1, None
+    try:
+        while time.monotonic() < deadline:
+            if process.poll() is not None:
+                if process.returncode != 0:
+                    raise subprocess.CalledProcessError(process.returncode, process.args)
+                break
+            if output_path.is_file():
+                size = output_path.stat().st_size
+                if size == last_size and size > 0:
+                    if stable_since is None:
+                        stable_since = time.monotonic()
+                    elif time.monotonic() - stable_since >= STABLE_FOR_S:
+                        break
+                else:
+                    last_size, stable_since = size, None
+            time.sleep(POLL_INTERVAL_S)
+        else:
+            raise TimeoutError(f"infer.cli produced no stable output within {TIMEOUT_S}s")
+    finally:
+        if process.poll() is None:
+            process.kill()
+            process.wait()
+
     return output_path
