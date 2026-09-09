@@ -20,7 +20,9 @@ def convert(input_path: Path, voice_name: str, pitch_shift: int = 0) -> Path:
     subprocess.run(
         [
             sys.executable,
-            "infer/cli.py",
+            "-m",
+            "infer.cli",  # not infer/cli.py -- its absolute imports need RVC_ROOT on sys.path,
+            # which only -m (adding cwd) provides; a plain script path only adds infer/ itself.
             "--model",
             str(model_path.resolve()),
             "--input",

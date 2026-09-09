@@ -10,4 +10,14 @@ if [ ! -f vendor/rvc/requirments_cpu_py312.txt ]; then
     echo "vendor/rvc is empty -- run: git submodule update --init vendor/rvc" >&2
     exit 1
 fi
-uv pip install -r vendor/rvc/requirments_cpu_py312.txt
+# requirments_cpu_py312.txt pins torch/torchaudio/torchvision==*+cpu from a Linux/Windows-only
+# wheel index -- no macOS build exists for that variant, so on Mac we keep the plain-PyPI
+# torch/torchaudio pyproject.toml already installed and skip RVC's own pins for those three.
+if [[ "$(uname)" == "Darwin" ]]; then
+    grep -vE '^torch(audio|vision)?==.*\+cpu|^torch-directml' vendor/rvc/requirments_cpu_py312.txt \
+        > /tmp/voice-clone-rvc-requirements.txt
+    uv pip install -r /tmp/voice-clone-rvc-requirements.txt
+    rm /tmp/voice-clone-rvc-requirements.txt
+else
+    uv pip install -r vendor/rvc/requirments_cpu_py312.txt
+fi
