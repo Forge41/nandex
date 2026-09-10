@@ -1,0 +1,160 @@
+/* Raw HSL channels, consumed as hsl(var(--token)).
+ *
+ * Names mirror the Harvey design system export 1:1 so design markup ports
+ * mechanically and a future design update diffs against this file directly.
+ * Tailwind-facing aliases live in the @theme block in app/globals.css -- add
+ * new tokens here first, then alias them there. */
+
+:root,
+.light {
+  --background-bg-base: 0 0% 100%;
+  --background-bg-base-hover: 40 16% 96%;
+  --background-bg-base-pressed: 36 15% 94%;
+  --background-bg-subtle: 40 16% 96%;
+  --background-bg-subtle-hover: 36 15% 94%;
+  --background-bg-subtle-pressed: 34 11% 88%;
+  --background-bg-component: 40 16% 96%;
+  --background-bg-component-hover: 36 15% 94%;
+  --background-bg-component-pressed: 34 11% 88%;
+  --background-bg-input: 40 16% 96%;
+  --background-bg-input-hover: 36 15% 94%;
+  --background-bg-interactive: 40 6% 10%;
+  --background-bg-disabled: 36 15% 94%;
+  --background-bg-overlay: 40 6% 10% / 0.4;
+  --background-bg-warm-subtle: 40 100% 10% / 0.02;
+
+  --foreground-fg-base: 40 6% 10%;
+  --foreground-fg-subtle: 36 5% 40%;
+  --foreground-fg-muted: 38 4% 50%;
+  --foreground-fg-disabled: 38 5% 71%;
+  --foreground-fg-on-color: 40 16% 96%;
+  --foreground-fg-interactive: 40 6% 10%;
+  --foreground-fg-interactive-hover: 43 7% 19%;
+  --foreground-fg-danger: 356 67% 46%;
+
+  --border-base: 36 15% 94%;
+  --border-strong: 34 11% 88%;
+  --border-interactive: 40 6% 10%;
+  --border-danger: 356 67% 46%;
+  --border-transparent: 0 0% 100% / 0;
+
+  --button-inverted: 40 6% 10%;
+  --button-inverted-hover: 43 7% 19%;
+  --button-inverted-pressed: 37 5% 29%;
+  --button-neutral: 0 0% 100%;
+  --button-neutral-hover: 36 15% 94%;
+  --button-neutral-pressed: 34 11% 88%;
+  --button-danger: 357 69% 50%;
+  --button-danger-hover: 356 67% 46%;
+  --button-danger-pressed: 356 68% 43%;
+
+  --tag-bg-neutral: 36 15% 94%;
+  --tag-bg-orange: 21 88% 90%;
+  --tag-bg-gold: 45 77% 88%;
+  --tag-bg-violet: 253 87% 94%;
+  --tag-bg-red: 352 83% 93%;
+  --tag-bg-green: 140 64% 89%;
+  --tag-bg-blue: 223 76% 92%;
+  --tag-bg-jade: 183 41% 90%;
+
+  --ui-success-fg: 155 71% 27%;
+  --ui-success-border: 151 51% 49%;
+  --ui-success-bg: 135 17% 95%;
+  --ui-success-bg-subtle: 137 13% 90%;
+  --ui-warning-fg: 16 85% 39%;
+  --ui-warning-border: 27 90% 58%;
+  --ui-warning-bg: 12 22% 95%;
+  --ui-warning-bg-subtle: 7 17% 91%;
+  --ui-danger-fg: 356 67% 46%;
+  --ui-danger-border: 355 85% 69%;
+  --ui-danger-bg: 0 20% 96%;
+  --ui-danger-bg-subtle: 9 14% 90%;
+  --ui-blue-fg: 220 79% 48%;
+  --ui-blue-border: 222 84% 69%;
+  --ui-blue-bg: 220 13% 95%;
+  --ui-blue-bg-subtle: 220 13% 91%;
+  --ui-violet-fg: 258 66% 57%;
+  --ui-violet-bg-subtle: 255 9% 91%;
+  --ui-jade-fg: 184 56% 30%;
+  --ui-jade-bg-subtle: 180 14% 90%;
+  --ui-olive-fg: 85 41% 31%;
+  --ui-olive-bg-subtle: 86 14% 90%;
+  --ui-gold-fg: 29 78% 34%;
+  --ui-gold-bg-subtle: 47 25% 89%;
+}
+
+.dark {
+  --background-bg-base: 30 7% 5%;
+  --background-bg-base-hover: 40 6% 10%;
+  --background-bg-base-pressed: 43 7% 19%;
+  --background-bg-subtle: 40 6% 10%;
+  --background-bg-subtle-hover: 43 7% 19%;
+  --background-bg-subtle-pressed: 37 5% 29%;
+  --background-bg-component: 43 7% 19%;
+  --background-bg-component-hover: 0 0% 100% / 0.1;
+  --background-bg-component-pressed: 0 0% 100% / 0.16;
+  --background-bg-input: 0 0% 100% / 0.04;
+  --background-bg-input-hover: 0 0% 100% / 0.08;
+  --background-bg-interactive: 0 0% 100%;
+  --background-bg-disabled: 43 7% 19%;
+  --background-bg-overlay: 0 0% 100% / 0.4;
+  --background-bg-warm-subtle: 42 100% 97% / 0.02;
+
+  --foreground-fg-base: 34 11% 88%;
+  --foreground-fg-subtle: 38 5% 71%;
+  --foreground-fg-muted: 40 4% 60%;
+  --foreground-fg-disabled: 38 4% 50%;
+  --foreground-fg-on-color: 0 0% 100%;
+  --foreground-fg-interactive: 34 11% 88%;
+  --foreground-fg-interactive-hover: 40 6% 81%;
+  --foreground-fg-danger: 355 85% 69%;
+
+  --border-base: 0 0% 100% / 0.1;
+  --border-strong: 0 0% 100% / 0.16;
+  --border-interactive: 0 0% 100%;
+  --border-danger: 356 67% 46%;
+
+  --button-inverted: 37 5% 29%;
+  --button-inverted-hover: 36 5% 40%;
+  --button-inverted-pressed: 38 4% 50%;
+  --button-neutral: 0 0% 100% / 0;
+  --button-neutral-hover: 0 0% 100% / 0.08;
+  --button-neutral-pressed: 0 0% 100% / 0.12;
+  --button-danger: 356 68% 43%;
+  --button-danger-hover: 356 67% 46%;
+  --button-danger-pressed: 357 69% 50%;
+
+  --tag-bg-neutral: 43 7% 19%;
+  --tag-bg-orange: 12 91% 17%;
+  --tag-bg-gold: 25 76% 15%;
+  --tag-bg-violet: 249 56% 23%;
+  --tag-bg-red: 353 84% 17%;
+  --tag-bg-green: 155 71% 11%;
+  --tag-bg-blue: 210 79% 15%;
+  --tag-bg-jade: 182 39% 13%;
+
+  --ui-success-fg: 151 51% 49%;
+  --ui-success-border: 151 51% 49%;
+  --ui-success-bg: 153 17% 10%;
+  --ui-success-bg-subtle: 156 12% 16%;
+  --ui-warning-fg: 27 90% 58%;
+  --ui-warning-border: 27 90% 58%;
+  --ui-warning-bg: 14 20% 13%;
+  --ui-warning-bg-subtle: 12 16% 19%;
+  --ui-danger-fg: 355 85% 69%;
+  --ui-danger-border: 355 85% 69%;
+  --ui-danger-bg: 5 18% 14%;
+  --ui-danger-bg-subtle: 4 16% 20%;
+  --ui-blue-fg: 222 84% 69%;
+  --ui-blue-border: 222 84% 69%;
+  --ui-blue-bg: 208 24% 12%;
+  --ui-blue-bg-subtle: 213 19% 18%;
+  --ui-violet-fg: 256 83% 74%;
+  --ui-violet-bg-subtle: 258 13% 20%;
+  --ui-jade-fg: 184 50% 48%;
+  --ui-jade-bg-subtle: 180 15% 16%;
+  --ui-olive-fg: 84 38% 52%;
+  --ui-olive-bg-subtle: 87 11% 16%;
+  --ui-gold-fg: 41 76% 48%;
+  --ui-gold-bg-subtle: 47 16% 17%;
+}

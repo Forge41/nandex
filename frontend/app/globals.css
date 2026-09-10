@@ -1,78 +1,303 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "../styles/tokens.css";
 
-:root {
-  color-scheme: light;
+@custom-variant dark (&:is(.dark *));
 
-  --nx-bg-base: hsl(0 0% 100%);
-  --nx-bg-subtle: hsl(40 16% 96%);
-  --nx-fg-base: hsl(40 6% 10%);
-  --nx-fg-muted: hsl(38 4% 50%);
-  --nx-border-base: hsl(36 15% 94%);
-  --nx-border-strong: hsl(34 11% 88%);
-  --nx-button-inverted: hsl(40 6% 10%);
-  --nx-button-inverted-fg: hsl(0 0% 100%);
-  --nx-success-fg: hsl(142 71% 35%);
-  --nx-link: hsl(220 79% 48%);
-  --nx-link-hover: hsl(220 79% 40%);
+/* `inline` keeps the hsl(var(--token)) indirection intact so a .dark override on
+ * an ancestor still reaches these aliases. */
+@theme inline {
+  /* shadcn's expected vocabulary, mapped onto Harvey tokens */
+  --color-background: hsl(var(--background-bg-base));
+  --color-foreground: hsl(var(--foreground-fg-base));
+  --color-card: hsl(var(--background-bg-base));
+  --color-card-foreground: hsl(var(--foreground-fg-base));
+  --color-popover: hsl(var(--background-bg-base));
+  --color-popover-foreground: hsl(var(--foreground-fg-base));
+  --color-primary: hsl(var(--button-inverted));
+  --color-primary-foreground: hsl(var(--foreground-fg-on-color));
+  --color-secondary: hsl(var(--button-neutral));
+  --color-secondary-foreground: hsl(var(--foreground-fg-base));
+  --color-muted: hsl(var(--background-bg-subtle));
+  --color-muted-foreground: hsl(var(--foreground-fg-muted));
+  --color-accent: hsl(var(--background-bg-component));
+  --color-accent-foreground: hsl(var(--foreground-fg-base));
+  --color-destructive: hsl(var(--button-danger));
+  --color-destructive-foreground: hsl(var(--foreground-fg-on-color));
+  --color-border: hsl(var(--border-base));
+  --color-input: hsl(var(--border-base));
+  --color-ring: hsl(var(--border-interactive));
+
+  /* Surfaces */
+  --color-surface: hsl(var(--background-bg-base));
+  --color-surface-hover: hsl(var(--background-bg-base-hover));
+  --color-surface-pressed: hsl(var(--background-bg-base-pressed));
+  --color-surface-subtle: hsl(var(--background-bg-subtle));
+  --color-surface-subtle-hover: hsl(var(--background-bg-subtle-hover));
+  --color-surface-component: hsl(var(--background-bg-component));
+  --color-surface-component-hover: hsl(var(--background-bg-component-hover));
+  --color-surface-input: hsl(var(--background-bg-input));
+  --color-surface-input-hover: hsl(var(--background-bg-input-hover));
+  --color-surface-interactive: hsl(var(--background-bg-interactive));
+  --color-surface-disabled: hsl(var(--background-bg-disabled));
+  --color-surface-overlay: hsl(var(--background-bg-overlay));
+
+  /* Content */
+  --color-content: hsl(var(--foreground-fg-base));
+  --color-content-subtle: hsl(var(--foreground-fg-subtle));
+  --color-content-muted: hsl(var(--foreground-fg-muted));
+  --color-content-disabled: hsl(var(--foreground-fg-disabled));
+  --color-content-on-color: hsl(var(--foreground-fg-on-color));
+  --color-content-danger: hsl(var(--foreground-fg-danger));
+
+  /* Lines */
+  --color-line: hsl(var(--border-base));
+  --color-line-strong: hsl(var(--border-strong));
+  --color-line-interactive: hsl(var(--border-interactive));
+  --color-line-danger: hsl(var(--border-danger));
+
+  /* Buttons */
+  --color-btn-inverted: hsl(var(--button-inverted));
+  --color-btn-inverted-hover: hsl(var(--button-inverted-hover));
+  --color-btn-inverted-pressed: hsl(var(--button-inverted-pressed));
+  --color-btn-neutral: hsl(var(--button-neutral));
+  --color-btn-neutral-hover: hsl(var(--button-neutral-hover));
+  --color-btn-neutral-pressed: hsl(var(--button-neutral-pressed));
+  --color-btn-danger: hsl(var(--button-danger));
+  --color-btn-danger-hover: hsl(var(--button-danger-hover));
+  --color-btn-danger-pressed: hsl(var(--button-danger-pressed));
+
+  /* Semantic intents */
+  --color-success: hsl(var(--ui-success-fg));
+  --color-success-border: hsl(var(--ui-success-border));
+  --color-success-bg: hsl(var(--ui-success-bg));
+  --color-success-bg-subtle: hsl(var(--ui-success-bg-subtle));
+  --color-warning: hsl(var(--ui-warning-fg));
+  --color-warning-border: hsl(var(--ui-warning-border));
+  --color-warning-bg: hsl(var(--ui-warning-bg));
+  --color-warning-bg-subtle: hsl(var(--ui-warning-bg-subtle));
+  --color-danger: hsl(var(--ui-danger-fg));
+  --color-danger-border: hsl(var(--ui-danger-border));
+  --color-danger-bg: hsl(var(--ui-danger-bg));
+  --color-danger-bg-subtle: hsl(var(--ui-danger-bg-subtle));
+  --color-info: hsl(var(--ui-blue-fg));
+  --color-info-border: hsl(var(--ui-blue-border));
+  --color-info-bg: hsl(var(--ui-blue-bg));
+  --color-info-bg-subtle: hsl(var(--ui-blue-bg-subtle));
+  --color-violet: hsl(var(--ui-violet-fg));
+  --color-violet-bg-subtle: hsl(var(--ui-violet-bg-subtle));
+  --color-jade: hsl(var(--ui-jade-fg));
+  --color-jade-bg-subtle: hsl(var(--ui-jade-bg-subtle));
+  --color-olive: hsl(var(--ui-olive-fg));
+  --color-olive-bg-subtle: hsl(var(--ui-olive-bg-subtle));
+  --color-gold: hsl(var(--ui-gold-fg));
+  --color-gold-bg-subtle: hsl(var(--ui-gold-bg-subtle));
+
+  /* Tag fills */
+  --color-tag-neutral: hsl(var(--tag-bg-neutral));
+  --color-tag-orange: hsl(var(--tag-bg-orange));
+  --color-tag-gold: hsl(var(--tag-bg-gold));
+  --color-tag-violet: hsl(var(--tag-bg-violet));
+  --color-tag-red: hsl(var(--tag-bg-red));
+  --color-tag-green: hsl(var(--tag-bg-green));
+  --color-tag-blue: hsl(var(--tag-bg-blue));
+  --color-tag-jade: hsl(var(--tag-bg-jade));
+
+  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-serif: var(--font-instrument-serif), "Iowan Old Style", Georgia, "Times New Roman", serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --nx-bg-base: hsl(30 7% 5%);
-    --nx-bg-subtle: hsl(40 6% 10%);
-    --nx-fg-base: hsl(34 11% 88%);
-    --nx-fg-muted: hsl(40 4% 60%);
-    --nx-border-base: hsl(0 0% 100% / 0.1);
-    --nx-border-strong: hsl(0 0% 100% / 0.16);
-    --nx-button-inverted: hsl(37 5% 29%);
-    --nx-button-inverted-fg: hsl(34 11% 88%);
-    --nx-success-fg: hsl(142 55% 45%);
+@theme {
+  /* Harvey's type scale -- a dense web app, so every step is smaller than
+   * Tailwind's default (text-sm is 13px here, not 14px).
+   *
+   * Each size ships a paired line-height because tailwind-merge treats
+   * `text-*` as conflicting with `leading-*`: in `text-sm leading-none` the
+   * leading is dropped, so an unpaired size would silently fall back to
+   * `normal`. Override intentionally by putting `leading-*` after `text-*`. */
+  --text-2xs: 11px;
+  --text-2xs--line-height: 1.4;
+  --text-xs: 12px;
+  --text-xs--line-height: 1.4;
+  --text-sm: 13px;
+  --text-sm--line-height: 1.45;
+  --text-base: 14px;
+  --text-base--line-height: 1.5;
+  --text-md: 15px;
+  --text-md--line-height: 1.55;
+  --text-lg: 18px;
+  --text-lg--line-height: 1.3;
+  --text-xl: 22px;
+  --text-xl--line-height: 1.25;
+  --text-2xl: 28px;
+  --text-2xl--line-height: 1.2;
+  --text-3xl: 36px;
+  --text-3xl--line-height: 1.1;
+  --text-4xl: 48px;
+  --text-4xl--line-height: 1.05;
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  --animate-live-pulse: live-pulse 1.6s ease-in-out infinite;
+  --animate-caret-blink: caret-blink 1.1s step-end infinite;
+  --animate-audio-bar: audio-bar 1s ease-in-out infinite;
+
+  @keyframes live-pulse {
+    0%,
+    100% {
+      opacity: 0.35;
+      transform: scale(0.85);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes caret-blink {
+    0%,
+    49% {
+      opacity: 1;
+    }
+    50%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes audio-bar {
+    0%,
+    100% {
+      transform: scaleY(0.22);
+    }
+    50% {
+      transform: scaleY(1);
+    }
   }
 }
 
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --nx-bg-base: hsl(30 7% 5%);
-  --nx-bg-subtle: hsl(40 6% 10%);
-  --nx-fg-base: hsl(34 11% 88%);
-  --nx-fg-muted: hsl(40 4% 60%);
-  --nx-border-base: hsl(0 0% 100% / 0.1);
-  --nx-border-strong: hsl(0 0% 100% / 0.16);
-  --nx-button-inverted: hsl(37 5% 29%);
-  --nx-button-inverted-fg: hsl(34 11% 88%);
-  --nx-success-fg: hsl(142 55% 45%);
+@layer base {
+  * {
+    @apply border-line;
+  }
+
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-background text-content font-sans text-base;
+    line-height: 1.5;
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
 }
 
-* {
-  box-sizing: border-box;
+/* Type scale compositions, authored as real utilities so they merge and sort
+ * alongside every other Tailwind class instead of forming a parallel system. */
+@utility t-display {
+  font-family: var(--font-serif);
+  font-size: var(--text-4xl);
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
 }
 
-html,
-body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
+@utility t-title {
+  font-family: var(--font-serif);
+  font-size: var(--text-3xl);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
 }
 
-body {
-  background: var(--nx-bg-base);
-  color: var(--nx-fg-base);
-  font-family: "Inter", system-ui, sans-serif;
+@utility t-h1 {
+  font-size: var(--text-2xl);
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.012em;
 }
 
-a {
-  color: var(--nx-link);
-  text-decoration: none;
-}
-a:hover {
-  color: var(--nx-link-hover);
-}
-
-::placeholder {
-  color: hsl(38 4% 50% / 70%);
+@utility t-h2 {
+  font-size: var(--text-xl);
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
 }
 
-button {
-  font-family: inherit;
+@utility t-h3 {
+  font-size: var(--text-lg);
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: -0.005em;
+}
+
+@utility t-body {
+  font-size: var(--text-base);
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+@utility t-body-md {
+  font-size: var(--text-md);
+  font-weight: 400;
+  line-height: 1.55;
+}
+
+@utility t-small {
+  font-size: var(--text-sm);
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+@utility t-xs {
+  font-size: var(--text-xs);
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+@utility t-eyebrow {
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@utility t-mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+/* Thin scrollbar used by every scrollable region in the design. */
+@utility scrollbar-thin {
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: hsl(var(--border-strong));
+    border-radius: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
 }
