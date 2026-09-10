@@ -81,8 +81,14 @@ export interface ResumeCandidate {
 export interface ResumeDoc {
   fileName: string;
   sizeBytes: number;
-  pageCount: number;
+  /** Only known once the document has been parsed server-side. Absent for a
+   * file the candidate just chose, where asserting a count would contradict
+   * the preview sitting next to it. */
+  pageCount?: number;
   entityCount: number;
+  /** Object URL for the file the candidate chose, when there is one. Absent for
+   * a session restored from the server, which has no local blob to point at. */
+  previewUrl?: string;
   candidate: ResumeCandidate;
   sections: ResumeSection[];
   probes: Probe[];
@@ -123,6 +129,174 @@ export interface DeviceReport {
   detail?: string;
 }
 
+export type CodeLanguage = "python" | "go" | "typescript" | "sql";
+
+export interface CodeFile {
+  name: string;
+  language: CodeLanguage;
+  content: string;
+  /** Test files are shown but not edited. */
+  readOnly?: boolean;
+}
+
+export type TestOutcome = "pass" | "fail" | "hidden";
+
+export interface TestCase {
+  name: string;
+  outcome: TestOutcome;
+  /** Milliseconds, when the case actually ran. */
+  durationMs?: number;
+}
+
+export type TerminalLineKind = "command" | "output" | "error" | "muted";
+
+export interface TerminalLine {
+  kind: TerminalLineKind;
+  text: string;
+}
+
+export interface CodingTask {
+  index: number;
+  total: number;
+  title: string;
+  difficulty: Tone;
+  difficultyLabel: string;
+  brief: string[];
+  example: string;
+  constraints: string[];
+  attemptsUsed: number;
+  attemptsAllowed: number;
+  attemptOutcomes: ("pass" | "fail" | "unused")[];
+  lastRunSummary?: string;
+  files: CodeFile[];
+  languages: CodeLanguage[];
+  tests: TestCase[];
+  terminal: TerminalLine[];
+  exitCode: number;
+  complexity: { label: string; value: string; tone?: Tone }[];
+  complexityNote?: string;
+}
+
+export interface SchemaTable {
+  name: string;
+  columns: { name: string; type: string }[];
+}
+
+export interface SqlTask {
+  prompt: string;
+  schema: SchemaTable[];
+  query: string;
+  columns: string[];
+  rows: (string | number)[][];
+  /** Right-aligned like a spreadsheet; indexes into `columns`. */
+  numericColumns: number[];
+  timing?: string;
+  caveat?: string;
+}
+
+export interface DebugTask {
+  prompt: string;
+  badgeLabel: string;
+  secondsRemaining: number;
+  file: CodeFile;
+  /** 1-based, relative to `startLine`. */
+  faultLine: number;
+  startLine: number;
+  trace: TerminalLine[];
+}
+
+export interface DesignNode {
+  id: string;
+  label: string;
+  detail?: string;
+  x: number;
+  y: number;
+  width: number;
+  /** Explicit so connectors can be computed from real geometry rather than an
+   * assumed box size. */
+  height: number;
+  variant: "solid" | "dashed" | "filled";
+}
+
+export interface DesignEdge {
+  id: string;
+  from: string;
+  to: string;
+}
+
+export interface DesignProbe {
+  id: string;
+  question: string;
+  answered: boolean;
+}
+
+export interface DesignTask {
+  prompt: string;
+  nodes: DesignNode[];
+  edges: DesignEdge[];
+  candidateNote?: string;
+  probes: DesignProbe[];
+}
+
+export interface QuizOption {
+  id: string;
+  label: string;
+}
+
+export interface QuizQuestion {
+  id: string;
+  index: number;
+  total: number;
+  secondsRemaining: number;
+  prompt: string;
+  options: QuizOption[];
+}
+
+export interface QaSource {
+  label: string;
+}
+
+export interface QaMessage {
+  id: string;
+  role: "candidate" | "agent";
+  text: string;
+  citations?: number[];
+  sources?: QaSource[];
+  /** The agent declined to answer and handed it to a person. */
+  routedTo?: { name: string; replyWithin: string };
+}
+
+export interface TimelineStep {
+  label: string;
+  detail: string;
+  state: "done" | "current" | "upcoming";
+}
+
+export interface FeedbackQuestion {
+  id: string;
+  label: string;
+}
+
+export interface WrapUp {
+  headline: string;
+  body: string;
+  timeline: TimelineStep[];
+  feedbackQuestions: FeedbackQuestion[];
+}
+
+/** Round content, keyed by the round it belongs to. Absent entries mean the
+ * server has not generated that round yet. */
+export interface RoundContent {
+  coding?: CodingTask;
+  sql?: SqlTask;
+  debug?: DebugTask;
+  design?: DesignTask;
+  quiz?: QuizQuestion;
+  qa?: { suggestions: string[]; messages: QaMessage[] };
+  wrap?: WrapUp;
+  behavioral?: { questionNumber: number; questionTotal: number; question: string; derivedFrom: string[]; citation?: number };
+}
+
 export interface InterviewSession {
   id: string;
   candidateName: string;
@@ -136,4 +310,5 @@ export interface InterviewSession {
   progressIndex: number;
   consent: ConsentState;
   startedAt: string | null;
+  content: RoundContent;
 }

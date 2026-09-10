@@ -102,6 +102,57 @@ export function derivePanelCopy(stage: StageId, isOpen: boolean) {
   };
 }
 
+export interface PlanCardView {
+  id: StageId;
+  label: string;
+  durationMin: number;
+  summary?: string;
+  citation?: number;
+}
+
+export interface PlanSummary {
+  heading: string;
+  /** Substantive rounds, shown one card each. */
+  cards: PlanCardView[];
+  /** The short tail, collapsed into a single card. Null when there is none. */
+  remainder: { count: number; durationMin: number; labels: string } | null;
+}
+
+/** A round long enough to be worth its own card. Below this the design folds
+ * rounds into one "+ N shorter rounds" tile. */
+const FEATURED_MIN_DURATION = 10;
+
+/** Splits the upcoming rounds into featured cards and a collapsed tail.
+ *
+ * Counts and durations are summed from the rounds themselves rather than
+ * hardcoded, so the tile can't drift from the agenda it summarises. */
+export function derivePlanSummary(session: InterviewSession): PlanSummary {
+  const resumeIndex = session.rounds.findIndex((r) => r.id === "resume");
+  const upcoming = session.rounds.slice(resumeIndex + 1);
+  const roundCount = session.rounds.filter((r) => r.id !== "preflight").length;
+
+  const cards = upcoming.filter((round) => round.durationMin >= FEATURED_MIN_DURATION);
+  const tail = upcoming.filter((round) => round.durationMin < FEATURED_MIN_DURATION);
+
+  return {
+    heading: `${roundCount} rounds, ${session.totalDurationMin} minutes`,
+    cards: cards.map(({ id, label, durationMin, summary, citation }) => ({
+      id,
+      label,
+      durationMin,
+      summary,
+      citation,
+    })),
+    remainder: tail.length
+      ? {
+          count: tail.length,
+          durationMin: tail.reduce((total, round) => total + round.durationMin, 0),
+          labels: tail.map((round) => round.label).join(" · "),
+        }
+      : null,
+  };
+}
+
 export function deriveNextLockLabel(session: InterviewSession): string {
   const next = session.rounds[session.progressIndex + 1];
   return next ? `${next.label} unlocks when this round is submitted` : "All rounds unlocked";

@@ -22,7 +22,13 @@ export function ResumeFileCard({ resume, onReplace }: { resume: ResumeDoc; onRep
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-medium">{resume.fileName}</div>
         <div className="mt-0.5 text-xs text-content-muted">
-          {formatFileSize(resume.sizeBytes)} · {resume.pageCount} pages · {resume.entityCount} entities extracted
+          {[
+            formatFileSize(resume.sizeBytes),
+            resume.pageCount === undefined ? null : `${resume.pageCount} pages`,
+            `${resume.entityCount} entities extracted`,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
         </div>
         <div className="mt-2 h-[3px] overflow-hidden rounded-[2px] bg-line-strong">
           <div className="h-full w-full bg-success" />

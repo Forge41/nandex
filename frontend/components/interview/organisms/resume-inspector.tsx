@@ -6,10 +6,10 @@ import { SkeletonLines } from "@/components/ui/skeleton-lines";
 import { ResumeFileCard } from "@/components/interview/molecules/resume-file-card";
 import type { ResumeDoc } from "@/lib/interview/types";
 
-/** Stands in for a rendered page until pdf.js is wired up: real metadata, real
- * headings, redacted body copy. It is deliberately not dressed up with page or
- * zoom controls, which would imply a renderer that isn't there. */
-function DocumentPreview({ resume }: { resume: ResumeDoc }) {
+/** Fallback for a session with no local blob to render -- one restored from the
+ * server, say. Real metadata and headings, redacted body copy, and no page or
+ * zoom controls that would imply a renderer isn't there. */
+function DocumentOutline({ resume }: { resume: ResumeDoc }) {
   const { candidate } = resume;
 
   return (
@@ -57,13 +57,26 @@ export function ResumeInspector({ resume, onReplace }: { resume: ResumeDoc; onRe
       <div className="mt-3 flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border border-line-strong">
         <div className="flex h-[34px] shrink-0 items-center gap-2.5 border-b border-line-strong bg-surface-component px-2.5">
           <Mono className="flex-1 truncate text-2xs text-content-subtle">{resume.fileName}</Mono>
-          <Mono className="text-2xs text-content-muted">
-            {resume.pageCount} {resume.pageCount === 1 ? "page" : "pages"}
-          </Mono>
+          {resume.pageCount !== undefined && (
+            <Mono className="text-2xs text-content-muted">
+              {resume.pageCount} {resume.pageCount === 1 ? "page" : "pages"}
+            </Mono>
+          )}
         </div>
-        <div className="scrollbar-thin flex min-h-0 flex-1 justify-center overflow-auto bg-[hsl(40_3%_22%)] p-4">
-          <DocumentPreview resume={resume} />
-        </div>
+        {/* The browser's own PDF viewer when there's a real file behind this --
+            the point of the step is checking the actual document, which an
+            approximation of it cannot do. */}
+        {resume.previewUrl ? (
+          <iframe
+            src={resume.previewUrl}
+            title={`Preview of ${resume.fileName}`}
+            className="min-h-0 flex-1 border-0 bg-[hsl(40_3%_22%)]"
+          />
+        ) : (
+          <div className="scrollbar-thin flex min-h-0 flex-1 justify-center overflow-auto bg-[hsl(40_3%_22%)] p-4">
+            <DocumentOutline resume={resume} />
+          </div>
+        )}
       </div>
 
       <p className="t-xs mt-2 text-content-muted">

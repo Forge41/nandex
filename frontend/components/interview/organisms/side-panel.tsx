@@ -9,8 +9,8 @@ import { TranscriptTurn } from "@/components/interview/molecules/transcript-turn
 import { useInterviewSession } from "@/lib/interview/session-provider";
 import { useRoomState } from "@/lib/interview/room-provider";
 import { derivePanelCopy } from "@/lib/interview/selectors";
+import { useTranscript } from "@/lib/interview/transcript-provider";
 import { formatClock, initialsOf } from "@/lib/interview/format";
-import type { TranscriptTurn as Turn } from "@/lib/interview/types";
 
 /** Self-view placeholder. The real feed arrives with the published camera
  * track -- acquiring a second independent stream here would fight the
@@ -29,8 +29,9 @@ function ProctorTile() {
   );
 }
 
-export function SidePanel({ transcript, showProctor }: { transcript: Turn[]; showProctor: boolean }) {
+export function SidePanel({ showProctor }: { showProctor: boolean }) {
   const { session } = useInterviewSession();
+  const transcript = useTranscript();
   const { panelOpen, togglePanel } = useRoomState();
   const panel = derivePanelCopy(session.activeStage, panelOpen);
   const initials = initialsOf(session.candidateName);
