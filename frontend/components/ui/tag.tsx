@@ -7,7 +7,7 @@ const tagVariants = cva("inline-flex items-center gap-1 rounded-xs px-1.5 py-0.5
     variant: {
       default: "bg-surface-component font-semibold text-content-subtle",
       outline: "border border-line bg-transparent font-medium text-content-subtle",
-      inverted: "border border-transparent bg-surface-interactive font-medium text-content-on-color",
+      inverted: "border border-transparent bg-surface-interactive font-medium text-content-on-interactive",
     },
   },
   defaultVariants: {

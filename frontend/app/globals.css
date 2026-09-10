@@ -48,6 +48,7 @@
   --color-content-muted: hsl(var(--foreground-fg-muted));
   --color-content-disabled: hsl(var(--foreground-fg-disabled));
   --color-content-on-color: hsl(var(--foreground-fg-on-color));
+  --color-content-on-interactive: hsl(var(--foreground-fg-on-interactive));
   --color-content-danger: hsl(var(--foreground-fg-danger));
 
   /* Lines */
@@ -285,6 +286,19 @@
 @utility t-mono {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
+}
+
+/* Placeholder hatching for a video surface that has no stream yet.
+ *
+ * Alternates the subtle surface with a border tone rather than the design's
+ * component/subtle pair, which are the same value in the light palette and so
+ * produced no visible hatching at all. */
+@utility bg-stripes {
+  background: repeating-linear-gradient(
+    135deg,
+    hsl(var(--background-bg-subtle)) 0 6px,
+    hsl(var(--border-strong)) 6px 12px
+  );
 }
 
 /* Thin scrollbar used by every scrollable region in the design. */

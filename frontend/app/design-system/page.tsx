@@ -207,7 +207,7 @@ export default function DesignSystemPage() {
           <AudioBars barWidth={3} gap={4} className="h-full w-full" />
         </span>
         <span className="flex h-[120px] w-64 items-center justify-center rounded-lg bg-surface-interactive">
-          <AudioBars barWidth={8} gap={8} className="h-16 text-content-on-color" />
+          <AudioBars barWidth={8} gap={8} className="h-16 text-content-on-interactive" />
         </span>
         <AudioBars className="h-8" levels={[0.3, 0.7, 1, 0.5, 0.2]} />
       </Section>
@@ -233,7 +233,7 @@ export default function DesignSystemPage() {
           <AvatarFallback>PR</AvatarFallback>
         </Avatar>
         <Avatar size="sm">
-          <AvatarFallback className="bg-surface-interactive text-content-on-color">AI</AvatarFallback>
+          <AvatarFallback className="bg-surface-interactive text-content-on-interactive">AI</AvatarFallback>
         </Avatar>
         <Avatar size="lg">
           <AvatarFallback>MO</AvatarFallback>
