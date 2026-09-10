@@ -55,11 +55,19 @@ export interface Probe {
   round: StageId;
 }
 
+/** A run of resume prose. A fragment carrying a `citation` is the phrase a
+ * round was generated from, and renders underlined with its numbered chip --
+ * modelled as data rather than a markup string so there is no parser to keep
+ * in step with the renderer. */
+export interface ResumeFragment {
+  text: string;
+  citation?: number;
+}
+
 export interface ResumeSection {
   id: string;
   label: string;
-  /** Paragraphs with inline citation markers, rendered by RichResumeText. */
-  paragraphs: string[];
+  paragraphs: ResumeFragment[][];
 }
 
 export interface ResumeCandidate {

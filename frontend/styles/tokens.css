@@ -28,6 +28,11 @@
   --foreground-fg-muted: 38 4% 50%;
   --foreground-fg-disabled: 38 5% 71%;
   --foreground-fg-on-color: 40 16% 96%;
+  /* Not in the export. Content sitting on --background-bg-interactive, which
+   * inverts between themes (near-black in light, white in dark) while
+   * fg-on-color stays near-white -- so pairing the two renders white on white
+   * in dark mode. Anything on an interactive surface uses this instead. */
+  --foreground-fg-on-interactive: 40 16% 96%;
   --foreground-fg-interactive: 40 6% 10%;
   --foreground-fg-interactive-hover: 43 7% 19%;
   --foreground-fg-danger: 356 67% 46%;
@@ -97,7 +102,10 @@
   --background-bg-input-hover: 0 0% 100% / 0.08;
   --background-bg-interactive: 0 0% 100%;
   --background-bg-disabled: 43 7% 19%;
-  --background-bg-overlay: 0 0% 100% / 0.4;
+  /* Deviates from the export, which specifies a 40% *white* scrim here. That
+   * washes out dark content instead of receding behind a dialog, and reads as
+   * a copy of the light value rather than an intent. */
+  --background-bg-overlay: 0 0% 0% / 0.6;
   --background-bg-warm-subtle: 42 100% 97% / 0.02;
 
   --foreground-fg-base: 34 11% 88%;
@@ -105,6 +113,7 @@
   --foreground-fg-muted: 40 4% 60%;
   --foreground-fg-disabled: 38 4% 50%;
   --foreground-fg-on-color: 0 0% 100%;
+  --foreground-fg-on-interactive: 30 7% 5%;
   --foreground-fg-interactive: 34 11% 88%;
   --foreground-fg-interactive-hover: 40 6% 81%;
   --foreground-fg-danger: 355 85% 69%;

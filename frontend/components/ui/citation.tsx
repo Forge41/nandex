@@ -17,7 +17,7 @@ function Citation({
       aria-label={`Source ${n}`}
       className={cn(
         "inline-flex h-3.5 min-w-3.5 items-center justify-center rounded-[3px] border-[0.5px] border-content-muted/30 bg-transparent px-0.5 align-[2px] font-sans text-[10px] font-medium text-content-muted transition-colors duration-[80ms] mx-px hover:bg-surface-component",
-        "data-[selected=true]:border-surface-interactive data-[selected=true]:bg-surface-interactive data-[selected=true]:text-content-on-color",
+        "data-[selected=true]:border-surface-interactive data-[selected=true]:bg-surface-interactive data-[selected=true]:text-content-on-interactive",
         className
       )}
       {...props}
