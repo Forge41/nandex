@@ -1,4 +1,5 @@
 import { DEFAULT_ROUNDS } from "../agenda";
+import { MOCK_ROUND_CONTENT } from "./rounds.fixture";
 import type { InterviewSession, ResumeDoc, TranscriptTurn } from "../types";
 
 /** Stands in for GET /api/interview/:id until the backend exists. The shape
@@ -76,6 +77,7 @@ export const MOCK_SESSION: InterviewSession = {
   progressIndex: 0,
   consent: { recording: true, aiInterviewer: true, integrityMonitoring: true },
   startedAt: null,
+  content: MOCK_ROUND_CONTENT,
 };
 
 export const MOCK_TRANSCRIPT: TranscriptTurn[] = [

@@ -63,17 +63,37 @@ export function PreflightStage() {
 
   const cta = derivePreflightCta(session);
 
-  // The parse itself is still mocked; the file the candidate actually chose
-  // supplies its own name and size so the card never misreports what was read.
-  const acceptResume = (file: File) =>
-    dispatch({ type: "SET_RESUME", resume: { ...MOCK_RESUME, fileName: file.name, sizeBytes: file.size } });
+  // The extracted content is still mocked; the file the candidate actually
+  // chose supplies its name, size and preview so nothing on screen misreports
+  // what was read. Object URLs are revoked on replace rather than accumulating.
+  const acceptResume = (file: File) => {
+    if (session.resume?.previewUrl) URL.revokeObjectURL(session.resume.previewUrl);
+    dispatch({
+      type: "SET_RESUME",
+      resume: {
+        // Extracted content (sections, probes, citations) is fixture; the file
+        // facts are the real ones; the page count is dropped because nothing
+        // here has actually read the document.
+        ...MOCK_RESUME,
+        fileName: file.name,
+        sizeBytes: file.size,
+        pageCount: undefined,
+        previewUrl: URL.createObjectURL(file),
+      },
+    });
+  };
+
+  const clearResume = () => {
+    if (session.resume?.previewUrl) URL.revokeObjectURL(session.resume.previewUrl);
+    dispatch({ type: "CLEAR_RESUME" });
+  };
 
   return (
     <div className="flex min-h-0 flex-1 gap-[22px] px-[26px] py-[22px]">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <Card className="flex min-h-0 flex-1 flex-col p-4">
           {session.resume ? (
-            <ResumeInspector resume={session.resume} onReplace={() => dispatch({ type: "CLEAR_RESUME" })} />
+            <ResumeInspector resume={session.resume} onReplace={clearResume} />
           ) : (
             <ResumeDropzone onFile={acceptResume} />
           )}

@@ -8,9 +8,8 @@ import { StagePlaceholder } from "./stages/stage-placeholder";
 import { STAGE_COMPONENTS } from "./stages/registry";
 import { useInterviewSession } from "@/lib/interview/session-provider";
 import { stageChrome } from "@/lib/interview/selectors";
-import type { TranscriptTurn } from "@/lib/interview/types";
 
-export function InterviewRoom({ transcript }: { transcript: TranscriptTurn[] }) {
+export function InterviewRoom() {
   const { session } = useInterviewSession();
   const chrome = stageChrome(session.activeStage, session.consent);
   const Stage = STAGE_COMPONENTS[session.activeStage] ?? StagePlaceholder;
@@ -27,7 +26,7 @@ export function InterviewRoom({ transcript }: { transcript: TranscriptTurn[] }) 
           {chrome.controlBar && <ControlBar />}
         </div>
 
-        {chrome.sidePanel && <SidePanel transcript={transcript} showProctor={chrome.proctor} />}
+        {chrome.sidePanel && <SidePanel showProctor={chrome.proctor} />}
       </div>
     </div>
   );
