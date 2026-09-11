@@ -90,33 +90,4 @@ export function VideoPreview({
   );
 }
 
-/** Makes a preview the hit target for opening the overlay.
- *
- * A button rather than a click handler on the box, so it is reachable by
- * keyboard -- and only when there is something to enlarge, because a control
- * that opens an empty overlay is worse than no control. */
-export function PreviewButton({
-  onOpen,
-  label,
-  children,
-}: {
-  onOpen?: () => void;
-  label: string;
-  children: React.ReactNode;
-}) {
-  if (!onOpen) return <>{children}</>;
-
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      title={label}
-      aria-label={label}
-      className="cursor-pointer rounded-sm outline-offset-2 transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-line-interactive"
-    >
-      {children}
-    </button>
-  );
-}
-
 export { PREVIEW_BOX };

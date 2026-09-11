@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Eyebrow } from "@/components/ui/typography";
 import { MicIcon, VideoIcon, MonitorIcon } from "@/components/interview/icons";
 import { DeviceRow } from "@/components/interview/molecules/device-row";
-import { MicPreview, PreviewButton, VideoPreview } from "@/components/interview/molecules/device-preview";
+import { MicPreview, VideoPreview } from "@/components/interview/molecules/device-preview";
 import { ResumeDropzone } from "@/components/interview/molecules/resume-dropzone";
 import { ResumeInspector } from "@/components/interview/organisms/resume-inspector";
 import { DeviceTestDialog } from "@/components/interview/organisms/device-test-dialog";
@@ -49,8 +49,9 @@ const SHARED_SURFACE_META: Record<SharedSurface, string> = {
  * which in a check that exists to answer "does my camera work" is the one thing
  * it must not do.
  *
- * Tapping a live preview opens the same overlay the test uses, because they are
- * the same thing: a bigger look at a device that is already open. */
+ * The whole row is the control, preview included: opening the check and
+ * enlarging the preview are the same thing -- a closer look at a device that is
+ * already open. */
 function DeviceCheck({ onOpen }: { onOpen: (kind: DeviceKind) => void }) {
   const { mic, camera, screen, verdicts, start } = useDevicePreviews();
   const support = useScreenShareSupport();
@@ -71,14 +72,7 @@ function DeviceCheck({ onOpen }: { onOpen: (kind: DeviceKind) => void }) {
         label="Microphone"
         status={verdicts.mic}
         onTest={testOrOpen("mic", micLive)}
-        preview={
-          <PreviewButton
-            onOpen={micLive ? () => onOpen("mic") : undefined}
-            label="Enlarge the microphone check"
-          >
-            <MicPreview levels={mic.levels} live={micLive} />
-          </PreviewButton>
-        }
+        preview={<MicPreview levels={mic.levels} live={micLive} />}
       />
       <DeviceRow
         icon={<VideoIcon />}
@@ -86,14 +80,7 @@ function DeviceCheck({ onOpen }: { onOpen: (kind: DeviceKind) => void }) {
         status={verdicts.camera}
         onTest={testOrOpen("camera", camera.status === "running")}
         meta={camera.resolution ? `${camera.resolution.height}p` : undefined}
-        preview={
-          <PreviewButton
-            onOpen={camera.stream ? () => onOpen("camera") : undefined}
-            label="Enlarge the camera preview"
-          >
-            <VideoPreview stream={camera.stream} mirrored placeholder="camera off" />
-          </PreviewButton>
-        }
+        preview={<VideoPreview stream={camera.stream} mirrored placeholder="camera off" />}
       />
       <DeviceRow
         icon={<MonitorIcon />}
@@ -106,14 +93,7 @@ function DeviceCheck({ onOpen }: { onOpen: (kind: DeviceKind) => void }) {
         // Once sharing, what was shared matters more than how many displays
         // exist -- a single window is a weaker assurance than a whole screen.
         meta={screen.status === "running" ? SHARED_SURFACE_META[screen.surface] : support.meta}
-        preview={
-          <PreviewButton
-            onOpen={screen.stream ? () => onOpen("screen") : undefined}
-            label="Enlarge the screen share preview"
-          >
-            <VideoPreview stream={screen.stream} placeholder="not shared" />
-          </PreviewButton>
-        }
+        preview={<VideoPreview stream={screen.stream} placeholder="not shared" />}
         isLast
       />
     </div>

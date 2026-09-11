@@ -25,6 +25,8 @@ export function useScreenShareSupport(): { supported: boolean; meta?: string } {
 
   return {
     supported: true,
-    meta: extended === undefined ? undefined : extended ? "multiple displays" : "1 display",
+    // Terse on purpose: this sits in a narrow fixed column, and a truncated
+    // "multiple displa…" says less than "2+ displays".
+    meta: extended === undefined ? undefined : extended ? "2+ displays" : "1 display",
   };
 }
