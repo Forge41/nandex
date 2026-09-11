@@ -162,32 +162,37 @@ function PreflightBody() {
           <DeviceCheck onOpen={setOpen} />
         </Card>
 
-        <Card className="mt-6 p-4">
-          <Eyebrow>Consent</Eyebrow>
-          <div className="mt-3 flex flex-col gap-2.5">
-            {CONSENT_TERMS.map((term) => (
-              <label key={term.key} className="flex cursor-pointer items-start gap-2.5 text-sm">
-                <Checkbox
-                  className="mt-px"
-                  checked={session.consent[term.key]}
-                  onCheckedChange={() => dispatch({ type: "TOGGLE_CONSENT", key: term.key })}
-                />
-                <span>{term.label}</span>
-              </label>
-            ))}
-          </div>
-        </Card>
+        {/* Consent and the button that acts on it are one group, pinned to the
+            bottom together: agreeing and proceeding are one step, and leaving
+            the button to drift down alone opened a dead gap between them. */}
+        <div className="mt-auto flex flex-col gap-3.5 pt-6">
+          <Card className="p-4">
+            <Eyebrow>Consent</Eyebrow>
+            <div className="mt-3 flex flex-col gap-2.5">
+              {CONSENT_TERMS.map((term) => (
+                <label key={term.key} className="flex cursor-pointer items-start gap-2.5 text-sm">
+                  <Checkbox
+                    className="mt-px"
+                    checked={session.consent[term.key]}
+                    onCheckedChange={() => dispatch({ type: "TOGGLE_CONSENT", key: term.key })}
+                  />
+                  <span>{term.label}</span>
+                </label>
+              ))}
+            </div>
+          </Card>
 
-        <div className="mt-auto flex flex-col gap-2 pt-4">
-          <Button
-            variant="primary"
-            className="w-full"
-            disabled={cta.disabled}
-            onClick={() => dispatch({ type: "ADVANCE" })}
-          >
-            {cta.label}
-          </Button>
-          <span className="text-center text-xs text-content-muted">{cta.hint}</span>
+          <div className="flex flex-col gap-2">
+            <Button
+              variant="primary"
+              className="w-full"
+              disabled={cta.disabled}
+              onClick={() => dispatch({ type: "ADVANCE" })}
+            >
+              {cta.label}
+            </Button>
+            <span className="text-center text-xs text-content-muted">{cta.hint}</span>
+          </div>
         </div>
       </div>
 
