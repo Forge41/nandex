@@ -12,12 +12,16 @@ from apps.tps.connection_service import (
     delete_connection,
     get_or_refresh,
     mark_reauth_required,
+    resolve_provider_config,
 )
 from apps.tps.grpc import tps_pb2, tps_pb2_grpc
-from apps.tps.handlers import get_credential_handler, get_oauth_handler
+from apps.tps.handlers import get_credential_handler, get_oauth_handler, get_realtime_handler
+from apps.tps.handlers.base import AgentDispatch, RoomGrants
 from apps.tps.models import AppCategory, AppProvider, AuthType, Connection, Connector
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_ROOM_TOKEN_TTL_SECONDS = 900
 
 
 def _app_to_proto(connector: Connector) -> tps_pb2.App:
@@ -190,3 +194,36 @@ class TpsServicer(tps_pb2_grpc.TpsServiceServicer):
         if not ok:
             await context.abort(grpc.StatusCode.NOT_FOUND, "Connection not found")
         return tps_pb2.MarkReauthRequiredResponse(ok=True)
+
+    async def MintRoomToken(self, request, context):
+        try:
+            handler = get_realtime_handler(request.app_name)
+        except ValueError as e:
+            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(e))
+
+        if not request.room or not request.identity:
+            await context.abort(
+                grpc.StatusCode.INVALID_ARGUMENT, "room and identity are both required"
+            )
+
+        config = await resolve_provider_config(request.project_id, request.app_name)
+        grants = RoomGrants(
+            can_publish=request.can_publish,
+            can_subscribe=request.can_subscribe,
+            hidden=request.hidden,
+            ttl_seconds=request.ttl_seconds or DEFAULT_ROOM_TOKEN_TTL_SECONDS,
+            agents=tuple(AgentDispatch(name=a.name, metadata=a.metadata) for a in request.agents),
+        )
+
+        try:
+            room_token = handler.mint_room_token(
+                config, room=request.room, identity=request.identity, grants=grants
+            )
+        except ValueError as e:
+            await context.abort(grpc.StatusCode.FAILED_PRECONDITION, str(e))
+
+        return tps_pb2.MintRoomTokenResponse(
+            token=room_token.token,
+            ws_url=room_token.ws_url,
+            expires_in=room_token.expires_in,
+        )

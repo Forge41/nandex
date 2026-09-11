@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 .PHONY: help install hooks agent-permissions link-agents fmt lint lint-ci test check \
 	serve-all tps tps-migrate tps-grpc grpc-gen migrate importer-migrate ingest-migrate \
-	importer-worker ingest-worker asgi frontend
+	importer-worker ingest-worker vas vas-worker vas-stack vas-stack-down asgi frontend
 
 help: ## List available targets
 	@grep -hE '^[a-z][a-zA-Z0-9_-]*:.*?## ' $(MAKEFILE_LIST) \
@@ -56,6 +56,23 @@ ingest-migrate: ## Apply pending database migrations for the ingest app
 
 importer-worker: ## Run importer's Temporal worker (needs a Temporal server already running)
 	cd backend && uv run manage.py run_importer_worker
+
+vas-stack: ## Start the containers vas needs locally: LiveKit, Egress, fake-GCS, Redis
+	@test -f dev/gcs-fake-credentials.json || (cd backend && uv run python ../scripts/gen_fake_gcs_credentials.py)
+	docker compose -f dev/docker-compose.yml up -d
+	@echo "Creating the recordings bucket in fake-gcs..."
+	@until curl -sf -X POST 'http://localhost:4443/storage/v1/b?project=local-dev' \
+		-H 'Content-Type: application/json' -d '{"name":"local-recordings"}' >/dev/null; do sleep 1; done
+	@echo "LiveKit ws://localhost:7880 | fake-GCS http://localhost:4443"
+
+vas-stack-down: ## Stop and remove the local vas containers
+	docker compose -f dev/docker-compose.yml down
+
+vas: ## Run the vas process (recording/storage) on its own port -- separate deployable, same DB
+	cd backend && uv run uvicorn config.vas_asgi:application --host 0.0.0.0 --port 8001 --reload
+
+vas-worker: ## Run vas's Temporal worker (needs a Temporal server already running)
+	cd backend && uv run manage.py run_vas_worker
 
 ingest-worker: ## Run ingest's Temporal worker (needs a Temporal server already running)
 	cd backend && uv run manage.py run_ingest_worker

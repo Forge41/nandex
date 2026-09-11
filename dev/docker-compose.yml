@@ -1,0 +1,78 @@
+# The pieces of the local stack that have to be containers: a LiveKit server, its Egress
+# recorder, a fake GCS, and the Redis they coordinate through.
+#
+# Postgres and Temporal are deliberately absent -- this repo already runs both (see
+# scripts/dev_serve.sh), and a second copy of either would be a second source of truth
+# for the same data.
+#
+# Egress needs a credentials file to exist at all; STORAGE_EMULATOR_HOST is what actually
+# redirects its traffic to fake-gcs. `make vas-stack` generates a throwaway key first, so
+# no private key is committed.
+services:
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  fake-gcs:
+    image: fsouza/fake-gcs-server:latest
+    command: -scheme http -port 4443 -public-host localhost:4443
+    ports:
+      - "4443:4443"
+    volumes:
+      - fake_gcs_data:/storage
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4443/storage/v1/b 2>/dev/null || exit 1"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  livekit:
+    image: livekit/livekit-server:latest
+    command: --config /livekit-config.yaml --bind 0.0.0.0
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      # A browser's WebRTC media needs these, not just the signalling port.
+      - "50000-50020:50000-50020/udp"
+    volumes:
+      - ./livekit-config.yaml:/livekit-config.yaml
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7880 2>/dev/null; [ $$? -ne 7 ]"]
+      interval: 3s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+
+  livekit-egress:
+    image: livekit/egress:latest
+    privileged: true
+    environment:
+      EGRESS_CONFIG_FILE: /egress.yaml
+      STORAGE_EMULATOR_HOST: fake-gcs:4443
+      GOOGLE_APPLICATION_CREDENTIALS: /gcs-credentials.json
+    volumes:
+      - ./egress-config.yaml:/egress.yaml
+      - ./gcs-fake-credentials.json:/gcs-credentials.json
+      - /dev/shm:/dev/shm
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      livekit:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      fake-gcs:
+        condition: service_healthy
+
+volumes:
+  fake_gcs_data:

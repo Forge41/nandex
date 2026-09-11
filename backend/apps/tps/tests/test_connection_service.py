@@ -8,7 +8,8 @@ from apps.tps.connection_service import (
     get_or_refresh,
     mark_reauth_required,
 )
-from apps.tps.models import Connection
+from apps.tps.handlers.livekit import LiveKitHandler
+from apps.tps.models import Connection, Connector
 
 
 @pytest.mark.django_db(transaction=True)
@@ -78,3 +79,37 @@ async def test_mark_reauth_required_flips_status(stub_connector):
     assert ok is True
     reloaded = await Connection.objects.aget(id=connection.id)
     assert reloaded.status == Connection.Status.REAUTH_REQUIRED
+
+
+@pytest.mark.django_db(transaction=True)
+async def test_resolve_provider_config_prefers_a_projects_own_connection(db):
+    """The platform credentials are a fallback, not a floor: a project that connects its
+    own provider must be acted on with its credentials, or "bring your own LiveKit" is
+    silently ignored.
+    """
+    from apps.tps.connection_service import resolve_provider_config
+
+    # transaction=True truncates the tables, so the seed migration's connector row is
+    # gone by the time this runs -- recreate it rather than depending on the seed.
+    await Connector.objects.acreate(
+        app_code=2,
+        app_name="livekit",
+        display_name="LiveKit",
+        auth_type=2,
+        category=6,
+        is_install_required=False,
+        active=True,
+    )
+
+    platform = await resolve_provider_config("proj-byo", "livekit")
+    assert platform == LiveKitHandler().platform_config()
+
+    await create_connection(
+        project_id="proj-byo",
+        app_name="livekit",
+        config={"host": "wss://own.example", "api_key": "own", "api_secret": "own-secret"},
+    )
+
+    resolved = await resolve_provider_config("proj-byo", "livekit")
+    assert resolved["host"] == "wss://own.example"
+    assert resolved["api_key"] == "own"

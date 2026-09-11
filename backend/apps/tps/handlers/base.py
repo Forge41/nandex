@@ -1,9 +1,11 @@
 """Handler protocols, split by auth type.
 
-Every provider implements one of these two protocols (never both) depending on which
-auth flow its connector uses.
+Every provider implements exactly one of OAuthHandler / CredentialHandler depending on
+which auth flow its connector uses. RealtimeHandler narrows CredentialHandler further:
+same auth flow, plus the ability to mint a room token.
 """
 
+from dataclasses import dataclass, field
 from typing import Protocol, runtime_checkable
 
 from apps.tps.catalog import IntegrationSlug
@@ -59,3 +61,49 @@ class CredentialHandler(AppHandler, Protocol):
     async def validate_credentials(self, config: dict) -> bool:
         """Test whether the given credentials actually work."""
         ...
+
+
+@dataclass(frozen=True)
+class AgentDispatch:
+    """An automation to pull into the room when the token's holder joins."""
+
+    name: str
+    metadata: str = ""
+
+
+@dataclass(frozen=True)
+class RoomGrants:
+    """What one identity may do in one room. Provider-neutral on purpose: tps must not
+    learn what the room is for, only what the holder is allowed to do in it."""
+
+    can_publish: bool = True
+    can_subscribe: bool = True
+    hidden: bool = False
+    ttl_seconds: int = 900
+    agents: tuple[AgentDispatch, ...] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True)
+class RoomToken:
+    token: str
+    ws_url: str
+    expires_in: int
+
+
+@runtime_checkable
+class RealtimeHandler(CredentialHandler, Protocol):
+    """Providers that host live audio/video rooms. Credentials validate like any other
+    API-key connector; the extra capability is minting a short-lived, scoped join token
+    for one identity in one room.
+    """
+
+    def platform_config(self) -> dict:
+        """The platform-level credentials from tps settings, in this provider's own key
+        names. Used when a project has no Connection of its own."""
+        ...
+
+    def mint_room_token(
+        self, config: dict, *, room: str, identity: str, grants: RoomGrants
+    ) -> RoomToken: ...
+
+    def get_ws_url(self, config: dict) -> str: ...

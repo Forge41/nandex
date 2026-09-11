@@ -1,0 +1,9 @@
+# Egress uploads straight to storage; it never routes recordings through our backend.
+api_key: devkey
+api_secret: devsecret
+ws_url: ws://livekit:7880
+log_level: debug
+redis:
+  address: redis:6379
+webhook_urls:
+  - http://host.docker.internal:8001/webhooks/livekit

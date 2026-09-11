@@ -23,6 +23,12 @@ class Settings(BaseSettings):
     google_drive_redirect_uri: str = "http://localhost:3000/connect/google_drive/callback"
     google_drive_scopes: str = "https://www.googleapis.com/auth/drive.readonly openid email"
 
+    # Platform-level realtime provider credentials. A project that brings its own
+    # LiveKit deployment overrides these through a Connection; these are the fallback.
+    livekit_host: str = "ws://localhost:7880"
+    livekit_api_key: str = ""
+    livekit_api_secret: str = ""
+
     model_config = {"env_prefix": "TPS_"}
 
 

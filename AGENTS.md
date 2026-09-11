@@ -23,6 +23,7 @@ The repo splits into a Next.js frontend and a Django backend, both under the roo
 | `frontend/` | Next.js app: connect-app OAuth flows, import status, chat UI |
 | `backend/config/` | Django project (settings, urls, asgi, celery) |
 | `backend/apps/` | Django apps, one per pipeline stage (`tps`, `importer`, `ingest`, `retrieval`, `chat`) |
+| `backend/apps/vas_*` | Video artifact service: recording, storage, playback, retention. Same project and database, its own process (`config.vas_asgi` on :8001) |
 | `backend/ai/` | Prompts, model registry, Anthropic client wrapper, tool definitions |
 | `.agents/` | Agent assets shared across tools (skills, subagents) |
 
@@ -42,6 +43,14 @@ shared canonical reference.
 - **`tps` never depends on anything above it.** `importer`, `ingest`, `retrieval`, and `chat` may
   depend on `tps`; `tps` must not import any of them. It exposes connections and tokens, nothing
   else.
+- **`vas_*` is a second leaf beside `tps`.** No app imports `apps.vas_*`, and `vas_*` imports
+  nothing above itself. The only way in is HTTP, through `apps.core.clients.vas_client`. Sharing
+  one Django project removes every mechanical barrier to breaking this, so it has to be written
+  down: a shared database makes `interview` reading `vas_recording` directly look free, and it
+  is exactly the ORM relation across a leaf boundary that `core` is already forbidden from doing
+  to `tps`. Cross-boundary references are plain indexed `CharField`s, never a `ForeignKey`.
+- **Only `tps` issues room join tokens.** `vas_*` holds LiveKit credentials because Egress is
+  itself a LiveKit API call, but a second token issuer would be a second authorization surface.
 - **Import and ingest run as Temporal workflows/activities.** Never inside a request/response
   cycle, and never on a bare task queue without Temporal's retry/replay guarantees.
 - **Minimize comments.** Default to none. Well-named code explains itself; a comment repeating

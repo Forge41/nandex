@@ -23,3 +23,23 @@ integrations:
     icon: https://cdn.simpleicons.org/googledrive
     keywords: [Google Drive, storage, documents]
 
+  - slug: livekit
+    display_name: LiveKit
+    category: realtime
+    auth_type: api_key
+    status: built
+    icon: https://cdn.simpleicons.org/livekit
+    keywords: [LiveKit, realtime, video, audio, rooms]
+    form_fields:
+      - reference_key: host
+        type: text
+        display_name: Server URL
+        required: true
+      - reference_key: api_key
+        type: text
+        display_name: API key
+        required: true
+      - reference_key: api_secret
+        type: password
+        display_name: API secret
+        required: true

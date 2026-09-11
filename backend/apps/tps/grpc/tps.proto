@@ -17,6 +17,8 @@ service TpsService {
   rpc GetToken(GetTokenRequest) returns (GetTokenResponse);
   rpc DeleteConnection(DeleteConnectionRequest) returns (DeleteConnectionResponse);
   rpc MarkReauthRequired(MarkReauthRequiredRequest) returns (MarkReauthRequiredResponse);
+
+  rpc MintRoomToken(MintRoomTokenRequest) returns (MintRoomTokenResponse);
 }
 
 message App {
@@ -112,4 +114,29 @@ message MarkReauthRequiredRequest {
 
 message MarkReauthRequiredResponse {
   bool ok = 1;
+}
+
+// A room and the grants one identity holds in it. Deliberately says nothing about what
+// the room is for -- tps brokers credentials, it does not know the feature using them.
+message AgentDispatch {
+  string name = 1;
+  string metadata = 2; // opaque to tps, handed to the agent verbatim
+}
+
+message MintRoomTokenRequest {
+  string project_id = 1;
+  string app_name = 2;
+  string room = 3;
+  string identity = 4;
+  bool can_publish = 5;
+  bool can_subscribe = 6;
+  bool hidden = 7;
+  int32 ttl_seconds = 8;
+  repeated AgentDispatch agents = 9;
+}
+
+message MintRoomTokenResponse {
+  string token = 1;
+  string ws_url = 2;
+  int32 expires_in = 3;
 }

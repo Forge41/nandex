@@ -180,3 +180,71 @@ async def test_connect_credentials_rejects_invalid_credentials(channel):
         assert exc_info.value.code() == grpc.StatusCode.INVALID_ARGUMENT
     finally:
         del HANDLER_REGISTRY["e2eapp"]
+
+
+@pytest.mark.django_db(transaction=True)
+async def test_mint_room_token_over_the_wire(channel, monkeypatch):
+    """Exercised through the client core actually calls, not the handler directly: the
+    proto round-trip is where a renamed field or a dropped repeated entry would hide.
+    """
+    import jwt
+
+    from apps.core.clients import tps_client
+    from apps.tps.config import settings as tps_settings
+
+    tps_settings.tps_secret = TEST_SECRET
+    secret = "a-test-secret-at-least-32-bytes-long"
+    monkeypatch.setattr(tps_settings, "livekit_host", "wss://livekit.test")
+    monkeypatch.setattr(tps_settings, "livekit_api_key", "devkey")
+    monkeypatch.setattr(tps_settings, "livekit_api_secret", secret)
+    monkeypatch.setattr(tps_client, "_get_channel", lambda: channel)
+    monkeypatch.setattr(tps_client.settings, "tps_secret", TEST_SECRET)
+
+    minted = await tps_client.mint_room_token(
+        project_id="proj-e2e",
+        app_name="livekit",
+        room="interview-xyz",
+        identity="candidate-xyz",
+        ttl_seconds=300,
+        agents=[("interviewer", '{"round":"behavioral"}')],
+    )
+
+    assert minted["ws_url"] == "wss://livekit.test"
+    assert minted["expires_in"] == 300
+
+    claims = jwt.decode(minted["token"], secret, algorithms=["HS256"])
+    assert claims["sub"] == "candidate-xyz"
+    assert claims["video"]["room"] == "interview-xyz"
+    assert [a["agentName"] for a in claims["roomConfig"]["agents"]] == ["interviewer"]
+
+
+@pytest.mark.django_db(transaction=True)
+async def test_mint_room_token_rejects_a_non_realtime_app(channel):
+    from apps.tps.config import settings as tps_settings
+
+    tps_settings.tps_secret = TEST_SECRET
+
+    stub = tps_pb2_grpc.TpsServiceStub(channel)
+    with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+        await stub.MintRoomToken(
+            tps_pb2.MintRoomTokenRequest(
+                project_id="proj-e2e", app_name="google_drive", room="r", identity="i"
+            ),
+            metadata=_metadata(),
+        )
+    assert exc_info.value.code() == grpc.StatusCode.INVALID_ARGUMENT
+
+
+@pytest.mark.django_db(transaction=True)
+async def test_mint_room_token_requires_a_room_and_an_identity(channel):
+    from apps.tps.config import settings as tps_settings
+
+    tps_settings.tps_secret = TEST_SECRET
+
+    stub = tps_pb2_grpc.TpsServiceStub(channel)
+    with pytest.raises(grpc.aio.AioRpcError) as exc_info:
+        await stub.MintRoomToken(
+            tps_pb2.MintRoomTokenRequest(project_id="proj-e2e", app_name="livekit", room="r"),
+            metadata=_metadata(),
+        )
+    assert exc_info.value.code() == grpc.StatusCode.INVALID_ARGUMENT

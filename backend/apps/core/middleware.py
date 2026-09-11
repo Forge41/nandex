@@ -5,6 +5,8 @@ shared workspace/project bootstrap this reuses from the (still-available, just u
 the frontend) magic-link flow.
 """
 
+from django.conf import settings
+
 from apps.core.auth.service import ensure_workspace_and_project, log_in_as
 from apps.core.models import User, generate_id
 
@@ -14,7 +16,8 @@ class AutoProvisionAnonymousUserMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        if not request.user.is_authenticated:
+        exempt = getattr(settings, "ANONYMOUS_AUTOPROVISION_EXEMPT_PREFIXES", ())
+        if not request.path.startswith(exempt) and not request.user.is_authenticated:
             user = User.objects.create(email=f"anon-{generate_id()}@anon.local")
             ensure_workspace_and_project(user)
             log_in_as(request, user)

@@ -1,0 +1,26 @@
+# LiveKit server for local development only. The dev key pair below is the one
+# TPS_LIVEKIT_* and VAS_LIVEKIT_* default to in backend/.env.example.
+port: 7880
+log_level: debug
+
+redis:
+  address: redis:6379
+
+keys:
+  devkey: devsecret
+
+rtc:
+  tcp_port: 7881
+  port_range_start: 50000
+  port_range_end: 60000
+
+room:
+  # Rooms are created by the first join with a room_join grant, so nothing pre-creates them.
+  auto_create: true
+  empty_timeout: 300
+
+webhook:
+  api_key: devkey
+  # The vas process, not the core one: vas owns the provider event receiver.
+  urls:
+    - http://host.docker.internal:8001/webhooks/livekit
