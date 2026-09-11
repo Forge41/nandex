@@ -75,7 +75,10 @@ export const MOCK_SESSION: InterviewSession = {
   resume: null,
   activeStage: "preflight",
   progressIndex: 0,
-  consent: { recording: true, aiInterviewer: true, integrityMonitoring: true },
+  // Unchecked. A pre-ticked box is not consent, and these terms cover being
+  // recorded and monitored -- the candidate has to actually agree. Matches the
+  // server, where every consent field defaults to false.
+  consent: { recording: false, aiInterviewer: false, integrityMonitoring: false },
   startedAt: null,
   content: MOCK_ROUND_CONTENT,
 };
