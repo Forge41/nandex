@@ -44,10 +44,18 @@ def fake_room(monkeypatch):
     # vas ids are secrets.token_hex(12) -- 24 characters, exactly what the CharField
     # holds. A shorter stand-in would let a length bug through.
     vas_session_id = "a" * 24
-    calls = {"tokens": [], "sessions": [], "starts": [], "stops": [], "vas_session_id": vas_session_id}
+    calls = {
+        "tokens": [],
+        "sessions": [],
+        "starts": [],
+        "stops": [],
+        "vas_session_id": vas_session_id,
+    }
 
     async def mint_join_token(project_id, room, identity, **kwargs):
-        calls["tokens"].append({"project_id": project_id, "room": room, "identity": identity, **kwargs})
+        calls["tokens"].append(
+            {"project_id": project_id, "room": room, "identity": identity, **kwargs}
+        )
         return {"token": "jwt-for-" + identity, "ws_url": "ws://livekit.test", "expires_in": 900}
 
     async def ensure_artifact_session(
@@ -77,6 +85,7 @@ def fake_room(monkeypatch):
 def _no_temporal(monkeypatch):
     """Post-session processing is fire-and-forget against a worker that doesn't ship yet.
     Stubbed so tests don't spend a connect timeout proving it was attempted."""
+
     async def noop(session_id):
         return None
 

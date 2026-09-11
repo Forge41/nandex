@@ -1,3 +1,5 @@
+import { ConnectionQuality } from "livekit-client";
+import type { RoomConnection } from "./room-provider";
 import type { SegmentTone } from "@/components/ui/segmented-progress";
 import type { ConsentState, InterviewSession, RoundStatus, StageId } from "./types";
 
@@ -156,4 +158,80 @@ export function derivePlanSummary(session: InterviewSession): PlanSummary {
 export function deriveNextLockLabel(session: InterviewSession): string {
   const next = session.rounds[session.progressIndex + 1];
   return next ? `${next.label} unlocks when this round is submitted` : "All rounds unlocked";
+}
+
+/** What the connection banner should say, or nothing when there is nothing
+ * worth saying.
+ *
+ * "live" deliberately renders no banner: a reassurance that stays on screen
+ * through a working interview is noise, and the rail's connection label already
+ * carries the steady state. */
+export function deriveConnectionView(
+  connection: RoomConnection,
+  agentState?: string
+): { tone: "info" | "success" | "warning" | "danger"; message: string; canRetry?: boolean; canUnblockAudio?: boolean } | null {
+  switch (connection) {
+    case "offline":
+    case "live":
+      return null;
+    case "connecting":
+      return {
+        tone: "info",
+        message:
+          agentState === "initializing"
+            ? "Your interviewer is starting up."
+            : "Connecting you to your interviewer.",
+      };
+    case "degraded":
+      return {
+        tone: "warning",
+        message: "Your connection is unstable. Audio may drop out for a moment.",
+      };
+    case "failed":
+      return {
+        tone: "danger",
+        message:
+          agentState === "failed"
+            ? "Your interviewer couldn't join. Nothing you said has been lost."
+            : "We couldn't connect you to the room. Nothing you said has been lost.",
+        canRetry: true,
+      };
+    case "ended":
+      return {
+        tone: "info",
+        message: "You've left the room.",
+        canRetry: true,
+      };
+  }
+}
+
+/** The rail's steady-state connection label. Renders only with something real
+ * to report -- the prop it feeds is optional precisely so that an unknown
+ * connection shows nothing rather than a guess. */
+export function deriveConnectionLabel(
+  connection: RoomConnection,
+  quality?: ConnectionQuality,
+  agentState?: string
+): string | undefined {
+  if (connection !== "live" && connection !== "degraded") return undefined;
+
+  const qualityWord =
+    quality === ConnectionQuality.Excellent
+      ? "excellent"
+      : quality === ConnectionQuality.Good
+        ? "good"
+        : quality === ConnectionQuality.Poor
+          ? "poor"
+          : undefined;
+  const agentWord =
+    agentState === "listening"
+      ? "interviewer listening"
+      : agentState === "thinking"
+        ? "interviewer thinking"
+        : agentState === "speaking"
+          ? "interviewer speaking"
+          : undefined;
+
+  const parts = [qualityWord && `Connection ${qualityWord}`, agentWord].filter(Boolean);
+  return parts.length ? parts.join(" · ") : undefined;
 }

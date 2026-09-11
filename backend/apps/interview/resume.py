@@ -8,10 +8,10 @@ PDF reader to the project.
 import json
 import logging
 
-from asgiref.sync import sync_to_async
-
 from ai.client import complete
 from ai.prompt_loader import load_prompt
+from asgiref.sync import sync_to_async
+
 from apps.importer.models import RawDocument
 from apps.ingest.pipeline.parsed_document import ParsedDocument
 from apps.ingest.pipeline.parsers import get_parser

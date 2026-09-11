@@ -19,7 +19,6 @@ from apps.interview.models import (
     InterviewSession,
     ResumeFacts,
     SessionRecording,
-    TranscriptTurn,
     candidate_identity_for,
     room_name_for,
 )
@@ -254,9 +253,7 @@ async def end_session(session: InterviewSession) -> InterviewSession:
 
     session.status = InterviewSession.Status.ENDED
     session.ended_at = timezone.now()
-    await session.asave(
-        update_fields=["status", "ended_at", "recording_state", "updated_at"]
-    )
+    await session.asave(update_fields=["status", "ended_at", "recording_state", "updated_at"])
     await trigger_post_session_processing(session.id)
     return session
 
@@ -279,9 +276,7 @@ async def trigger_post_session_processing(session_id: str) -> None:
             task_queue=settings.temporal_task_queue,
         )
     except Exception:
-        logger.warning(
-            "Couldn't start post-session processing for %s", session_id, exc_info=True
-        )
+        logger.warning("Couldn't start post-session processing for %s", session_id, exc_info=True)
 
 
 def record_recording_sync(session: InterviewSession, payload: dict) -> SessionRecording:

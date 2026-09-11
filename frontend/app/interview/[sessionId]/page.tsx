@@ -1,7 +1,6 @@
 import { InterviewRoom } from "@/components/interview/interview-room";
 import { InterviewSessionProvider } from "@/lib/interview/session-provider";
-import { RoomProvider } from "@/lib/interview/room-provider";
-import { TranscriptProvider } from "@/lib/interview/transcript-provider";
+import { RoomShell } from "@/components/interview/room-shell";
 import { MOCK_SESSION, MOCK_TRANSCRIPT } from "@/lib/interview/mock/session.fixture";
 
 /** The fixture stands in for GET /api/interview/:id. When the endpoint lands,
@@ -12,11 +11,9 @@ export default async function InterviewPage({ params }: { params: Promise<{ sess
 
   return (
     <InterviewSessionProvider initialSession={session}>
-      <RoomProvider>
-        <TranscriptProvider turns={MOCK_TRANSCRIPT}>
-          <InterviewRoom />
-        </TranscriptProvider>
-      </RoomProvider>
+      <RoomShell transcript={MOCK_TRANSCRIPT}>
+        <InterviewRoom />
+      </RoomShell>
     </InterviewSessionProvider>
   );
 }

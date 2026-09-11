@@ -103,7 +103,9 @@ def test_a_stale_callback_is_rejected(client, session):
 
 def test_an_unsigned_callback_is_rejected(client, session):
     response = Client().post(
-        CALLBACK_URL, data=json.dumps(_complete_payload(session["id"])), content_type="application/json"
+        CALLBACK_URL,
+        data=json.dumps(_complete_payload(session["id"])),
+        content_type="application/json",
     )
     assert response.status_code == 401
 

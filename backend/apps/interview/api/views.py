@@ -16,8 +16,8 @@ from django.http import HttpRequest, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from apps.core.api.views import _require_user
-from apps.core.services.workspace_service import current_workspace_for
 from apps.core.models import Project
+from apps.core.services.workspace_service import current_workspace_for
 from apps.interview import resume as resume_service
 from apps.interview import services
 from apps.interview.serializers import serialize_resume, serialize_session

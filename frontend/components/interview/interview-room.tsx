@@ -7,11 +7,14 @@ import { SidePanel } from "./organisms/side-panel";
 import { StagePlaceholder } from "./stages/stage-placeholder";
 import { STAGE_COMPONENTS } from "./stages/registry";
 import { useInterviewSession } from "@/lib/interview/session-provider";
-import { stageChrome } from "@/lib/interview/selectors";
+import { useRoomState } from "@/lib/interview/room-provider";
+import { deriveConnectionLabel, stageChrome } from "@/lib/interview/selectors";
 
 export function InterviewRoom() {
   const { session } = useInterviewSession();
+  const room = useRoomState();
   const chrome = stageChrome(session.activeStage, session.consent);
+  const connectionLabel = deriveConnectionLabel(room.connection, room.quality, room.agentState);
   const Stage = STAGE_COMPONENTS[session.activeStage] ?? StagePlaceholder;
 
   return (
@@ -19,7 +22,7 @@ export function InterviewRoom() {
       {chrome.topBar && <InterviewTopBar />}
 
       <div className="relative flex min-h-0 flex-1">
-        <AgendaRail />
+        <AgendaRail connectionLabel={connectionLabel} />
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-surface">
           <Stage />

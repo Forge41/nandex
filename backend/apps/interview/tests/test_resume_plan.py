@@ -35,7 +35,13 @@ PLAN = {
         }
     ],
     "probes": [
-        {"id": "p1", "title": "Kafka at scale", "note": "Worth grounding", "citation": 1, "round": "coding"}
+        {
+            "id": "p1",
+            "title": "Kafka at scale",
+            "note": "Worth grounding",
+            "citation": 1,
+            "round": "coding",
+        }
     ],
     "rounds": [{"id": "sql", "citation": 2, "summary": "Tests the SQL claim."}],
     "entityCount": 18,
