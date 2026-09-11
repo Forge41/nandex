@@ -89,6 +89,10 @@ export interface ResumeDoc {
   /** Object URL for the file the candidate chose, when there is one. Absent for
    * a session restored from the server, which has no local blob to point at. */
   previewUrl?: string;
+  /** The chosen file's own MIME type. Decides whether the browser can render
+   * it: a PDF it can, a DOCX it cannot, and guessing from the extension would
+   * put a download prompt where a preview should be. */
+  previewType?: string;
   candidate: ResumeCandidate;
   sections: ResumeSection[];
   probes: Probe[];

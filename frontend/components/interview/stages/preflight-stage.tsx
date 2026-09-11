@@ -129,6 +129,7 @@ function PreflightBody() {
         sizeBytes: file.size,
         pageCount: undefined,
         previewUrl: URL.createObjectURL(file),
+        previewType: file.type,
       },
     });
   };
