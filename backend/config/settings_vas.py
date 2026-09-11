@@ -26,3 +26,12 @@ MIDDLEWARE = [
 # is installed without the middleware it wants, and config.vas_urls mounts no admin route
 # for it to serve.
 SILENCED_SYSTEM_CHECKS = ["admin.E408", "admin.E409", "admin.E410"]
+
+# The LiveKit server and its Egress recorder run as containers, so the Host header on
+# every webhook they send is the gateway name they reach us by -- never "localhost".
+# Django rejects an unlisted Host with a bare 400 from CommonMiddleware, before the view,
+# which reads as "the webhook silently never arrived": the provider logs a successful send
+# and nothing in the recording row ever changes. Local dev only; production sets
+# DJANGO_ALLOWED_HOSTS.
+if DEBUG:  # noqa: F405
+    ALLOWED_HOSTS = [*ALLOWED_HOSTS, "host.docker.internal", "localhost", "127.0.0.1"]  # noqa: F405

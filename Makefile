@@ -69,7 +69,7 @@ vas-stack-down: ## Stop and remove the local vas containers
 	docker compose -f dev/docker-compose.yml down
 
 vas: ## Run the vas process (recording/storage) on its own port -- separate deployable, same DB
-	cd backend && uv run uvicorn config.vas_asgi:application --port 8001 --reload
+	cd backend && uv run uvicorn config.vas_asgi:application --host 0.0.0.0 --port 8001 --reload
 
 vas-worker: ## Run vas's Temporal worker (needs a Temporal server already running)
 	cd backend && uv run manage.py run_vas_worker

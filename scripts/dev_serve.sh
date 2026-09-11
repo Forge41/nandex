@@ -75,13 +75,16 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# The vas process binds all interfaces because LiveKit and Egress run as containers and
+# reach it by the host gateway; a loopback-only listener is unreachable from there.
+#
 # Start every other service. Each kills the whole group the moment it exits,
 # whether that's a clean stop or a crash -- see the trap note up top.
 # ---------------------------------------------------------------------------
 
 (cd backend && uv run uvicorn config.asgi:application --reload; kill 0) &
 (cd backend && uv run manage.py rungrpc; kill 0) &
-(cd backend && uv run uvicorn config.vas_asgi:application --port "$VAS_PORT" --reload; kill 0) &
+(cd backend && uv run uvicorn config.vas_asgi:application --host 0.0.0.0 --port "$VAS_PORT" --reload; kill 0) &
 (cd backend && uv run manage.py run_vas_worker; kill 0) &
 (cd backend && uv run manage.py run_importer_worker; kill 0) &
 (cd backend && uv run manage.py run_ingest_worker; kill 0) &

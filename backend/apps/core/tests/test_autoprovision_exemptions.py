@@ -75,3 +75,17 @@ def test_the_vas_process_does_not_run_the_middleware_at_all():
         "apps.core.middleware.AutoProvisionAnonymousUserMiddleware" not in settings_vas.MIDDLEWARE
     )
     assert settings_vas.ROOT_URLCONF == "config.vas_urls"
+
+
+def test_the_vas_process_allows_the_host_header_containers_reach_it_by():
+    """LiveKit and Egress run as containers, so the Host header on every webhook they
+    send is the gateway name -- never localhost. Django rejects an unlisted Host with a
+    bare 400 from CommonMiddleware, before the view, which reads as "the webhook never
+    arrived": the provider logs a successful send and nothing changes. Found by running a
+    real LiveKit server against the service.
+    """
+    import importlib
+
+    settings_vas = importlib.import_module("config.settings_vas")
+
+    assert "host.docker.internal" in settings_vas.ALLOWED_HOSTS

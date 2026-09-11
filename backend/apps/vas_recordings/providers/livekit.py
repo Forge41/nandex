@@ -93,7 +93,16 @@ class LiveKitWebhookValidator:
         except UnicodeDecodeError as e:
             raise ValueError("Webhook body is not valid UTF-8") from e
 
-        event = self._receiver.receive(body, auth_header)
+        try:
+            event = self._receiver.receive(body, auth_header)
+        except ValueError:
+            raise
+        except Exception as e:
+            # PyJWT raises DecodeError/InvalidTokenError, neither a ValueError, so a
+            # missing or malformed Authorization header would otherwise reach the view
+            # uncaught and 500. A 5xx makes the provider retry forever over a request
+            # that can never succeed, so every validation failure has to look the same.
+            raise ValueError("Webhook signature did not verify") from e
 
         # The signature alone doesn't stop a captured request being sent again later.
         if event.created_at and time.time() - event.created_at > self._max_age_seconds:
