@@ -83,9 +83,7 @@ class LiveKitHandler:
         except ValueError:
             return False
 
-        client = api.LiveKitAPI(
-            self.get_ws_url(config), config["api_key"], config["api_secret"]
-        )
+        client = api.LiveKitAPI(self.get_ws_url(config), config["api_key"], config["api_secret"])
         try:
             await client.room.list_rooms(api.ListRoomsRequest())
             return True

@@ -57,6 +57,11 @@ INSTALLED_APPS = [
     "apps.ingest",
     "apps.retrieval",
     "apps.chat",
+    # A second leaf beside apps.tps: no app imports these, and they import nothing above
+    # them. Deployed as their own process (config.settings_vas) but sharing this database.
+    "apps.vas_recordings",
+    "apps.vas_webhooks",
+    "apps.vas_compliance",
 ]
 
 AUTH_USER_MODEL = "core.User"
@@ -84,6 +89,18 @@ SESSION_COOKIE_SAMESITE = os.environ.get("DJANGO_SESSION_COOKIE_SAMESITE", "Lax"
 SESSION_COOKIE_AGE = int(os.environ.get("DJANGO_SESSION_COOKIE_AGE", 60 * 60 * 24 * 365))
 SESSION_SAVE_EVERY_REQUEST = True
 CSRF_COOKIE_SECURE = os.environ.get("DJANGO_CSRF_COOKIE_SECURE", "false").lower() == "true"
+
+# Machine-to-machine ingress: reached by another service with no cookie, so
+# AutoProvisionAnonymousUserMiddleware must not mint a throwaway identity per request --
+# for a retried webhook that is unbounded write amplification. Prefix match; every entry
+# must be a view that never reads request.user. This list lives here rather than in
+# apps.core so core doesn't learn which apps exist above it.
+ANONYMOUS_AUTOPROVISION_EXEMPT_PREFIXES = (
+    "/health",
+    "/interview/callbacks/",
+    "/video/",
+    "/webhooks/",
+)
 
 # Direct document uploads (apps.importer's upload endpoint) enforce their own explicit cap
 # with a clear error -- this just raises Django's own silent-rejection default (2.5MB) enough
