@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { derivePreflightCta } from "./selectors";
+import { deriveDeviceGate, derivePreflightCta } from "./selectors";
 import type { ConsentState, InterviewSession, ResumeDoc } from "./types";
 
 const NO_CONSENT: ConsentState = {
@@ -65,5 +65,72 @@ describe("derivePreflightCta", () => {
     expect(cta.disabled).toBe(false);
     expect(cta.label).toBe("Review interview plan");
     expect(cta.hint).toContain("94 minutes");
+  });
+});
+
+
+describe("deriveDeviceGate", () => {
+  const supported = { screenSupported: true };
+  const none = { mic: false, camera: false, screen: false };
+  const all = { mic: true, camera: true, screen: true };
+
+  it("blocks and names every check when none has run", () => {
+    const gate = deriveDeviceGate(none, supported);
+
+    expect(gate.ready).toBe(false);
+    expect(gate.untested).toEqual(["mic", "camera", "screen"]);
+    // Oxford comma, matching Intl.ListFormat's "en" output and the consent
+    // copy beside it ("audio, transcript, and code").
+    expect(gate.message).toBe(
+      "Test your microphone, camera, and screen share before continuing."
+    );
+  });
+
+  it("names only what is left once one has run", () => {
+    const gate = deriveDeviceGate({ ...none, mic: true }, supported);
+
+    expect(gate.untested).toEqual(["camera", "screen"]);
+    expect(gate.message).toBe("Test your camera and screen share before continuing.");
+  });
+
+  it("names one device without a conjunction", () => {
+    const gate = deriveDeviceGate({ ...all, screen: false }, supported);
+
+    expect(gate.message).toBe("Test your screen share before continuing.");
+  });
+
+  it("lets the candidate through once every check has run", () => {
+    const gate = deriveDeviceGate(all, supported);
+
+    expect(gate.ready).toBe(true);
+    expect(gate.untested).toEqual([]);
+    expect(gate.message).toBe("");
+  });
+
+  it("treats screen share as satisfied when the browser cannot share at all", () => {
+    // Otherwise the gate has no key: there is no way for the candidate to pass a
+    // check their browser does not implement.
+    const gate = deriveDeviceGate({ ...all, screen: false }, { screenSupported: false });
+
+    expect(gate.ready).toBe(true);
+    expect(gate.untested).toEqual([]);
+  });
+
+  it("still blocks on a real device when screen share is unsupported", () => {
+    const gate = deriveDeviceGate(
+      { mic: true, camera: false, screen: false },
+      { screenSupported: false }
+    );
+
+    expect(gate.ready).toBe(false);
+    expect(gate.untested).toEqual(["camera"]);
+  });
+
+  it("keeps the rows in the order they are shown", () => {
+    // The message and the focus target both follow this order, so a candidate
+    // reading top to bottom is sent to the first one they can see.
+    const gate = deriveDeviceGate({ mic: false, camera: true, screen: false }, supported);
+
+    expect(gate.untested).toEqual(["mic", "screen"]);
   });
 });

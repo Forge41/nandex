@@ -20,6 +20,12 @@ export interface ScreenShareTestState {
   errorMessage: string | null;
 }
 
+export interface ScreenShareTest extends ScreenShareTestState {
+  /** The last conclusive result, which outlives the device being released.
+   * See MicTest.settled -- same latch, same reason. */
+  settled: ScreenShareTestState | null;
+}
+
 const IDLE: ScreenShareTestState = {
   status: "idle",
   stream: null,
@@ -47,7 +53,7 @@ export const SURFACE_COPY: Record<SharedSurface, string> = {
  * The candidate can also end the share from the browser's own bar, which fires
  * the track's `ended` event. That is reported rather than ignored: the row must
  * not keep claiming a share that has stopped. */
-export function useScreenShareTest(active: boolean, nonce = 0): ScreenShareTestState {
+export function useScreenShareTest(active: boolean, nonce = 0): ScreenShareTest {
   const [published, setPublished] = useState<ScreenShareTestState | null>(null);
 
   useEffect(() => {
@@ -116,5 +122,11 @@ export function useScreenShareTest(active: boolean, nonce = 0): ScreenShareTestS
     };
   }, [active, nonce]);
 
-  return active ? (published ?? { ...IDLE, status: "requesting" }) : IDLE;
+  // The live half goes idle with the share; the settled half keeps what the
+  // last share concluded, so a candidate who stops sharing does not lose the
+  // fact that they shared.
+  return {
+    ...(active ? (published ?? { ...IDLE, status: "requesting" }) : IDLE),
+    settled: published,
+  };
 }

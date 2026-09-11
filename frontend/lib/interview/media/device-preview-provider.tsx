@@ -1,20 +1,34 @@
 "use client";
 
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
-import { useCameraTest, type CameraTestState } from "./use-camera-test";
-import { useMicTest, type MicTestState } from "./use-mic-test";
-import { useScreenShareTest, type ScreenShareTestState } from "./use-screen-share-test";
-import type { DeviceStatus } from "../types";
+import { useCameraTest, type CameraTest, type CameraTestState } from "./use-camera-test";
+import { useMicTest, type MicTest, type MicTestState } from "./use-mic-test";
+import {
+  useScreenShareTest,
+  type ScreenShareTest,
+  type ScreenShareTestState,
+} from "./use-screen-share-test";
+// DeviceKind lives in types.ts with the rest of the shared vocabulary, and is
+// re-exported here because every consumer of this provider needs it.
+import type { DeviceKind, DeviceStatus } from "../types";
 
-export type DeviceKind = "mic" | "camera" | "screen";
+export type { DeviceKind };
 
 export interface DevicePreviewState {
-  mic: MicTestState;
-  camera: CameraTestState;
-  screen: ScreenShareTestState;
-  /** What each check concluded. Kept after a device is turned off, because
-   * "you tested this and it passed" stays true; the live preview does not. */
+  mic: MicTest;
+  camera: CameraTest;
+  screen: ScreenShareTest;
+  /** What each check concluded, computed from the settled snapshot rather than
+   * the live one -- so it is kept after a device is turned off, because "you
+   * tested this and it passed" stays true while the live preview does not. */
   verdicts: Record<DeviceKind, DeviceStatus>;
+  /** Whether a check has actually run. Derived from the verdict rather than
+   * tracked alongside it, so the badge a candidate can see and any gate built
+   * on this cannot disagree.
+   *
+   * A device that failed counts: they tried, and nothing should trap a
+   * candidate behind a check their hardware cannot pass. */
+  tested: Record<DeviceKind, boolean>;
   active: Record<DeviceKind, boolean>;
   start: (kind: DeviceKind) => void;
   stop: (kind: DeviceKind) => void;
@@ -23,9 +37,8 @@ export interface DevicePreviewState {
 
 const DevicePreviewContext = createContext<DevicePreviewState | null>(null);
 
-function micVerdict(mic: MicTestState): DeviceStatus {
-  if (mic.status === "idle") return "untested";
-  if (mic.status === "requesting") return "untested";
+function micVerdict(mic: MicTestState | null): DeviceStatus {
+  if (mic === null || mic.status === "idle" || mic.status === "requesting") return "untested";
   if (mic.status !== "running") return "fail";
   // No speech yet is not a pass: the candidate has to have said something for
   // this check to have measured anything.
@@ -33,18 +46,22 @@ function micVerdict(mic: MicTestState): DeviceStatus {
   return mic.clipping || tooQuiet ? "check" : "ok";
 }
 
-function cameraVerdict(camera: CameraTestState): DeviceStatus {
-  if (camera.status === "idle" || camera.status === "requesting") return "untested";
+function cameraVerdict(camera: CameraTestState | null): DeviceStatus {
+  if (camera === null || camera.status === "idle" || camera.status === "requesting") {
+    return "untested";
+  }
   if (camera.status !== "running") return "fail";
   if (camera.lighting === null) return "untested";
   return camera.lighting === "good" ? "ok" : "check";
 }
 
-function screenVerdict(screen: ScreenShareTestState): DeviceStatus {
-  if (screen.status === "idle" || screen.status === "requesting") return "untested";
-  // Ending the share is the candidate's choice, not a failure -- but it is also
-  // no longer a pass, so it reverts to untested rather than claiming either.
-  if (screen.status === "ended") return "untested";
+function screenVerdict(screen: ScreenShareTestState | null): DeviceStatus {
+  if (screen === null || screen.status === "idle" || screen.status === "requesting") {
+    return "untested";
+  }
+  // Ending the share is the candidate's choice, not a failure, and not a pass
+  // either -- but it did happen, so it counts as a check having run.
+  if (screen.status === "ended") return "check";
   if (screen.status !== "running") return "fail";
   // A single window is a weaker assurance than a whole screen, and the
   // integrity terms the candidate agreed to are about the screen.
@@ -96,23 +113,31 @@ export function DevicePreviewProvider({ children }: { children: React.ReactNode 
     setNonces((current) => ({ ...current, [kind]: current[kind] + 1 }));
   }, []);
 
-  const value = useMemo<DevicePreviewState>(
-    () => ({
+  const value = useMemo<DevicePreviewState>(() => {
+    // From `settled`, not the live state: a verdict is about a check that ran,
+    // and releasing the device does not un-run it.
+    const verdicts: Record<DeviceKind, DeviceStatus> = {
+      mic: micVerdict(mic.settled),
+      camera: cameraVerdict(camera.settled),
+      screen: screenVerdict(screen.settled),
+    };
+
+    return {
       mic,
       camera,
       screen,
-      verdicts: {
-        mic: micVerdict(mic),
-        camera: cameraVerdict(camera),
-        screen: screenVerdict(screen),
+      verdicts,
+      tested: {
+        mic: verdicts.mic !== "untested",
+        camera: verdicts.camera !== "untested",
+        screen: verdicts.screen !== "untested",
       },
       active,
       start,
       stop,
       restart,
-    }),
-    [mic, camera, screen, active, start, stop, restart]
-  );
+    };
+  }, [mic, camera, screen, active, start, stop, restart]);
 
   return (
     <DevicePreviewContext.Provider value={value}>

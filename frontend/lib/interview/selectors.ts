@@ -1,7 +1,7 @@
 import { ConnectionQuality } from "livekit-client";
 import type { RoomConnection } from "./room-provider";
 import type { SegmentTone } from "@/components/ui/segmented-progress";
-import type { ConsentState, InterviewSession, RoundStatus, StageId } from "./types";
+import type { ConsentState, DeviceKind, InterviewSession, RoundStatus, StageId } from "./types";
 
 export interface StageChrome {
   topBar: boolean;
@@ -90,6 +90,55 @@ export function derivePreflightCta(session: InterviewSession) {
       ? "Your resume is parsed. Check your devices, agree to how the session is handled, and the plan opens next."
       : "Upload a resume to unlock the interview plan. You can still check your devices and read the consent terms now.",
   };
+}
+
+const DEVICE_NOUN: Record<DeviceKind, string> = {
+  mic: "microphone",
+  camera: "camera",
+  screen: "screen share",
+};
+
+const DEVICE_ORDER: readonly DeviceKind[] = ["mic", "camera", "screen"];
+
+export interface DeviceGate {
+  ready: boolean;
+  untested: DeviceKind[];
+  /** Names the specific rows. "Test something first" would leave the candidate
+   * hunting for which one. */
+  message: string;
+}
+
+/** Whether the candidate has actually run the device checks they just consented
+ * to being monitored by.
+ *
+ * A device that failed counts as checked: they tried, and a candidate whose
+ * webcam is blocked at the OS level must not be trapped on this page. The Fail
+ * badge stays visible, and a human reviews the session regardless.
+ */
+export function deriveDeviceGate(
+  tested: Record<DeviceKind, boolean>,
+  { screenSupported }: { screenSupported: boolean }
+): DeviceGate {
+  const untested = DEVICE_ORDER.filter((kind) => {
+    // A browser with no getDisplayMedia cannot run this check at all, so
+    // requiring it would be a gate with no key.
+    if (kind === "screen" && !screenSupported) return false;
+    return !tested[kind];
+  });
+
+  return {
+    ready: untested.length === 0,
+    untested,
+    message: untested.length
+      ? `Test your ${formatList(untested.map((kind) => DEVICE_NOUN[kind]))} before continuing.`
+      : "",
+  };
+}
+
+/** Intl.ListFormat is built in, so "a, b and c" needs no dependency and no
+ * hand-rolled comma juggling. */
+function formatList(items: string[]): string {
+  return new Intl.ListFormat("en", { style: "long", type: "conjunction" }).format(items);
 }
 
 /** The panel's own labels change wording before the session starts, when it is

@@ -30,6 +30,7 @@ const STATUS_SPOKEN: Record<DeviceStatus, string> = {
  * themselves pushed each row's preview to a different place.
  */
 export function DeviceRow({
+  ref,
   icon,
   label,
   status,
@@ -37,8 +38,12 @@ export function DeviceRow({
   testLabel,
   preview,
   meta,
+  flagged,
   isLast,
 }: {
+  /** React 19 takes ref as a plain prop, so no forwardRef wrapper. Used to move
+   * focus to the first flagged row. */
+  ref?: React.Ref<HTMLButtonElement>;
   icon: React.ReactNode;
   label: string;
   status: DeviceStatus;
@@ -50,6 +55,11 @@ export function DeviceRow({
   testLabel?: string;
   preview?: React.ReactNode;
   meta?: string;
+  /** Marked as standing between the candidate and the next step. Visual only:
+   * aria-invalid is for form inputs, and the information is already carried in
+   * text -- the row's own name ends "currently not yet tested", and the alert by
+   * the button names the devices it is waiting on. */
+  flagged?: boolean;
   isLast?: boolean;
 }) {
   const badge = STATUS_BADGE[status];
@@ -80,20 +90,24 @@ export function DeviceRow({
   );
 
   const frame = `flex w-full items-center gap-2.5 py-[11px] ${isLast ? "" : "border-b border-line"}`;
+  // Inset so the ring reads as around the row rather than cutting through the
+  // dividers above and below it.
+  const flag = flagged ? "-mx-2 rounded-md px-2 ring-1 ring-warning ring-inset" : "";
 
   if (!onTest) {
-    return <div className={frame}>{cells}</div>;
+    return <div className={`${frame} ${flag}`}>{cells}</div>;
   }
 
   return (
     <button
+      ref={ref}
       type="button"
       onClick={onTest}
       // The visible cells are decorative as a group -- read out, "Microphone 1
       // display OK" is worse than saying what the control does and where the
       // check currently stands.
       aria-label={`${testLabel ?? `Test ${label.toLowerCase()}`} — currently ${STATUS_SPOKEN[status]}`}
-      className={`${frame} group cursor-pointer rounded-md outline-offset-2 transition-colors hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-line-interactive`}
+      className={`${frame} ${flag} group cursor-pointer rounded-md outline-offset-2 transition-colors hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-line-interactive`}
     >
       {cells}
     </button>

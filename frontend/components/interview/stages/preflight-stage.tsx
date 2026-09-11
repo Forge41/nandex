@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -12,16 +12,12 @@ import { ResumeDropzone } from "@/components/interview/molecules/resume-dropzone
 import { ResumeInspector } from "@/components/interview/organisms/resume-inspector";
 import { DeviceTestDialog } from "@/components/interview/organisms/device-test-dialog";
 import { useInterviewSession } from "@/lib/interview/session-provider";
-import {
-  DevicePreviewProvider,
-  useDevicePreviews,
-  type DeviceKind,
-} from "@/lib/interview/media/device-preview-provider";
+import { DevicePreviewProvider, useDevicePreviews } from "@/lib/interview/media/device-preview-provider";
 import { useScreenShareSupport } from "@/lib/interview/media/use-screen-share-support";
 import type { SharedSurface } from "@/lib/interview/media/use-screen-share-test";
-import { derivePreflightCta } from "@/lib/interview/selectors";
+import { deriveDeviceGate, derivePreflightCta } from "@/lib/interview/selectors";
 import { MOCK_RESUME } from "@/lib/interview/mock/session.fixture";
-import type { ConsentState } from "@/lib/interview/types";
+import type { ConsentState, DeviceKind } from "@/lib/interview/types";
 
 const CONSENT_TERMS: { key: keyof ConsentState; label: string }[] = [
   {
@@ -52,9 +48,20 @@ const SHARED_SURFACE_META: Record<SharedSurface, string> = {
  * The whole row is the control, preview included: opening the check and
  * enlarging the preview are the same thing -- a closer look at a device that is
  * already open. */
-function DeviceCheck({ onOpen }: { onOpen: (kind: DeviceKind) => void }) {
+function DeviceCheck({
+  onOpen,
+  flagged,
+  firstFlaggedRef,
+}: {
+  onOpen: (kind: DeviceKind) => void;
+  flagged: readonly DeviceKind[];
+  firstFlaggedRef: React.RefObject<HTMLButtonElement | null>;
+}) {
   const { mic, camera, screen, verdicts, start } = useDevicePreviews();
   const support = useScreenShareSupport();
+  // Only the first gets the ref: focus goes to one row, and it should be the
+  // one nearest the top rather than whichever rendered last.
+  const flaggedFirst = flagged[0];
 
   const micLive = mic.status === "running";
   const testOrOpen = (kind: DeviceKind, live: boolean) => () => {
@@ -68,24 +75,30 @@ function DeviceCheck({ onOpen }: { onOpen: (kind: DeviceKind) => void }) {
   return (
     <div className="mt-3 flex flex-col">
       <DeviceRow
+        ref={flaggedFirst === "mic" ? firstFlaggedRef : undefined}
         icon={<MicIcon />}
         label="Microphone"
         status={verdicts.mic}
+        flagged={flagged.includes("mic")}
         onTest={testOrOpen("mic", micLive)}
         preview={<MicPreview levels={mic.levels} live={micLive} />}
       />
       <DeviceRow
+        ref={flaggedFirst === "camera" ? firstFlaggedRef : undefined}
         icon={<VideoIcon />}
         label="Camera"
         status={verdicts.camera}
+        flagged={flagged.includes("camera")}
         onTest={testOrOpen("camera", camera.status === "running")}
         meta={camera.resolution ? `${camera.resolution.height}p` : undefined}
         preview={<VideoPreview stream={camera.stream} mirrored placeholder="camera off" />}
       />
       <DeviceRow
+        ref={flaggedFirst === "screen" ? firstFlaggedRef : undefined}
         icon={<MonitorIcon />}
         label="Screen share"
         status={support.supported ? verdicts.screen : "fail"}
+        flagged={flagged.includes("screen")}
         // The candidate is asked, not probed: getDisplayMedia always shows the
         // browser's own picker and must come from a gesture.
         onTest={support.supported ? testOrOpen("screen", screen.status === "running") : undefined}
@@ -109,9 +122,33 @@ function DeviceCheck({ onOpen }: { onOpen: (kind: DeviceKind) => void }) {
 
 function PreflightBody() {
   const { session, dispatch } = useInterviewSession();
+  const { tested } = useDevicePreviews();
+  const support = useScreenShareSupport();
   const [open, setOpen] = useState<DeviceKind | null>(null);
+  // Set only by a click on the CTA -- the candidate is told what is missing at
+  // the moment they try, rather than being warned about it from the start.
+  const [flagged, setFlagged] = useState<readonly DeviceKind[]>([]);
+  const firstFlaggedRef = useRef<HTMLButtonElement | null>(null);
 
   const cta = derivePreflightCta(session);
+  const gate = deriveDeviceGate(tested, { screenSupported: support.supported });
+
+  // A flag cannot outlive the thing it was flagging, so it is intersected with
+  // what is still untested on every render rather than cleared by an effect.
+  // The stored set may hold stale kinds; nothing reads it unintersected, and a
+  // later click replaces it wholesale.
+  const stillFlagged = flagged.filter((kind) => gate.untested.includes(kind));
+
+  const attemptAdvance = () => {
+    if (!gate.ready) {
+      setFlagged(gate.untested);
+      // The row is one button covering its whole width, so focusing it puts the
+      // fix one keystroke away instead of somewhere up the page.
+      requestAnimationFrame(() => firstFlaggedRef.current?.focus());
+      return;
+    }
+    dispatch({ type: "ADVANCE" });
+  };
 
   // The extracted content is still mocked; the file the candidate actually
   // chose supplies its name, size and preview so nothing on screen misreports
@@ -160,7 +197,7 @@ function PreflightBody() {
 
         <Card className="p-4">
           <Eyebrow>Device &amp; environment check</Eyebrow>
-          <DeviceCheck onOpen={setOpen} />
+          <DeviceCheck onOpen={setOpen} flagged={stillFlagged} firstFlaggedRef={firstFlaggedRef} />
         </Card>
 
         {/* Consent and the button that acts on it are one group, pinned to the
@@ -188,11 +225,19 @@ function PreflightBody() {
               variant="primary"
               className="w-full"
               disabled={cta.disabled}
-              onClick={() => dispatch({ type: "ADVANCE" })}
+              onClick={attemptAdvance}
             >
               {cta.label}
             </Button>
-            <span className="text-center text-xs text-content-muted">{cta.hint}</span>
+            {stillFlagged.length > 0 ? (
+              // role="alert" so it is announced: a candidate who clicked and saw
+              // nothing happen needs telling, not just showing.
+              <span role="alert" className="text-center text-xs text-warning">
+                {gate.message}
+              </span>
+            ) : (
+              <span className="text-center text-xs text-content-muted">{cta.hint}</span>
+            )}
           </div>
         </div>
       </div>

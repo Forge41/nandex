@@ -47,6 +47,17 @@ const PENDING: MicTestState = {
   errorMessage: null,
 };
 
+export interface MicTest extends MicTestState {
+  /** The last conclusive result, which outlives the device being released.
+   *
+   * `published` is only ever written from an async callback with a real answer --
+   * running, or a definite failure -- and is never cleared, so it already is the
+   * latch. Exposing it separately is what lets a row keep an earned verdict while
+   * its live preview correctly goes dark.
+   */
+  settled: MicTestState | null;
+}
+
 /** Opens the microphone while `active` and reports live band levels plus the
  * peak seen so far. Everything is released the moment `active` goes false --
  * an interview must never leave the mic hot behind a closed dialog.
@@ -54,7 +65,7 @@ const PENDING: MicTestState = {
  * `nonce` re-acquires the device when it changes, which is what "run the test
  * again" needs: state is only published from async callbacks, so toggling
  * `active` alone would show the previous run until the first new sample. */
-export function useMicTest(active: boolean, nonce = 0): MicTestState {
+export function useMicTest(active: boolean, nonce = 0): MicTest {
   const [published, setPublished] = useState<MicTestState | null>(null);
   const peakRef = useRef<number | null>(null);
 
@@ -145,7 +156,8 @@ export function useMicTest(active: boolean, nonce = 0): MicTestState {
     };
   }, [active, nonce]);
 
-  // Not the last published value: a released device must not keep reporting
-  // levels it is no longer measuring.
-  return active ? (published ?? PENDING) : IDLE;
+  // The live half must not be the last published value: a released device
+  // cannot keep reporting levels it is no longer measuring. The settled half is
+  // exactly that value, for the verdict that outlives it.
+  return { ...(active ? (published ?? PENDING) : IDLE), settled: published };
 }

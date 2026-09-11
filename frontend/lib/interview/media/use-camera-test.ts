@@ -45,6 +45,12 @@ const PENDING: CameraTestState = {
   errorMessage: null,
 };
 
+export interface CameraTest extends CameraTestState {
+  /** The last conclusive result, which outlives the device being released.
+   * See MicTest.settled -- same latch, same reason. */
+  settled: CameraTestState | null;
+}
+
 export const LIGHTING_COPY: Record<LightingVerdict, string> = {
   good: "Framing and lighting look fine",
   dark: "Low light — try facing a window or a lamp",
@@ -65,7 +71,7 @@ export function useCameraTest(
   active: boolean,
   videoRef: RefObject<HTMLVideoElement | null>,
   nonce = 0
-): CameraTestState {
+): CameraTest {
   const [published, setPublished] = useState<CameraTestState | null>(null);
 
   useEffect(() => {
@@ -161,7 +167,8 @@ export function useCameraTest(
     };
   }, [active, videoRef, nonce]);
 
-  // Not the last published value: a released camera must not keep reporting a
-  // resolution and a stream that no longer exist.
-  return active ? (published ?? PENDING) : IDLE;
+  // The live half must not be the last published value: a released camera
+  // cannot keep reporting a resolution and a stream that no longer exist. The
+  // settled half is exactly that value, for the verdict that outlives it.
+  return { ...(active ? (published ?? PENDING) : IDLE), settled: published };
 }
