@@ -31,6 +31,10 @@ class VideoSession(models.Model):
     # Chosen by the caller, not derived here -- tps mints tokens against this exact name.
     room_name = models.CharField(unique=True, db_index=True, max_length=255)
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.CREATED)
+    # Start recording as soon as the provider reports the room started. A room does not
+    # exist until its first participant joins, so a caller cannot usefully ask for a
+    # recording before then -- this is how it asks in advance instead.
+    auto_record = models.BooleanField(default=False)
     metadata = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

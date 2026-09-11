@@ -47,7 +47,9 @@ def _headers() -> dict[str, str]:
     }
 
 
-async def _request(method: str, path: str, *, json: dict | None = None, params: dict | None = None) -> Any:
+async def _request(
+    method: str, path: str, *, json: dict | None = None, params: dict | None = None
+) -> Any:
     url = f"{settings.vas_base_url.rstrip('/')}{path}"
     last_error: Exception | None = None
 
@@ -94,9 +96,20 @@ def _decode(method: str, path: str, response: httpx.Response) -> Any:
     return body
 
 
-async def register_session(external_session_id: str, room_name: str, metadata: dict | None = None) -> dict:
+async def register_session(
+    external_session_id: str,
+    room_name: str,
+    metadata: dict | None = None,
+    auto_record: bool = False,
+) -> dict:
     """Idempotent on external_session_id, so this is safe to call on every token mint
-    rather than needing a separate provisioning step."""
+    rather than needing a separate provisioning step.
+
+    auto_record asks vas to start recording once the provider reports the room started.
+    A provider room does not exist until its first participant joins, and Egress answers
+    not_found for one that is not there -- so a recording cannot be started at the moment
+    a token is minted. This is how it is asked for in advance instead.
+    """
     return await _request(
         "POST",
         "/video/sessions",
@@ -104,6 +117,7 @@ async def register_session(external_session_id: str, room_name: str, metadata: d
             "external_session_id": external_session_id,
             "room_name": room_name,
             "metadata": metadata or {},
+            "auto_record": auto_record,
         },
     )
 
@@ -112,7 +126,9 @@ async def get_session(vas_session_id: str) -> dict:
     return await _request("GET", f"/video/sessions/{vas_session_id}")
 
 
-async def start_recording(vas_session_id: str, layout: str = "speaker", audio_only: bool = False) -> dict:
+async def start_recording(
+    vas_session_id: str, layout: str = "speaker", audio_only: bool = False
+) -> dict:
     return await _request(
         "POST",
         f"/video/sessions/{vas_session_id}/recording/start",
@@ -141,7 +157,9 @@ async def playback_url(vas_session_id: str, recording_id: str | None = None) -> 
     )
 
 
-async def request_artifact_deletion(vas_session_id: str, requested_by: str, reason: str = "") -> dict:
+async def request_artifact_deletion(
+    vas_session_id: str, requested_by: str, reason: str = ""
+) -> dict:
     return await _request(
         "DELETE",
         f"/video/sessions/{vas_session_id}/artifacts",

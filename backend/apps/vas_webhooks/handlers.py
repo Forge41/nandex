@@ -76,6 +76,20 @@ async def _set_session_status(event: ProviderEvent, status: str) -> None:
 async def on_room_started(event: ProviderEvent) -> None:
     await _set_session_status(event, VideoSession.Status.ACTIVE)
 
+    if not event.room_name:
+        return
+    session = await VideoSession.objects.filter(
+        room_name=event.room_name, auto_record=True
+    ).afirst()
+    if session is None:
+        return
+    try:
+        await services.start_recording(session.id, "speaker", False)
+    except services.VasError:
+        # Already recording is the common case on a reconnect, and a genuine failure must
+        # not fail the webhook -- a 5xx makes the provider retry the whole event.
+        logger.warning("Couldn't auto-start recording for room %s", event.room_name, exc_info=True)
+
 
 async def on_room_finished(event: ProviderEvent) -> None:
     await _set_session_status(event, VideoSession.Status.ENDED)

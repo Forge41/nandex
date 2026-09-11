@@ -69,21 +69,31 @@ async def mint_join_token(
         raise RoomUnavailable("Video service unavailable") from e
 
 
-async def ensure_artifact_session(external_session_id: str, room_name: str, metadata: dict | None = None) -> str:
+async def ensure_artifact_session(
+    external_session_id: str,
+    room_name: str,
+    metadata: dict | None = None,
+    auto_record: bool = False,
+) -> str:
     """Registers the room with vas if it isn't already, and returns the vas session id.
 
     Idempotent, because vas keys on external_session_id -- so a caller can do this lazily
-    on first use rather than maintaining a separate provisioning step.
+    on first use rather than maintaining a separate provisioning step. auto_record asks
+    vas to record from the moment the room exists, which is the only moment it can.
     """
     try:
-        session = await vas_client.register_session(external_session_id, room_name, metadata)
+        session = await vas_client.register_session(
+            external_session_id, room_name, metadata, auto_record
+        )
     except (vas_client.VasError, vas_client.VasUnavailable) as e:
         logger.warning("Couldn't register %s with vas", external_session_id, exc_info=True)
         raise RoomUnavailable("Video service unavailable") from e
     return session["id"]
 
 
-async def start_recording(vas_session_id: str, *, layout: str = "speaker", audio_only: bool = False) -> dict:
+async def start_recording(
+    vas_session_id: str, *, layout: str = "speaker", audio_only: bool = False
+) -> dict:
     return await vas_client.start_recording(vas_session_id, layout=layout, audio_only=audio_only)
 
 
@@ -99,7 +109,9 @@ async def playback_url(vas_session_id: str, recording_id: str | None = None) -> 
     return await vas_client.playback_url(vas_session_id, recording_id)
 
 
-async def request_artifact_deletion(vas_session_id: str, requested_by: str, reason: str = "") -> dict:
+async def request_artifact_deletion(
+    vas_session_id: str, requested_by: str, reason: str = ""
+) -> dict:
     return await vas_client.request_artifact_deletion(vas_session_id, requested_by, reason)
 
 

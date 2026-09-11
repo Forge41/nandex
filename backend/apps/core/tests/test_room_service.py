@@ -59,12 +59,31 @@ async def test_a_tps_failure_becomes_room_unavailable_with_no_upstream_detail(mo
 
 
 async def test_ensure_artifact_session_returns_the_vas_session_id(monkeypatch):
-    async def register(external_session_id, room_name, metadata):
+    seen = {}
+
+    async def register(external_session_id, room_name, metadata, auto_record):
+        seen["auto_record"] = auto_record
         return {"id": "vs-1", "external_session_id": external_session_id}
 
     monkeypatch.setattr(room_service.vas_client, "register_session", register)
 
     assert await room_service.ensure_artifact_session("iv-1", "interview-iv-1") == "vs-1"
+    assert seen["auto_record"] is False
+
+
+async def test_auto_record_is_forwarded_to_vas(monkeypatch):
+    """A provider room does not exist until its first participant joins, so recording
+    cannot be started when a token is minted -- it is asked for in advance instead."""
+    seen = {}
+
+    async def register(external_session_id, room_name, metadata, auto_record):
+        seen["auto_record"] = auto_record
+        return {"id": "vs-1"}
+
+    monkeypatch.setattr(room_service.vas_client, "register_session", register)
+
+    await room_service.ensure_artifact_session("iv-1", "interview-iv-1", None, auto_record=True)
+    assert seen["auto_record"] is True
 
 
 @pytest.mark.parametrize(
@@ -75,7 +94,7 @@ async def test_ensure_artifact_session_returns_the_vas_session_id(monkeypatch):
     ],
 )
 async def test_a_vas_failure_registering_becomes_room_unavailable(monkeypatch, failure):
-    async def explode(external_session_id, room_name, metadata):
+    async def explode(external_session_id, room_name, metadata, auto_record):
         raise failure
 
     monkeypatch.setattr(room_service.vas_client, "register_session", explode)

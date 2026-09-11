@@ -36,9 +36,10 @@ def test_a_callback_vas_signed_verifies_here():
 def test_a_bare_hex_signature_without_the_prefix_also_verifies():
     """The prefix is a convention, not part of the digest."""
     raw, signature, timestamp = _signed({"event": "recording.complete"})
-    assert room_service.verify_callback_signature(
-        raw, signature.removeprefix("sha256="), timestamp
-    ) is True
+    assert (
+        room_service.verify_callback_signature(raw, signature.removeprefix("sha256="), timestamp)
+        is True
+    )
 
 
 def test_a_semantically_identical_but_reserialized_body_fails():

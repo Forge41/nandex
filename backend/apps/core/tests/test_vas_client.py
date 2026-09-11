@@ -64,7 +64,11 @@ async def test_a_successful_call_returns_the_decoded_body(monkeypatch, no_sleep)
 async def test_a_transport_error_is_retried_up_to_three_times(monkeypatch, no_sleep):
     fake = _install(
         monkeypatch,
-        [httpx.ConnectError("refused"), httpx.ConnectError("refused"), httpx.ConnectError("refused")],
+        [
+            httpx.ConnectError("refused"),
+            httpx.ConnectError("refused"),
+            httpx.ConnectError("refused"),
+        ],
     )
 
     with pytest.raises(vas_client.VasUnavailable):
@@ -108,7 +112,10 @@ async def test_a_4xx_is_not_retried_and_keeps_its_status(monkeypatch, no_sleep):
 
 async def test_a_persistent_5xx_never_leaks_vas_internals(monkeypatch, no_sleep):
     """The message reaches a browser, so it must not describe vas's internal state."""
-    _install(monkeypatch, [httpx.Response(500, text="Traceback: psycopg OperationalError at vas_recording")] * 3)
+    _install(
+        monkeypatch,
+        [httpx.Response(500, text="Traceback: psycopg OperationalError at vas_recording")] * 3,
+    )
 
     with pytest.raises(vas_client.VasUnavailable) as exc_info:
         await vas_client.stop_recording("vs1")
