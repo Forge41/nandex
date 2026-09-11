@@ -90,9 +90,16 @@ function DeviceCheck({ onOpen }: { onOpen: (kind: DeviceKind) => void }) {
         // browser's own picker and must come from a gesture.
         onTest={support.supported ? testOrOpen("screen", screen.status === "running") : undefined}
         testLabel="Share your screen"
-        // Once sharing, what was shared matters more than how many displays
-        // exist -- a single window is a weaker assurance than a whole screen.
-        meta={screen.status === "running" ? SHARED_SURFACE_META[screen.surface] : support.meta}
+        // Only what was actually shared, and only once it has been: a single
+        // window is a weaker assurance than a whole screen, which is worth
+        // saying. How many displays the machine has is not.
+        meta={
+          !support.supported
+            ? "unsupported"
+            : screen.status === "running"
+              ? SHARED_SURFACE_META[screen.surface]
+              : undefined
+        }
         preview={<VideoPreview stream={screen.stream} placeholder="not shared" />}
         isLast
       />
