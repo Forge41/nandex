@@ -1,25 +1,30 @@
 "use client";
 
 import { useHydrated } from "@/lib/hooks/use-hydrated";
-import type { DeviceStatus } from "../types";
 
-/** Screen sharing can't be probed without prompting the candidate to pick a
- * surface, so this only reports capability -- never a fake "1 display" when
- * the browser won't tell us. */
-export function useScreenShareSupport(): { status: DeviceStatus; meta?: string } {
+/** What can be known about screen sharing without prompting anybody.
+ *
+ * Capability only, never a verdict: sharing cannot be probed silently, so
+ * whether it *works* is settled by the candidate actually sharing -- see
+ * useScreenShareTest. Reporting "OK" here, as this once did, claimed a passed
+ * check that had never run. */
+export function useScreenShareSupport(): { supported: boolean; meta?: string } {
   const hydrated = useHydrated();
 
-  if (!hydrated) return { status: "untested" };
+  // Server-rendered, the APIs are absent -- assuming unsupported would flash an
+  // "unsupported" row at every candidate before hydration.
+  if (!hydrated) return { supported: true };
 
-  const supported = typeof navigator.mediaDevices?.getDisplayMedia === "function";
-  if (!supported) return { status: "fail", meta: "unsupported" };
+  if (typeof navigator.mediaDevices?.getDisplayMedia !== "function") {
+    return { supported: false, meta: "unsupported" };
+  }
 
   // Chromium-only, and gated behind the window-management permission, so treat
   // its absence as "we don't know" rather than "one display".
   const extended = (window.screen as Screen & { isExtended?: boolean }).isExtended;
 
   return {
-    status: "ok",
+    supported: true,
     meta: extended === undefined ? undefined : extended ? "multiple displays" : "1 display",
   };
 }

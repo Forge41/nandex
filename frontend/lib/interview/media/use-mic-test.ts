@@ -2,7 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 
-export type MediaTestStatus = "requesting" | "running" | "denied" | "unavailable" | "error";
+/** "idle" is the released state, and it matters: a hook that keeps its last
+ * "running" value after the device is closed would leave the UI claiming a
+ * live microphone that is no longer open. */
+export type MediaTestStatus =
+  | "idle"
+  | "requesting"
+  | "running"
+  | "denied"
+  | "unavailable"
+  | "error";
 
 export interface MicTestState {
   status: MediaTestStatus;
@@ -20,6 +29,15 @@ const BAR_COUNT = 5;
 const SAMPLE_INTERVAL_MS = 50;
 const CLIPPING_DB = -1;
 
+const IDLE: MicTestState = {
+  status: "idle",
+  levels: Array(BAR_COUNT).fill(0),
+  peakDb: null,
+  clipping: false,
+  deviceLabel: null,
+  errorMessage: null,
+};
+
 const PENDING: MicTestState = {
   status: "requesting",
   levels: Array(BAR_COUNT).fill(0),
@@ -30,12 +48,13 @@ const PENDING: MicTestState = {
 };
 
 /** Opens the microphone while `active` and reports live band levels plus the
- * peak seen so far. Everything is released as soon as `active` goes false --
+ * peak seen so far. Everything is released the moment `active` goes false --
  * an interview must never leave the mic hot behind a closed dialog.
  *
- * State is only ever published from async callbacks, so re-opening a panel
- * that already ran should remount this hook rather than toggle `active`. */
-export function useMicTest(active: boolean): MicTestState {
+ * `nonce` re-acquires the device when it changes, which is what "run the test
+ * again" needs: state is only published from async callbacks, so toggling
+ * `active` alone would show the previous run until the first new sample. */
+export function useMicTest(active: boolean, nonce = 0): MicTestState {
   const [published, setPublished] = useState<MicTestState | null>(null);
   const peakRef = useRef<number | null>(null);
 
@@ -124,7 +143,9 @@ export function useMicTest(active: boolean): MicTestState {
       stream?.getTracks().forEach((track) => track.stop());
       void audioContext?.close();
     };
-  }, [active]);
+  }, [active, nonce]);
 
-  return published ?? PENDING;
+  // Not the last published value: a released device must not keep reporting
+  // levels it is no longer measuring.
+  return active ? (published ?? PENDING) : IDLE;
 }

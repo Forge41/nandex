@@ -1,21 +1,27 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { AudioBars } from "@/components/ui/audio-bars";
 import { Eyebrow } from "@/components/ui/typography";
 import { MicIcon, VideoIcon, MonitorIcon } from "@/components/interview/icons";
 import { DeviceRow } from "@/components/interview/molecules/device-row";
+import { MicPreview, PreviewButton, VideoPreview } from "@/components/interview/molecules/device-preview";
 import { ResumeDropzone } from "@/components/interview/molecules/resume-dropzone";
 import { ResumeInspector } from "@/components/interview/organisms/resume-inspector";
-import { DeviceTestDialog, type DeviceTestKind } from "@/components/interview/organisms/device-test-dialog";
+import { DeviceTestDialog } from "@/components/interview/organisms/device-test-dialog";
 import { useInterviewSession } from "@/lib/interview/session-provider";
+import {
+  DevicePreviewProvider,
+  useDevicePreviews,
+  type DeviceKind,
+} from "@/lib/interview/media/device-preview-provider";
 import { useScreenShareSupport } from "@/lib/interview/media/use-screen-share-support";
+import type { SharedSurface } from "@/lib/interview/media/use-screen-share-test";
 import { derivePreflightCta } from "@/lib/interview/selectors";
 import { MOCK_RESUME } from "@/lib/interview/mock/session.fixture";
-import type { ConsentState, DeviceStatus } from "@/lib/interview/types";
+import type { ConsentState } from "@/lib/interview/types";
 
 const CONSENT_TERMS: { key: keyof ConsentState; label: string }[] = [
   {
@@ -29,37 +35,94 @@ const CONSENT_TERMS: { key: keyof ConsentState; label: string }[] = [
   },
 ];
 
-/** Flat bars: an idle affordance, not a live reading. Real levels only appear
- * inside the test, where the microphone is actually open. */
-function IdleMicPreview() {
+const SHARED_SURFACE_META: Record<SharedSurface, string> = {
+  monitor: "whole screen",
+  window: "one window",
+  browser: "one tab",
+  unknown: "sharing",
+};
+
+/** The device check.
+ *
+ * Every preview here is the device itself. The previous drawn stand-ins -- flat
+ * bars and a sketched figure -- looked like readings while measuring nothing,
+ * which in a check that exists to answer "does my camera work" is the one thing
+ * it must not do.
+ *
+ * Tapping a live preview opens the same overlay the test uses, because they are
+ * the same thing: a bigger look at a device that is already open. */
+function DeviceCheck({ onOpen }: { onOpen: (kind: DeviceKind) => void }) {
+  const { mic, camera, screen, verdicts, start } = useDevicePreviews();
+  const support = useScreenShareSupport();
+
+  const micLive = mic.status === "running";
+  const testOrOpen = (kind: DeviceKind, live: boolean) => () => {
+    if (live) onOpen(kind);
+    else {
+      start(kind);
+      onOpen(kind);
+    }
+  };
+
   return (
-    <span className="flex h-9 w-[62px] shrink-0 items-center rounded-sm bg-surface-subtle px-1.5 py-[9px]">
-      <AudioBars barWidth={3} gap={4} className="h-full w-full" levels={[0.08, 0.08, 0.08, 0.08, 0.08]} />
-    </span>
+    <div className="mt-3 flex flex-col">
+      <DeviceRow
+        icon={<MicIcon />}
+        label="Microphone"
+        status={verdicts.mic}
+        onTest={testOrOpen("mic", micLive)}
+        preview={
+          <PreviewButton
+            onOpen={micLive ? () => onOpen("mic") : undefined}
+            label="Enlarge the microphone check"
+          >
+            <MicPreview levels={mic.levels} live={micLive} />
+          </PreviewButton>
+        }
+      />
+      <DeviceRow
+        icon={<VideoIcon />}
+        label="Camera"
+        status={verdicts.camera}
+        onTest={testOrOpen("camera", camera.status === "running")}
+        meta={camera.resolution ? `${camera.resolution.height}p` : undefined}
+        preview={
+          <PreviewButton
+            onOpen={camera.stream ? () => onOpen("camera") : undefined}
+            label="Enlarge the camera preview"
+          >
+            <VideoPreview stream={camera.stream} mirrored placeholder="camera off" />
+          </PreviewButton>
+        }
+      />
+      <DeviceRow
+        icon={<MonitorIcon />}
+        label="Screen share"
+        status={support.supported ? verdicts.screen : "fail"}
+        // The candidate is asked, not probed: getDisplayMedia always shows the
+        // browser's own picker and must come from a gesture.
+        onTest={support.supported ? testOrOpen("screen", screen.status === "running") : undefined}
+        testLabel="Share your screen"
+        // Once sharing, what was shared matters more than how many displays
+        // exist -- a single window is a weaker assurance than a whole screen.
+        meta={screen.status === "running" ? SHARED_SURFACE_META[screen.surface] : support.meta}
+        preview={
+          <PreviewButton
+            onOpen={screen.stream ? () => onOpen("screen") : undefined}
+            label="Enlarge the screen share preview"
+          >
+            <VideoPreview stream={screen.stream} placeholder="not shared" />
+          </PreviewButton>
+        }
+        isLast
+      />
+    </div>
   );
 }
 
-function CameraThumbPreview() {
-  return (
-    <span className="bg-stripes relative flex h-9 w-[62px] shrink-0 items-end justify-center overflow-hidden rounded-sm">
-      <span className="h-[22px] w-[26px] rounded-t-[13px] bg-content-muted opacity-50" />
-      <span className="absolute top-[5px] left-1/2 size-[13px] -translate-x-1/2 rounded-full bg-content-muted opacity-50" />
-    </span>
-  );
-}
-
-export function PreflightStage() {
+function PreflightBody() {
   const { session, dispatch } = useInterviewSession();
-  const screen = useScreenShareSupport();
-  const [testing, setTesting] = useState<DeviceTestKind | null>(null);
-  const [deviceStatus, setDeviceStatus] = useState<Record<DeviceTestKind, DeviceStatus>>({
-    mic: "untested",
-    camera: "untested",
-  });
-
-  const recordVerdict = useCallback((kind: DeviceTestKind, status: DeviceStatus) => {
-    setDeviceStatus((current) => (current[kind] === status ? current : { ...current, [kind]: status }));
-  }, []);
+  const [open, setOpen] = useState<DeviceKind | null>(null);
 
   const cta = derivePreflightCta(session);
 
@@ -109,29 +172,7 @@ export function PreflightStage() {
 
         <Card className="p-4">
           <Eyebrow>Device &amp; environment check</Eyebrow>
-          <div className="mt-3 flex flex-col">
-            <DeviceRow
-              icon={<MicIcon />}
-              label="Microphone"
-              status={deviceStatus.mic}
-              onTest={() => setTesting("mic")}
-              preview={<IdleMicPreview />}
-            />
-            <DeviceRow
-              icon={<VideoIcon />}
-              label="Camera"
-              status={deviceStatus.camera}
-              onTest={() => setTesting("camera")}
-              preview={<CameraThumbPreview />}
-            />
-            <DeviceRow
-              icon={<MonitorIcon />}
-              label="Screen share"
-              status={screen.status}
-              meta={screen.meta}
-              isLast
-            />
-          </div>
+          <DeviceCheck onOpen={setOpen} />
         </Card>
 
         <Card className="mt-6 p-4">
@@ -163,7 +204,19 @@ export function PreflightStage() {
         </div>
       </div>
 
-      <DeviceTestDialog kind={testing} onClose={() => setTesting(null)} onVerdict={recordVerdict} />
+      <DeviceTestDialog kind={open} onClose={() => setOpen(null)} />
     </div>
+  );
+}
+
+/** The provider wraps the stage rather than living inside the card, so the
+ * devices are released exactly when the pre-flight leaves the screen -- the
+ * room acquires its own tracks, and two claims on one camera is how a black
+ * self-view happens. */
+export function PreflightStage() {
+  return (
+    <DevicePreviewProvider>
+      <PreflightBody />
+    </DevicePreviewProvider>
   );
 }
