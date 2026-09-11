@@ -86,6 +86,11 @@ class TpsServiceStub:
                 request_serializer=tps__pb2.MarkReauthRequiredRequest.SerializeToString,
                 response_deserializer=tps__pb2.MarkReauthRequiredResponse.FromString,
                 _registered_method=True)
+        self.MintRoomToken = channel.unary_unary(
+                '/tps.TpsService/MintRoomToken',
+                request_serializer=tps__pb2.MintRoomTokenRequest.SerializeToString,
+                response_deserializer=tps__pb2.MintRoomTokenResponse.FromString,
+                _registered_method=True)
 
 
 class TpsServiceServicer:
@@ -153,6 +158,12 @@ class TpsServiceServicer:
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def MintRoomToken(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_TpsServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -205,6 +216,11 @@ def add_TpsServiceServicer_to_server(servicer, server):
                     servicer.MarkReauthRequired,
                     request_deserializer=tps__pb2.MarkReauthRequiredRequest.FromString,
                     response_serializer=tps__pb2.MarkReauthRequiredResponse.SerializeToString,
+            ),
+            'MintRoomToken': grpc.unary_unary_rpc_method_handler(
+                    servicer.MintRoomToken,
+                    request_deserializer=tps__pb2.MintRoomTokenRequest.FromString,
+                    response_serializer=tps__pb2.MintRoomTokenResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -479,6 +495,33 @@ class TpsService:
             '/tps.TpsService/MarkReauthRequired',
             tps__pb2.MarkReauthRequiredRequest.SerializeToString,
             tps__pb2.MarkReauthRequiredResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def MintRoomToken(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/tps.TpsService/MintRoomToken',
+            tps__pb2.MintRoomTokenRequest.SerializeToString,
+            tps__pb2.MintRoomTokenResponse.FromString,
             options,
             channel_credentials,
             insecure,

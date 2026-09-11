@@ -6,6 +6,7 @@ deployment later without a rewrite here.
 """
 
 import json
+from collections.abc import Sequence
 
 import grpc
 
@@ -112,6 +113,44 @@ async def delete_connection(project_id: str, connection_id: str) -> bool:
         metadata=_metadata(),
     )
     return response.ok
+
+
+async def mint_room_token(
+    project_id: str,
+    app_name: IntegrationSlug,
+    room: str,
+    identity: str,
+    *,
+    can_publish: bool = True,
+    can_subscribe: bool = True,
+    hidden: bool = False,
+    ttl_seconds: int = 0,
+    agents: Sequence[tuple[str, str]] = (),
+) -> dict:
+    """Mint a join token for one identity in one room. agents is (name, metadata) pairs
+    dispatched into the room when the token's holder joins."""
+    stub = tps_pb2_grpc.TpsServiceStub(_get_channel())
+    response = await stub.MintRoomToken(
+        tps_pb2.MintRoomTokenRequest(
+            project_id=project_id,
+            app_name=app_name,
+            room=room,
+            identity=identity,
+            can_publish=can_publish,
+            can_subscribe=can_subscribe,
+            hidden=hidden,
+            ttl_seconds=ttl_seconds,
+            agents=[
+                tps_pb2.AgentDispatch(name=name, metadata=metadata) for name, metadata in agents
+            ],
+        ),
+        metadata=_metadata(),
+    )
+    return {
+        "token": response.token,
+        "ws_url": response.ws_url,
+        "expires_in": response.expires_in,
+    }
 
 
 def _app_to_dict(app) -> dict:

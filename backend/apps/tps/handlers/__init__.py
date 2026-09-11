@@ -1,15 +1,17 @@
 """Handler registry — one entry per connector, keyed by app_name."""
 
 from apps.tps.catalog import IntegrationSlug
-from apps.tps.handlers.base import CredentialHandler, OAuthHandler
+from apps.tps.handlers.base import CredentialHandler, OAuthHandler, RealtimeHandler
 from apps.tps.handlers.google_drive import GoogleDriveHandler
+from apps.tps.handlers.livekit import LiveKitHandler
 
 HANDLER_REGISTRY: dict[IntegrationSlug, type] = {
     IntegrationSlug.GOOGLE_DRIVE: GoogleDriveHandler,
+    IntegrationSlug.LIVEKIT: LiveKitHandler,
 }
 
 
-def get_handler(app_name: IntegrationSlug) -> OAuthHandler | CredentialHandler:
+def get_handler(app_name: IntegrationSlug) -> OAuthHandler | CredentialHandler | RealtimeHandler:
     handler_cls = HANDLER_REGISTRY.get(app_name)
     if not handler_cls:
         raise ValueError(f"No handler for app: {app_name}")
@@ -27,4 +29,11 @@ def get_credential_handler(app_name: IntegrationSlug) -> CredentialHandler:
     handler = get_handler(app_name)
     if not isinstance(handler, CredentialHandler):
         raise ValueError(f"App '{app_name}' does not support the credential flow")
+    return handler
+
+
+def get_realtime_handler(app_name: IntegrationSlug) -> RealtimeHandler:
+    handler = get_handler(app_name)
+    if not isinstance(handler, RealtimeHandler):
+        raise ValueError(f"App '{app_name}' does not host realtime rooms")
     return handler

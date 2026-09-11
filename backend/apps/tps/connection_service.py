@@ -78,6 +78,21 @@ async def get_or_refresh(connection_id: str, project_id: str) -> dict:
     return config
 
 
+async def resolve_provider_config(project_id: str, app_name: IntegrationSlug) -> dict:
+    """The config to act with for one project and provider: the project's own Connection
+    if it has one, otherwise the platform credentials the handler reads from settings.
+
+    This is the seam that makes "let a project bring its own provider" a data change
+    rather than a code change.
+    """
+    connection = await Connection.objects.filter(
+        project_id=project_id, app_name=app_name, status=Connection.Status.ACTIVE
+    ).afirst()
+    if connection is not None:
+        return await get_or_refresh(connection.id, project_id)
+    return get_handler(app_name).platform_config()
+
+
 def _upsert_connection_sync(
     project_id: str,
     app_name: IntegrationSlug,

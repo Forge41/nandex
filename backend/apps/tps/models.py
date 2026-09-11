@@ -27,6 +27,7 @@ class AppCategory(models.IntegerChoices):
     DISTRIBUTION = 3, "distribution"
     COMING_SOON = 4, "coming_soon"
     STORAGE = 5, "storage"
+    REALTIME = 6, "realtime"
 
 
 class AppProvider(models.IntegerChoices):

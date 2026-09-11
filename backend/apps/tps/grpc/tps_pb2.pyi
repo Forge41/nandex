@@ -159,3 +159,43 @@ class MarkReauthRequiredResponse(_message.Message):
     OK_FIELD_NUMBER: _ClassVar[int]
     ok: bool
     def __init__(self, ok: _Optional[bool] = ...) -> None: ...
+
+class AgentDispatch(_message.Message):
+    __slots__ = ("name", "metadata")
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    METADATA_FIELD_NUMBER: _ClassVar[int]
+    name: str
+    metadata: str
+    def __init__(self, name: _Optional[str] = ..., metadata: _Optional[str] = ...) -> None: ...
+
+class MintRoomTokenRequest(_message.Message):
+    __slots__ = ("project_id", "app_name", "room", "identity", "can_publish", "can_subscribe", "hidden", "ttl_seconds", "agents")
+    PROJECT_ID_FIELD_NUMBER: _ClassVar[int]
+    APP_NAME_FIELD_NUMBER: _ClassVar[int]
+    ROOM_FIELD_NUMBER: _ClassVar[int]
+    IDENTITY_FIELD_NUMBER: _ClassVar[int]
+    CAN_PUBLISH_FIELD_NUMBER: _ClassVar[int]
+    CAN_SUBSCRIBE_FIELD_NUMBER: _ClassVar[int]
+    HIDDEN_FIELD_NUMBER: _ClassVar[int]
+    TTL_SECONDS_FIELD_NUMBER: _ClassVar[int]
+    AGENTS_FIELD_NUMBER: _ClassVar[int]
+    project_id: str
+    app_name: str
+    room: str
+    identity: str
+    can_publish: bool
+    can_subscribe: bool
+    hidden: bool
+    ttl_seconds: int
+    agents: _containers.RepeatedCompositeFieldContainer[AgentDispatch]
+    def __init__(self, project_id: _Optional[str] = ..., app_name: _Optional[str] = ..., room: _Optional[str] = ..., identity: _Optional[str] = ..., can_publish: _Optional[bool] = ..., can_subscribe: _Optional[bool] = ..., hidden: _Optional[bool] = ..., ttl_seconds: _Optional[int] = ..., agents: _Optional[_Iterable[_Union[AgentDispatch, _Mapping]]] = ...) -> None: ...
+
+class MintRoomTokenResponse(_message.Message):
+    __slots__ = ("token", "ws_url", "expires_in")
+    TOKEN_FIELD_NUMBER: _ClassVar[int]
+    WS_URL_FIELD_NUMBER: _ClassVar[int]
+    EXPIRES_IN_FIELD_NUMBER: _ClassVar[int]
+    token: str
+    ws_url: str
+    expires_in: int
+    def __init__(self, token: _Optional[str] = ..., ws_url: _Optional[str] = ..., expires_in: _Optional[int] = ...) -> None: ...
