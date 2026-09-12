@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { AudioBars } from "@/components/ui/audio-bars";
 import { StreamVideo } from "@/components/interview/molecules/device-preview";
 import { LIGHTING_COPY } from "@/lib/interview/media/use-camera-test";
+import { REQUIRED_SPEECH_SECONDS } from "@/lib/interview/media/use-mic-test";
 import { SURFACE_COPY } from "@/lib/interview/media/use-screen-share-test";
 import { useDevicePreviews, type DeviceKind } from "@/lib/interview/media/device-preview-provider";
 
@@ -68,12 +69,14 @@ function Failure({ blocked, message }: { blocked: boolean; message: string | nul
 function MicPanel() {
   const { mic } = useDevicePreviews();
   const running = mic.status === "running";
-  const tooQuiet = mic.peakDb === null || mic.peakDb < -45;
+  const listening = mic.speechSeconds < REQUIRED_SPEECH_SECONDS;
+  const heard = Math.min(1, mic.speechSeconds / REQUIRED_SPEECH_SECONDS);
 
   return (
     <div className="px-5 py-[22px]">
       <p className="text-base text-content-subtle">
-        Say a few words at your normal speaking volume. You should see the bars move.
+        Say a few words at your normal speaking volume. The microphone stays open, so the reading
+        below follows you as you talk.
       </p>
 
       <div className="mt-5 flex h-[120px] items-center justify-center rounded-lg bg-surface-interactive">
@@ -91,13 +94,21 @@ function MicPanel() {
         <ActiveDevice label={mic.deviceLabel} fallback="System microphone" />
 
         {running ? (
-          mic.clipping ? (
+          listening ? (
+            <div className="flex flex-col gap-2 rounded-md bg-surface-subtle px-3 py-2.5">
+              <span className="text-sm text-content-subtle">
+                Listening — keep talking until this fills.
+              </span>
+              <span className="h-[3px] overflow-hidden rounded-[2px] bg-line-strong">
+                <span
+                  className="block h-full bg-info transition-[width] duration-200 ease-out"
+                  style={{ width: `${heard * 100}%` }}
+                />
+              </span>
+            </div>
+          ) : mic.clipping ? (
             <StatusStrip tone="warning" badge="Check">
               Clipping at {mic.peakDb?.toFixed(0)} dB — move back from the mic or lower its input gain
-            </StatusStrip>
-          ) : tooQuiet ? (
-            <StatusStrip tone="warning" badge="Quiet">
-              No speech detected yet — say a few words
             </StatusStrip>
           ) : (
             <StatusStrip tone="success" badge="Pass">
@@ -221,8 +232,16 @@ export function DeviceTestDialog({
   kind: DeviceKind | null;
   onClose: () => void;
 }) {
-  const { restart, stop, active } = useDevicePreviews();
+  const previews = useDevicePreviews();
+  const { restart, stop, active } = previews;
   const Panel = kind ? PANELS[kind] : null;
+
+  const live = kind ? previews[kind].status === "running" : false;
+  // Nothing to re-run while a check is live: the device stays open and the
+  // reading follows the candidate. The control only earns its place as a way
+  // out of a failure -- except for screen share, where picking a different
+  // surface is a real thing to want mid-share.
+  const showRestart = kind === "screen" || !live;
 
   return (
     <Dialog open={kind !== null} onOpenChange={(open) => !open && onClose()}>
@@ -242,9 +261,11 @@ export function DeviceTestDialog({
         {Panel && <Panel />}
 
         <div className="flex items-center gap-2.5 border-t border-line bg-surface-subtle px-5 py-3.5">
-          <Button variant="secondary" size="sm" onClick={() => kind && restart(kind)}>
-            {kind === "screen" ? "Share something else" : "Run test again"}
-          </Button>
+          {showRestart && (
+            <Button variant="secondary" size="sm" onClick={() => kind && restart(kind)}>
+              {kind === "screen" ? "Share something else" : "Try again"}
+            </Button>
+          )}
           {kind && active[kind] && (
             <Button
               variant="ghost"

@@ -17,9 +17,15 @@ export interface MicTestState {
   status: MediaTestStatus;
   /** One 0-1 value per visualiser bar. */
   levels: number[];
-  /** Highest peak seen this run, in dBFS. Null before the first sample. */
+  /** Loudest peak in the last few seconds, in dBFS. Null before the first
+   * sample. Deliberately a moving window and not an all-time maximum: a
+   * candidate who clips once and then moves back must see the warning clear. */
   peakDb: number | null;
   clipping: boolean;
+  /** How long the candidate has actually been heard speaking, in seconds.
+   * Monotonic -- it is the measure of how far through the check they are, so
+   * falling silent pauses it rather than undoing it. */
+  speechSeconds: number;
   deviceLabel: string | null;
   errorMessage: string | null;
 }
@@ -28,24 +34,27 @@ const BAR_COUNT = 5;
 /** ~20fps. Enough to read as live, a third of the re-renders of a rAF loop. */
 const SAMPLE_INTERVAL_MS = 50;
 const CLIPPING_DB = -1;
+/** Peak and clipping are judged over this much recent audio, so the reading
+ * describes the microphone now rather than the worst moment since it opened. */
+const WINDOW_MS = 3000;
+const WINDOW_SAMPLES = Math.round(WINDOW_MS / SAMPLE_INTERVAL_MS);
+/** Above this counts as speech rather than room noise. */
+const SPEECH_DB = -45;
+/** Enough speech to have measured something. Below this the check is still
+ * listening -- a single cough is not a microphone test. */
+export const REQUIRED_SPEECH_SECONDS = 1.5;
 
 const IDLE: MicTestState = {
   status: "idle",
   levels: Array(BAR_COUNT).fill(0),
   peakDb: null,
   clipping: false,
+  speechSeconds: 0,
   deviceLabel: null,
   errorMessage: null,
 };
 
-const PENDING: MicTestState = {
-  status: "requesting",
-  levels: Array(BAR_COUNT).fill(0),
-  peakDb: null,
-  clipping: false,
-  deviceLabel: null,
-  errorMessage: null,
-};
+const PENDING: MicTestState = { ...IDLE, status: "requesting" };
 
 export interface MicTest extends MicTestState {
   /** The last conclusive result, which outlives the device being released.
@@ -67,7 +76,9 @@ export interface MicTest extends MicTestState {
  * `active` alone would show the previous run until the first new sample. */
 export function useMicTest(active: boolean, nonce = 0): MicTest {
   const [published, setPublished] = useState<MicTestState | null>(null);
-  const peakRef = useRef<number | null>(null);
+  // Written only from the sampling interval, never during render.
+  const windowRef = useRef<number[]>([]);
+  const speechRef = useRef(0);
 
   useEffect(() => {
     if (!active) return;
@@ -76,7 +87,8 @@ export function useMicTest(active: boolean, nonce = 0): MicTest {
     let stream: MediaStream | null = null;
     let audioContext: AudioContext | null = null;
     let timer: ReturnType<typeof setInterval> | null = null;
-    peakRef.current = null;
+    windowRef.current = [];
+    speechRef.current = 0;
 
     const request = navigator.mediaDevices?.getUserMedia
       ? navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } })
@@ -119,13 +131,21 @@ export function useMicTest(active: boolean, nonce = 0): MicTest {
           let peakSample = 0;
           for (const sample of waveform) peakSample = Math.max(peakSample, Math.abs(sample));
           const peakDb = peakSample > 0 ? 20 * Math.log10(peakSample) : -Infinity;
-          if (Number.isFinite(peakDb)) peakRef.current = Math.max(peakRef.current ?? -Infinity, peakDb);
+
+          const recent = windowRef.current;
+          recent.push(peakDb);
+          if (recent.length > WINDOW_SAMPLES) recent.shift();
+
+          if (peakDb > SPEECH_DB) speechRef.current += SAMPLE_INTERVAL_MS / 1000;
+
+          const windowPeak = Math.max(...recent);
 
           setPublished({
             status: "running",
             levels,
-            peakDb: peakRef.current,
-            clipping: (peakRef.current ?? -Infinity) > CLIPPING_DB,
+            peakDb: Number.isFinite(windowPeak) ? windowPeak : null,
+            clipping: windowPeak > CLIPPING_DB,
+            speechSeconds: speechRef.current,
             deviceLabel: label,
             errorMessage: null,
           });

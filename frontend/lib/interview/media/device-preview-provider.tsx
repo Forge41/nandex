@@ -1,15 +1,12 @@
 "use client";
 
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
-import { useCameraTest, type CameraTest, type CameraTestState } from "./use-camera-test";
-import { useMicTest, type MicTest, type MicTestState } from "./use-mic-test";
-import {
-  useScreenShareTest,
-  type ScreenShareTest,
-  type ScreenShareTestState,
-} from "./use-screen-share-test";
+import { useCameraTest, type CameraTest } from "./use-camera-test";
+import { useMicTest, type MicTest } from "./use-mic-test";
+import { useScreenShareTest, type ScreenShareTest } from "./use-screen-share-test";
 // DeviceKind lives in types.ts with the rest of the shared vocabulary, and is
 // re-exported here because every consumer of this provider needs it.
+import { cameraVerdict, micVerdict, screenVerdict } from "./verdicts";
 import type { DeviceKind, DeviceStatus } from "../types";
 
 export type { DeviceKind };
@@ -36,37 +33,6 @@ export interface DevicePreviewState {
 }
 
 const DevicePreviewContext = createContext<DevicePreviewState | null>(null);
-
-function micVerdict(mic: MicTestState | null): DeviceStatus {
-  if (mic === null || mic.status === "idle" || mic.status === "requesting") return "untested";
-  if (mic.status !== "running") return "fail";
-  // No speech yet is not a pass: the candidate has to have said something for
-  // this check to have measured anything.
-  const tooQuiet = mic.peakDb === null || mic.peakDb < -45;
-  return mic.clipping || tooQuiet ? "check" : "ok";
-}
-
-function cameraVerdict(camera: CameraTestState | null): DeviceStatus {
-  if (camera === null || camera.status === "idle" || camera.status === "requesting") {
-    return "untested";
-  }
-  if (camera.status !== "running") return "fail";
-  if (camera.lighting === null) return "untested";
-  return camera.lighting === "good" ? "ok" : "check";
-}
-
-function screenVerdict(screen: ScreenShareTestState | null): DeviceStatus {
-  if (screen === null || screen.status === "idle" || screen.status === "requesting") {
-    return "untested";
-  }
-  // Ending the share is the candidate's choice, not a failure, and not a pass
-  // either -- but it did happen, so it counts as a check having run.
-  if (screen.status === "ended") return "check";
-  if (screen.status !== "running") return "fail";
-  // A single window is a weaker assurance than a whole screen, and the
-  // integrity terms the candidate agreed to are about the screen.
-  return screen.surface === "window" || screen.surface === "browser" ? "check" : "ok";
-}
 
 /** Owns the devices for as long as the pre-flight is on screen.
  *
