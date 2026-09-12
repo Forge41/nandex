@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 .PHONY: help install hooks agent-permissions link-agents fmt lint lint-ci test check \
-	up down doctor check-speech serve-all tps tps-migrate tps-grpc grpc-gen migrate importer-migrate \
+	up down doctor check-speech serve-all temporal temporal-down tps tps-migrate tps-grpc grpc-gen migrate importer-migrate \
 	ingest-migrate importer-worker ingest-worker interview-worker interviewer-agent \
 	vas vas-worker vas-stack vas-stack-down asgi frontend
 
@@ -43,8 +43,19 @@ up: ## Everything, from nothing: containers, migrations, then every service
 	$(MAKE) migrate
 	$(MAKE) serve-all
 
-down: ## Stop the containers `up` started. Ctrl-C already stopped the processes.
+down: ## Stop what `up` started: the containers and the Temporal dev server
 	$(MAKE) vas-stack-down
+	$(MAKE) temporal-down
+
+temporal: ## Run the local Temporal dev server in the foreground (Ctrl-C stops it)
+	temporal server start-dev
+
+temporal-down: ## Stop a local Temporal dev server, whoever started it
+	@# start-dev keeps its history in memory, so this discards it -- which is why it is a
+	@# target you have to ask for rather than something serve-all does on the way out.
+	@pkill -f 'temporal server start-dev' \
+		&& echo "Stopped the Temporal dev server (its workflow history was in memory and is gone)." \
+		|| echo "No Temporal dev server was running."
 
 doctor: ## Say what backend/.env is missing, and what stops working without it
 	@uv run python scripts/check_env.py

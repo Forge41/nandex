@@ -98,7 +98,9 @@ without a valid key.
 | Command | What it does |
 | --- | --- |
 | `make up` | Everything, from nothing: containers, migrations, then every service |
-| `make down` | Stop the containers `up` started (Ctrl-C already stopped the processes) |
+| `make down` | Stop what `up` started: the containers and the Temporal dev server |
+| `make temporal` | Run the Temporal dev server in the foreground (Ctrl-C stops it) |
+| `make temporal-down` | Stop a Temporal dev server, whoever started it |
 | `make doctor` | Say what `backend/.env` is missing, and what stops working without it |
 | `make serve-all` | Every service, assuming containers and migrations are already done |
 | `make asgi` | Run just the backend, under a real ASGI server (needed for `core`/`chat`/marketplace to work) |
@@ -118,6 +120,13 @@ containers (LiveKit, Egress, fake-GCS, Redis) and creates the recordings bucket,
 migration, and then hands over to `serve-all`. Run it the first time, after pulling a change that
 adds a migration, or any time the containers are down. Day to day, `make serve-all` is the one you
 want — the prerequisites are already in place and it starts in seconds.
+
+**Temporal is the one service `serve-all` does not own.** It starts one only when :7233 is free,
+and a server that was already running is reused and therefore outlives Ctrl-C — which is usually
+what you want, and occasionally surprising when a stray one from days ago is still holding the
+port. `make temporal` runs one in the foreground where you can see and stop it; `make
+temporal-down` stops whichever one is running. `start-dev` keeps its history in memory, so
+stopping it discards every workflow it knows about.
 
 `make serve-all` (`scripts/dev_serve.sh`) is genuinely a one-command "run everything": it starts
 a local Temporal dev server itself (reusing one that's already running instead of erroring),

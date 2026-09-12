@@ -69,6 +69,7 @@ done
 
 if nc -z localhost "$TEMPORAL_PORT" 2>/dev/null; then
     echo "Reusing an already-running Temporal dev server on :$TEMPORAL_PORT."
+    echo "  (this one outlives Ctrl-C, because this script did not start it -- 'make temporal-down' stops it)"
 else
     echo "Starting a local Temporal dev server..."
     temporal server start-dev > /tmp/nandex-temporal-dev.log 2>&1 &
