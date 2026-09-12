@@ -109,18 +109,24 @@ function screen(overrides: Partial<ScreenShareTestState> = {}): ScreenShareTestS
 }
 
 describe("screenVerdict", () => {
-  it("passes a whole screen and flags a narrower share", () => {
+  it("passes a whole screen and refuses a narrower share", () => {
     // The integrity terms the candidate agreed to cover the screen, so one
     // window is accepted but not treated as equivalent.
     expect(screenVerdict(screen())).toBe("ok");
-    expect(screenVerdict(screen({ surface: "window" }))).toBe("check");
-    expect(screenVerdict(screen({ surface: "browser" }))).toBe("check");
+    expect(screenVerdict(screen({ surface: "window" }))).toBe("fail");
+    expect(screenVerdict(screen({ surface: "browser" }))).toBe("fail");
+    // Only Chromium reliably reports the surface; refusing everyone else would
+    // be a requirement with no way to meet it.
+    expect(screenVerdict(screen({ surface: "unknown" }))).toBe("ok");
   });
 
   it("counts a share the candidate stopped as having happened", () => {
     // Stopping is their choice, not a failure and not a pass -- but the check
     // did run, which is what lets them past the gate.
     expect(screenVerdict(screen({ status: "ended" }))).toBe("check");
+    // What was shared survives the share stopping, so a candidate who only ever
+    // shared one window does not get credit by closing it.
+    expect(screenVerdict(screen({ status: "ended", surface: "window" }))).toBe("fail");
   });
 
   it("reports a refused share as failed", () => {

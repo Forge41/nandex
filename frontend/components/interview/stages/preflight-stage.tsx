@@ -102,7 +102,7 @@ function DeviceCheck({
         // The candidate is asked, not probed: getDisplayMedia always shows the
         // browser's own picker and must come from a gesture.
         onTest={support.supported ? testOrOpen("screen", screen.status === "running") : undefined}
-        testLabel="Share your screen"
+        testLabel="Share your entire screen"
         // Only what was actually shared, and only once it has been: a single
         // window is a weaker assurance than a whole screen, which is worth
         // saying. How many displays the machine has is not.
@@ -122,7 +122,7 @@ function DeviceCheck({
 
 function PreflightBody() {
   const { session, dispatch } = useInterviewSession();
-  const { tested } = useDevicePreviews();
+  const { tested, wholeScreen } = useDevicePreviews();
   const support = useScreenShareSupport();
   const [open, setOpen] = useState<DeviceKind | null>(null);
   // Set only by a click on the CTA -- the candidate is told what is missing at
@@ -131,13 +131,18 @@ function PreflightBody() {
   const firstFlaggedRef = useRef<HTMLButtonElement | null>(null);
 
   const cta = derivePreflightCta(session);
-  const gate = deriveDeviceGate(tested, { screenSupported: support.supported });
+  const gate = deriveDeviceGate(tested, { screenSupported: support.supported, wholeScreen });
 
   // A flag cannot outlive the thing it was flagging, so it is intersected with
   // what is still untested on every render rather than cleared by an effect.
   // The stored set may hold stale kinds; nothing reads it unintersected, and a
   // later click replaces it wholesale.
-  const stillFlagged = flagged.filter((kind) => gate.untested.includes(kind));
+  const clickFlagged = flagged.filter((kind) => gate.untested.includes(kind));
+  // A partial share is flagged without waiting for a click: the button is
+  // already disabled over it, so the row it refers to has to be pointed at.
+  const stillFlagged = gate.blockingReason
+    ? [...new Set<DeviceKind>([...clickFlagged, "screen"])]
+    : clickFlagged;
 
   const attemptAdvance = () => {
     if (!gate.ready) {
@@ -198,6 +203,14 @@ function PreflightBody() {
         <Card className="p-4">
           <Eyebrow>Device &amp; environment check</Eyebrow>
           <DeviceCheck onOpen={setOpen} flagged={stillFlagged} firstFlaggedRef={firstFlaggedRef} />
+          {/* Stated before the picker opens, not after it is refused: the
+              candidate should know which option to click the first time. */}
+          {support.supported && (
+            <p className="mt-3 text-xs text-content-muted">
+              Screen sharing must cover your entire screen — a single window or browser tab
+              will not be accepted.
+            </p>
+          )}
         </Card>
 
         {/* Consent and the button that acts on it are one group, pinned to the
@@ -224,12 +237,19 @@ function PreflightBody() {
             <Button
               variant="primary"
               className="w-full"
-              disabled={cta.disabled}
+              disabled={cta.disabled || gate.blockingReason !== null}
               onClick={attemptAdvance}
             >
               {cta.label}
             </Button>
-            {stillFlagged.length > 0 ? (
+            {/* Only once the resume and consent are settled: while one of those
+                is outstanding it is the more immediate blocker, and stacking a
+                second reason under a button says less than naming the first. */}
+            {gate.blockingReason && !cta.disabled ? (
+              // Not an alert: this is on screen before any click, so announcing
+              // it would interrupt a candidate who has not asked anything yet.
+              <span className="text-center text-xs text-warning">{gate.blockingReason}</span>
+            ) : clickFlagged.length > 0 ? (
               // role="alert" so it is announced: a candidate who clicked and saw
               // nothing happen needs telling, not just showing.
               <span role="alert" className="text-center text-xs text-warning">

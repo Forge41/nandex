@@ -94,7 +94,14 @@ export function useScreenShareTest(active: boolean, nonce = 0): ScreenShareTest 
 
         track?.addEventListener("ended", () => {
           if (cancelled) return;
-          setPublished({ ...IDLE, status: "ended" });
+          // The surface is carried across: they did share their entire screen,
+          // and stopping does not un-share what was shared. The gate reads it,
+          // so dropping it here would re-block a candidate who passed.
+          setPublished((previous) => ({
+            ...IDLE,
+            status: "ended",
+            surface: previous?.surface ?? "unknown",
+          }));
         });
       })
       .catch((error: unknown) => {

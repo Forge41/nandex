@@ -211,15 +211,15 @@ function CameraPanel() {
 }
 
 function ScreenPanel() {
-  const { screen } = useDevicePreviews();
+  const { screen, restart } = useDevicePreviews();
   const running = screen.status === "running";
   const partial = screen.surface === "window" || screen.surface === "browser";
 
   return (
     <div className="px-5 py-[22px]">
       <p className="text-base text-content-subtle">
-        Share your whole screen. The integrity terms cover the screen, not one window, so a
-        single window is accepted but flagged.
+        Share your entire screen. The integrity terms cover the whole screen, so a single
+        window or browser tab will not be accepted — pick a screen in the picker.
       </p>
 
       <div className="bg-stripes relative mt-5 flex h-[240px] items-center justify-center overflow-hidden rounded-lg">
@@ -236,9 +236,22 @@ function ScreenPanel() {
       <div className="mt-4 flex flex-col gap-2.5">
         {running ? (
           <>
-            <StatusStrip tone={partial ? "warning" : "success"} badge={partial ? "Check" : "Pass"}>
-              {SURFACE_COPY[screen.surface]}
-              {screen.sharingAudio ? " · system audio included" : ""}
+            <StatusStrip
+              tone={partial ? "danger" : "success"}
+              badge={partial ? "Not enough" : "Pass"}
+              action={
+                partial && (
+                  <span className="flex">
+                    <Button variant="secondary" size="sm" onClick={() => restart("screen")}>
+                      Share entire screen
+                    </Button>
+                  </span>
+                )
+              }
+            >
+              {partial
+                ? `${SURFACE_COPY[screen.surface]} — the interview needs your entire screen.`
+                : `${SURFACE_COPY[screen.surface]}${screen.sharingAudio ? " · system audio included" : ""}`}
             </StatusStrip>
             <p className="text-xs text-content-muted">
               You can stop sharing at any time from your browser&apos;s own sharing bar.

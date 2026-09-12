@@ -70,7 +70,7 @@ describe("derivePreflightCta", () => {
 
 
 describe("deriveDeviceGate", () => {
-  const supported = { screenSupported: true };
+  const supported = { screenSupported: true, wholeScreen: true };
   const none = { mic: false, camera: false, screen: false };
   const all = { mic: true, camera: true, screen: true };
 
@@ -110,7 +110,7 @@ describe("deriveDeviceGate", () => {
   it("treats screen share as satisfied when the browser cannot share at all", () => {
     // Otherwise the gate has no key: there is no way for the candidate to pass a
     // check their browser does not implement.
-    const gate = deriveDeviceGate({ ...all, screen: false }, { screenSupported: false });
+    const gate = deriveDeviceGate({ ...all, screen: false }, { screenSupported: false, wholeScreen: false });
 
     expect(gate.ready).toBe(true);
     expect(gate.untested).toEqual([]);
@@ -119,11 +119,50 @@ describe("deriveDeviceGate", () => {
   it("still blocks on a real device when screen share is unsupported", () => {
     const gate = deriveDeviceGate(
       { mic: true, camera: false, screen: false },
-      { screenSupported: false }
+      { screenSupported: false, wholeScreen: false }
     );
 
     expect(gate.ready).toBe(false);
     expect(gate.untested).toEqual(["camera"]);
+  });
+
+  it("blocks on a share narrower than a screen, and says which way out", () => {
+    // The one device result the candidate can always fix: unlike a broken
+    // camera, re-sharing is entirely in their hands.
+    const gate = deriveDeviceGate(all, { screenSupported: true, wholeScreen: false });
+
+    expect(gate.ready).toBe(false);
+    expect(gate.blockingReason).toBe(
+      "Share your entire screen — a single window or browser tab isn't enough."
+    );
+    // Not folded into the untested list: the check did run, it just did not
+    // produce an acceptable share.
+    expect(gate.untested).toEqual([]);
+  });
+
+  it("does not claim a partial share before the check has run at all", () => {
+    const gate = deriveDeviceGate(none, { screenSupported: true, wholeScreen: false });
+
+    expect(gate.blockingReason).toBeNull();
+    expect(gate.untested).toContain("screen");
+  });
+
+  it("raises no screen requirement a browser without getDisplayMedia cannot meet", () => {
+    const gate = deriveDeviceGate(all, { screenSupported: false, wholeScreen: false });
+
+    expect(gate.ready).toBe(true);
+    expect(gate.blockingReason).toBeNull();
+  });
+
+  it("reports both a partial share and the checks still missing", () => {
+    const gate = deriveDeviceGate(
+      { mic: false, camera: true, screen: true },
+      { screenSupported: true, wholeScreen: false }
+    );
+
+    expect(gate.ready).toBe(false);
+    expect(gate.untested).toEqual(["mic"]);
+    expect(gate.blockingReason).not.toBeNull();
   });
 
   it("keeps the rows in the order they are shown", () => {

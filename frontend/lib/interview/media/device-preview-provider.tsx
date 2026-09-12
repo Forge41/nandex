@@ -6,7 +6,7 @@ import { useMicTest, type MicTest } from "./use-mic-test";
 import { useScreenShareTest, type ScreenShareTest } from "./use-screen-share-test";
 // DeviceKind lives in types.ts with the rest of the shared vocabulary, and is
 // re-exported here because every consumer of this provider needs it.
-import { cameraVerdict, micVerdict, screenVerdict } from "./verdicts";
+import { cameraVerdict, micVerdict, screenVerdict, wholeScreenShared } from "./verdicts";
 import type { DeviceKind, DeviceStatus } from "../types";
 
 export type { DeviceKind };
@@ -26,6 +26,10 @@ export interface DevicePreviewState {
    * A device that failed counts: they tried, and nothing should trap a
    * candidate behind a check their hardware cannot pass. */
   tested: Record<DeviceKind, boolean>;
+  /** Whether the share was of an entire screen rather than one window or tab.
+   * Separate from the verdict because it is the one device result the candidate
+   * can always fix by re-sharing, so it gates rather than merely warns. */
+  wholeScreen: boolean;
   active: Record<DeviceKind, boolean>;
   start: (kind: DeviceKind) => void;
   stop: (kind: DeviceKind) => void;
@@ -98,6 +102,7 @@ export function DevicePreviewProvider({ children }: { children: React.ReactNode 
         camera: verdicts.camera !== "untested",
         screen: verdicts.screen !== "untested",
       },
+      wholeScreen: wholeScreenShared(screen.settled),
       active,
       start,
       stop,

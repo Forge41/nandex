@@ -33,9 +33,21 @@ export function screenVerdict(screen: ScreenShareTestState | null): DeviceStatus
   }
   // Ending the share is the candidate's choice, not a failure, and not a pass
   // either -- but it did happen, so it counts as a check having run.
-  if (screen.status === "ended") return "check";
+  if (screen.status === "ended") return wholeScreenShared(screen) ? "check" : "fail";
   if (screen.status !== "running") return "fail";
-  // A single window is a weaker assurance than a whole screen, and the
-  // integrity terms the candidate agreed to are about the screen.
-  return screen.surface === "window" || screen.surface === "browser" ? "check" : "ok";
+  // Not a soft warning: the integrity terms cover the whole screen, and a share
+  // narrower than that is refused rather than noted.
+  return wholeScreenShared(screen) ? "ok" : "fail";
+}
+
+/** Whether what was shared satisfies the integrity terms.
+ *
+ * "unknown" counts: only Chromium reliably reports displaySurface, and refusing
+ * every browser that withholds it would be a requirement with no way to meet
+ * it. A surface we were told about and that is narrower than a screen is the
+ * only thing rejected here.
+ */
+export function wholeScreenShared(screen: ScreenShareTestState | null): boolean {
+  if (screen === null) return false;
+  return screen.surface !== "window" && screen.surface !== "browser";
 }

@@ -106,6 +106,11 @@ export interface DeviceGate {
   /** Names the specific rows. "Test something first" would leave the candidate
    * hunting for which one. */
   message: string;
+  /** A blocker that is already known, as opposed to a check that simply has not
+   * run. Null when there is none. The button is disabled while this is set,
+   * because refusing a click is only fair when the candidate could not have
+   * known -- here they can be told up front, and told exactly what to change. */
+  blockingReason: string | null;
 }
 
 /** Whether the candidate has actually run the device checks they just consented
@@ -117,7 +122,7 @@ export interface DeviceGate {
  */
 export function deriveDeviceGate(
   tested: Record<DeviceKind, boolean>,
-  { screenSupported }: { screenSupported: boolean }
+  { screenSupported, wholeScreen }: { screenSupported: boolean; wholeScreen: boolean }
 ): DeviceGate {
   const untested = DEVICE_ORDER.filter((kind) => {
     // A browser with no getDisplayMedia cannot run this check at all, so
@@ -126,12 +131,19 @@ export function deriveDeviceGate(
     return !tested[kind];
   });
 
+  // A share narrower than a screen is the one device result the candidate can
+  // always put right, so unlike a failed microphone it holds them here.
+  const partialScreen = screenSupported && tested.screen && !wholeScreen;
+
   return {
-    ready: untested.length === 0,
+    ready: untested.length === 0 && !partialScreen,
     untested,
     message: untested.length
       ? `Test your ${formatList(untested.map((kind) => DEVICE_NOUN[kind]))} before continuing.`
       : "",
+    blockingReason: partialScreen
+      ? "Share your entire screen — a single window or browser tab isn't enough."
+      : null,
   };
 }
 
