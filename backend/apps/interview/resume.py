@@ -7,6 +7,7 @@ PDF reader to the project.
 
 import json
 import logging
+from dataclasses import dataclass
 
 from ai.client import complete
 from ai.prompt_loader import load_prompt
@@ -17,12 +18,15 @@ from apps.ingest.pipeline.parsed_document import ParsedDocument
 from apps.ingest.pipeline.parsers import get_parser
 from apps.interview.config import settings
 from apps.interview.models import InterviewRound, InterviewSession, ResumeFacts
+from apps.interview.rounds import STAGE_IDS
 
 logger = logging.getLogger(__name__)
 
 # Rounds a plan may speak about. preflight, resume and wrap are fixed scaffolding, so a
 # plan that tried to change them would be overriding the interview's own structure.
 PLANNABLE_STAGE_IDS = frozenset({"behavioral", "coding", "sql", "debug", "design", "quiz", "qa"})
+
+RESUME_ROUND_INDEX = STAGE_IDS.index("resume")
 
 
 class ResumeUnreadable(Exception):
@@ -168,8 +172,7 @@ def sanitize_plan(plan: dict) -> dict:
 
 def _persist_sync(
     session: InterviewSession,
-    document: RawDocument,
-    page_count: int | None,
+    parsed: "ParsedResume",
     plan: dict,
 ) -> ResumeFacts:
     candidate = plan["candidate"]
@@ -177,9 +180,9 @@ def _persist_sync(
     facts, _ = ResumeFacts.objects.update_or_create(
         session=session,
         defaults={
-            "file_name": document.display_name or "resume",
-            "size_bytes": len(document.payload),
-            "page_count": page_count,
+            "file_name": parsed.file_name,
+            "size_bytes": parsed.size_bytes,
+            "page_count": parsed.page_count,
             "entity_count": plan["entity_count"],
             "candidate_name": str(candidate.get("name") or ""),
             "candidate_title": str(candidate.get("title") or ""),
@@ -198,7 +201,15 @@ def _persist_sync(
         )
 
     updates = ["resume_document_id", "updated_at"]
-    session.resume_document_id = document.id
+    session.resume_document_id = parsed.document_id
+    # The plan existing is what finishes the pre-flight, so the session moves to the
+    # round that shows it. Written here rather than left to the browser so a refresh
+    # lands on the plan instead of back at the dropzone. Only ever forward: a resume
+    # replaced later in an interview must not drag the candidate back to round two.
+    if session.progress_index < RESUME_ROUND_INDEX:
+        session.active_stage = "resume"
+        session.progress_index = RESUME_ROUND_INDEX
+        updates += ["active_stage", "progress_index"]
     # The candidate's own name from their resume, not something the caller asserted: the
     # top bar shows it, and it should match the document on screen beside it.
     if facts.candidate_name:
@@ -208,7 +219,41 @@ def _persist_sync(
     return facts
 
 
-async def attach_resume(session: InterviewSession, document_id: str) -> ResumeFacts:
+@dataclass(frozen=True)
+class ParsedResume:
+    """What reading the document established, before any model has seen it.
+
+    Carried between two workflow activities, so every field has to survive a JSON round
+    trip -- which is why this holds the document's own facts rather than the RawDocument.
+    """
+
+    document_id: str
+    file_name: str
+    size_bytes: int
+    page_count: int | None
+    text: str
+
+    def as_dict(self) -> dict:
+        return {
+            "document_id": self.document_id,
+            "file_name": self.file_name,
+            "size_bytes": self.size_bytes,
+            "page_count": self.page_count,
+            "text": self.text,
+        }
+
+    @classmethod
+    def from_dict(cls, payload: dict) -> "ParsedResume":
+        return cls(
+            document_id=payload["document_id"],
+            file_name=payload["file_name"],
+            size_bytes=payload["size_bytes"],
+            page_count=payload["page_count"],
+            text=payload["text"],
+        )
+
+
+async def read_and_parse(session: InterviewSession, document_id: str) -> ParsedResume:
     document = await sync_to_async(_read_document_sync, thread_sensitive=True)(
         document_id, session.project_id
     )
@@ -225,17 +270,37 @@ async def attach_resume(session: InterviewSession, document_id: str) -> ResumeFa
     if not text.strip():
         raise ResumeUnreadable("That file contained no readable text")
 
-    plan = sanitize_plan(await generate_plan(text))
-    return await sync_to_async(_persist_sync, thread_sensitive=True)(
-        session, document, page_count_of(parsed), plan
+    return ParsedResume(
+        document_id=document.id,
+        file_name=document.display_name or "resume",
+        size_bytes=len(document.payload),
+        page_count=page_count_of(parsed),
+        text=text,
     )
 
 
+async def build_plan(resume_text: str) -> dict:
+    return sanitize_plan(await generate_plan(resume_text))
+
+
+async def persist_plan(session: InterviewSession, parsed: ParsedResume, plan: dict) -> ResumeFacts:
+    return await sync_to_async(_persist_sync, thread_sensitive=True)(session, parsed, plan)
+
+
+async def attach_resume(session: InterviewSession, document_id: str) -> ResumeFacts:
+    parsed = await read_and_parse(session, document_id)
+    return await persist_plan(session, parsed, await build_plan(parsed.text))
+
+
 __all__ = [
+    "ParsedResume",
     "ResumeUnreadable",
     "attach_resume",
+    "build_plan",
     "generate_plan",
     "page_count_of",
+    "persist_plan",
+    "read_and_parse",
     "resume_text_of",
     "sanitize_plan",
 ]

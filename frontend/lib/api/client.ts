@@ -14,14 +14,23 @@ export class ApiError extends Error {
 }
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`/api${path}`, {
+  return send<T>(path, {
     ...init,
-    credentials: "same-origin",
-    headers: {
-      "Content-Type": "application/json",
-      ...init?.headers,
-    },
+    headers: { "Content-Type": "application/json", ...init?.headers },
   });
+}
+
+/** A file upload.
+ *
+ * Separate from apiFetch because the Content-Type must be left unset: the
+ * browser generates the multipart boundary and writes the header itself, and a
+ * hand-written one has no boundary in it, so the server finds no fields. */
+export async function apiUpload<T>(path: string, form: FormData): Promise<T> {
+  return send<T>(path, { method: "POST", body: form });
+}
+
+async function send<T>(path: string, init: RequestInit): Promise<T> {
+  const response = await fetch(`/api${path}`, { ...init, credentials: "same-origin" });
 
   const body = response.status === 204 ? null : await response.json().catch(() => null);
 

@@ -18,6 +18,9 @@ def serialize_round(round_: InterviewRound) -> dict:
         "label": round_.label,
         "kind": round_.kind,
         "durationMin": round_.duration_min,
+        # Whether this round's task has been generated. Distinct from where the round
+        # sits in the interview, which the client derives from progressIndex.
+        "contentState": round_.content_state,
     }
     # Omitted rather than null when absent: the frontend's Round type marks both
     # optional, and a null citation would render an empty chip.
@@ -95,6 +98,8 @@ def serialize_session(
         "startedAt": session.started_at.isoformat() if session.started_at else None,
         "status": session.status,
         "recordingState": session.recording_state,
+        "planState": session.plan_state,
+        "planError": session.plan_error,
         # Keyed by stage id, matching RoundContent. Rounds with nothing generated are
         # absent, which is what the UI's missing-content state reads.
         "content": {r.stage_id: r.content for r in rounds if r.content},

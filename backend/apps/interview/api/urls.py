@@ -10,6 +10,8 @@ urlpatterns = [
     # be two entries.
     path("interview/sessions/<str:session_id>", views.session_detail),
     path("interview/sessions/<str:session_id>/resume", views.session_resume),
+    path("interview/sessions/<str:session_id>/resume/file", views.session_resume_file),
+    path("interview/sessions/<str:session_id>/plan", views.session_plan),
     path("interview/sessions/<str:session_id>/token", views.session_token),
     path("interview/sessions/<str:session_id>/recording", views.session_recording),
     path("interview/sessions/<str:session_id>/end", views.session_end),

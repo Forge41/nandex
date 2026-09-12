@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { formatFileSize } from "@/lib/interview/format";
-import type { ResumeDoc } from "@/lib/interview/types";
+import type { ResumeFile } from "@/lib/interview/types";
 
 /** Stand-in for a file the browser cannot render -- a DOCX, or a session
  * restored from the server with no local blob. Deliberately a glyph and not a
@@ -30,7 +30,7 @@ const RENDER_SCALE = 8;
  *
  * The same browser PDF viewer the full preview below uses -- the point of this
  * step is confirming the right document, which a generic icon cannot do. */
-function FileThumbnail({ resume }: { resume: ResumeDoc }) {
+function FileThumbnail({ resume }: { resume: ResumeFile }) {
   if (!resume.previewUrl || resume.previewType !== "application/pdf") return <PageGlyph />;
 
   return (
@@ -57,23 +57,22 @@ function FileThumbnail({ resume }: { resume: ResumeDoc }) {
   );
 }
 
-export function ResumeFileCard({ resume, onReplace }: { resume: ResumeDoc; onReplace: () => void }) {
+export function ResumeFileCard({ file, onReplace }: { file: ResumeFile; onReplace: () => void }) {
   return (
     <div className="flex items-center gap-3 rounded-md border border-line bg-surface-subtle p-3">
-      <FileThumbnail resume={resume} />
+      <FileThumbnail resume={file} />
       <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-medium">{resume.fileName}</div>
+        <div className="truncate text-sm font-medium">{file.fileName}</div>
+        {/* Only what is known. A page count and an entity count are results of
+            reading the document, so before that there is just a file. */}
         <div className="mt-0.5 text-xs text-content-muted">
           {[
-            formatFileSize(resume.sizeBytes),
-            resume.pageCount === undefined ? null : `${resume.pageCount} pages`,
-            `${resume.entityCount} entities extracted`,
+            formatFileSize(file.sizeBytes),
+            file.pageCount === undefined ? null : `${file.pageCount} pages`,
+            file.entityCount === undefined ? null : `${file.entityCount} entities extracted`,
           ]
             .filter(Boolean)
             .join(" · ")}
-        </div>
-        <div className="mt-2 h-[3px] overflow-hidden rounded-[2px] bg-line-strong">
-          <div className="h-full w-full bg-success" />
         </div>
       </div>
       <Button variant="ghost" size="sm" className="text-content-subtle" onClick={onReplace}>

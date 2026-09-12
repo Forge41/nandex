@@ -28,6 +28,8 @@ STAGE_IDS = tuple(round_["stage_id"] for round_ in DEFAULT_ROUNDS)
 
 TOTAL_DURATION_MIN = sum(round_["duration_min"] for round_ in DEFAULT_ROUNDS)
 
-# The round a live interviewer joins for. The token endpoint attaches an agent dispatch
+# The rounds a live interviewer joins for. The token endpoint attaches an agent dispatch
 # regardless of stage, because the browser only asks for a token when it needs one.
-LIVE_STAGE_IDS = ("behavioral", "qa")
+# "resume" is here because the interviewer greets the candidate over the generated plan
+# and can be asked about it before anything is timed or scored.
+LIVE_STAGE_IDS = ("resume", "behavioral", "qa")

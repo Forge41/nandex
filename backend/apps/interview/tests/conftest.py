@@ -2,6 +2,7 @@ import pytest
 from django.test import Client
 
 from apps.core.models import Project
+from apps.interview import workflow_client
 
 
 @pytest.fixture
@@ -82,11 +83,30 @@ def fake_room(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
-def _no_temporal(monkeypatch):
-    """Post-session processing is fire-and-forget against a worker that doesn't ship yet.
-    Stubbed so tests don't spend a connect timeout proving it was attempted."""
+def workflows(monkeypatch):
+    """Records what the HTTP layer asked the session's workflow to do.
 
-    async def noop(session_id):
-        return None
+    Autouse so no test spends a Temporal connect timeout, and recorded rather than
+    silenced because "the browser advanced a round" reaching the workflow is a property
+    worth asserting -- it is what keeps the lookahead running.
+    """
+    calls = {"started": [], "reached": [], "ended": [], "progress": None}
 
-    monkeypatch.setattr("apps.interview.services.trigger_post_session_processing", noop)
+    async def start_plan(session_id, document_id):
+        calls["started"].append((session_id, document_id))
+        return True
+
+    async def round_reached(session_id, stage_id):
+        calls["reached"].append((session_id, stage_id))
+
+    async def session_ended(session_id):
+        calls["ended"].append(session_id)
+
+    async def plan_progress(session_id):
+        return calls["progress"]
+
+    monkeypatch.setattr(workflow_client, "start_plan", start_plan)
+    monkeypatch.setattr(workflow_client, "round_reached", round_reached)
+    monkeypatch.setattr(workflow_client, "session_ended", session_ended)
+    monkeypatch.setattr(workflow_client, "plan_progress", plan_progress)
+    return calls
