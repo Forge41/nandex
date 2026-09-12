@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 .PHONY: help install hooks agent-permissions link-agents fmt lint lint-ci test check \
-	up down doctor serve-all tps tps-migrate tps-grpc grpc-gen migrate importer-migrate \
+	up down doctor check-speech serve-all tps tps-migrate tps-grpc grpc-gen migrate importer-migrate \
 	ingest-migrate importer-worker ingest-worker interview-worker interviewer-agent \
 	vas vas-worker vas-stack vas-stack-down asgi frontend
 
@@ -48,6 +48,9 @@ down: ## Stop the containers `up` started. Ctrl-C already stopped the processes.
 
 doctor: ## Say what backend/.env is missing, and what stops working without it
 	@uv run python scripts/check_env.py
+
+check-speech: ## Ask Deepgram and Cartesia whether the keys in .env actually work
+	@uv run python scripts/check_speech.py
 
 # ---------------------------------------------------------------------------
 # Backend services
