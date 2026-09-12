@@ -6,7 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { AudioBars } from "@/components/ui/audio-bars";
 import { StreamVideo } from "@/components/interview/molecules/device-preview";
 import { LIGHTING_COPY } from "@/lib/interview/media/use-camera-test";
-import { REQUIRED_SPEECH_SECONDS } from "@/lib/interview/media/use-mic-test";
+import { REQUIRED_SPEECH_SECONDS, type MediaTestStatus } from "@/lib/interview/media/use-mic-test";
+import { useMediaPermission } from "@/lib/interview/media/use-media-permission";
+import { failureAction } from "@/lib/interview/media/failure-action";
 import { SURFACE_COPY } from "@/lib/interview/media/use-screen-share-test";
 import { useDevicePreviews, type DeviceKind } from "@/lib/interview/media/device-preview-provider";
 
@@ -36,20 +38,25 @@ function StatusStrip({
   tone,
   children,
   badge,
+  action,
 }: {
   tone: "success" | "warning" | "danger";
   children: React.ReactNode;
   badge: string;
+  action?: React.ReactNode;
 }) {
   const surface = tone === "success" ? "bg-success-bg" : tone === "warning" ? "bg-warning-bg" : "bg-danger-bg";
   const text = tone === "success" ? "text-success" : tone === "warning" ? "text-warning" : "text-danger";
 
   return (
-    <div className={`flex items-center justify-between gap-3 rounded-md px-3 py-2.5 ${surface}`}>
-      <span className={`text-sm ${text}`}>{children}</span>
-      <Badge tone={tone} size="sm">
-        {badge}
-      </Badge>
+    <div className={`flex flex-col gap-2.5 rounded-md px-3 py-2.5 ${surface}`}>
+      <div className="flex items-center justify-between gap-3">
+        <span className={`text-sm ${text}`}>{children}</span>
+        <Badge tone={tone} size="sm">
+          {badge}
+        </Badge>
+      </div>
+      {action}
     </div>
   );
 }
@@ -58,10 +65,44 @@ function Pending({ message }: { message: string }) {
   return <p className="text-sm text-content-subtle">{message}</p>;
 }
 
-function Failure({ blocked, message }: { blocked: boolean; message: string | null }) {
+/** Null for screen sharing, which keeps no permission of its own --
+ * getDisplayMedia prompts every time. */
+const PERMISSION_NAME: Record<DeviceKind, "microphone" | "camera" | null> = {
+  mic: "microphone",
+  camera: "camera",
+  screen: null,
+};
+
+/** The failure state, with the way out of it attached -- next to the message
+ * explaining it, rather than in the footer under a generic label. */
+function Failure({
+  kind,
+  status,
+  message,
+}: {
+  kind: DeviceKind;
+  status: MediaTestStatus | "ended";
+  message: string | null;
+}) {
+  const { restart } = useDevicePreviews();
+  const permission = useMediaPermission(PERMISSION_NAME[kind]);
+  const action = failureAction(kind, status, permission, message);
+
   return (
-    <StatusStrip tone="danger" badge={blocked ? "Blocked" : "Failed"}>
-      {message ?? "Something went wrong."}
+    <StatusStrip
+      tone="danger"
+      badge={action.badge}
+      action={
+        action.actionLabel && (
+          <span className="flex">
+            <Button variant="secondary" size="sm" onClick={() => restart(kind)}>
+              {action.actionLabel}
+            </Button>
+          </span>
+        )
+      }
+    >
+      {action.message}
     </StatusStrip>
   );
 }
@@ -118,7 +159,7 @@ function MicPanel() {
         ) : mic.status === "requesting" ? (
           <Pending message="Waiting for permission…" />
         ) : (
-          <Failure blocked={mic.status === "denied"} message={mic.errorMessage} />
+          <Failure kind="mic" status={mic.status} message={mic.errorMessage} />
         )}
       </div>
     </div>
@@ -162,7 +203,7 @@ function CameraPanel() {
         ) : camera.status === "requesting" ? (
           <Pending message="Waiting for permission…" />
         ) : (
-          <Failure blocked={camera.status === "denied"} message={camera.errorMessage} />
+          <Failure kind="camera" status={camera.status} message={camera.errorMessage} />
         )}
       </div>
     </div>
@@ -210,7 +251,7 @@ function ScreenPanel() {
             You stopped sharing. Share again before the timed tasks.
           </StatusStrip>
         ) : (
-          <Failure blocked={screen.status === "denied"} message={screen.errorMessage} />
+          <Failure kind="screen" status={screen.status} message={screen.errorMessage} />
         )}
       </div>
     </div>
@@ -236,12 +277,10 @@ export function DeviceTestDialog({
   const { restart, stop, active } = previews;
   const Panel = kind ? PANELS[kind] : null;
 
-  const live = kind ? previews[kind].status === "running" : false;
-  // Nothing to re-run while a check is live: the device stays open and the
-  // reading follows the candidate. The control only earns its place as a way
-  // out of a failure -- except for screen share, where picking a different
-  // surface is a real thing to want mid-share.
-  const showRestart = kind === "screen" || !live;
+  // A failure now carries its own retry, next to the message explaining it, so
+  // the footer control is left with the one case that is not a failure: a live
+  // screen share whose surface the candidate wants to change.
+  const showRestart = kind === "screen" && previews.screen.status === "running";
 
   return (
     <Dialog open={kind !== null} onOpenChange={(open) => !open && onClose()}>
