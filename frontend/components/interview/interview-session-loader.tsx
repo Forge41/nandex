@@ -1,30 +1,38 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ApiError } from "@/lib/api/client";
-import { fetchSession, type SessionPayload } from "@/lib/api/interview";
+import {
+  fetchSession,
+  resumeFileUrl,
+  type PlanProgress,
+  type SessionPayload,
+} from "@/lib/api/interview";
 import { InterviewSessionProvider } from "@/lib/interview/session-provider";
+import { usePlanGate } from "@/lib/interview/use-plan-progress";
 import { RoomShell } from "@/components/interview/room-shell";
 import { InterviewRoom } from "@/components/interview/interview-room";
+import { SessionSync } from "@/components/interview/session-sync";
+import { PlanProgress as PlanProgressView } from "@/components/interview/organisms/plan-progress";
 import { Button } from "@/components/ui/button";
 import { MOCK_ROUND_CONTENT } from "@/lib/interview/mock/rounds.fixture";
 import type { InterviewSession } from "@/lib/interview/types";
 
-/** Round content is still fixture; nothing else is.
+/** Round content for the stages nothing writes yet.
  *
- * Deliberately not the resume: handing a new session one it never uploaded
- * shows "Parsed" for a document that does not exist and skips the candidate
- * past the first step entirely. An absent resume is the truth, and the
- * pre-flight already renders the dropzone for it.
- *
- * Round content stays because nothing generates a coding task yet, and seven
- * empty rounds read as broken rather than unfinished -- and unlike the resume,
- * none of it is on screen when the candidate arrives. It comes out when the
- * generator lands; the merge is one function so there is one thing to delete. */
+ * Only those: a round the server has generated arrives with its own content and
+ * is left alone. Six stages still have no generator, and six empty rounds read
+ * as broken rather than unfinished. This comes out one stage at a time as their
+ * prompts land, and disappears with the last of them. */
 function withFixtureContent(payload: SessionPayload): InterviewSession {
   return {
     ...payload,
-    content: Object.keys(payload.content).length > 0 ? payload.content : MOCK_ROUND_CONTENT,
+    content: { ...MOCK_ROUND_CONTENT, ...payload.content },
+    // The document itself, served back by the session it belongs to. The object
+    // URL the dropzone made died at the navigation here, and the plan screen
+    // offers to open the source -- an offer it can only make with a real link.
+    resume: payload.resume && { ...payload.resume, previewUrl: resumeFileUrl(payload.id) },
   };
 }
 
@@ -33,6 +41,39 @@ function Centred({ children }: { children: React.ReactNode }) {
     <div className="flex h-dvh flex-col items-center justify-center gap-3 bg-surface text-content">
       {children}
     </div>
+  );
+}
+
+/** Holds the candidate on the progress screen until there is an interview to
+ * show them, then hands over. Mounted only when the plan is not already done,
+ * so a returning visitor pays for none of it. */
+function PlanGateway({
+  session,
+  initial,
+  onOpen,
+}: {
+  session: SessionPayload;
+  initial: PlanProgress;
+  onOpen: () => void;
+}) {
+  const router = useRouter();
+  const gate = usePlanGate(session.id, initial);
+  const handed = useRef(false);
+
+  useEffect(() => {
+    // Once: the handover refetches the session, and asking for it again on every
+    // render while that is in flight would be a request per frame.
+    if (!gate.open || handed.current) return;
+    handed.current = true;
+    onOpen();
+  }, [gate.open, onOpen]);
+
+  return (
+    <PlanProgressView
+      steps={gate.steps}
+      error={gate.error}
+      onRetry={gate.error ? () => router.push("/") : undefined}
+    />
   );
 }
 
@@ -88,8 +129,32 @@ export function InterviewSessionLoader({ sessionId }: { sessionId: string }) {
     );
   }
 
+  // A session whose plan is still being built has no rounds worth showing yet,
+  // and one that failed has none coming.
+  if (session.planState === "processing" || session.planState === "failed") {
+    return (
+      <PlanGateway
+        session={session}
+        initial={{
+          status: session.planState ?? "processing",
+          error: session.planError ?? "",
+          steps: [],
+        }}
+        // Handed the *fresh* session, not just a signal to move on: the plan gave
+        // the session its rounds and moved it to the round that shows them, and
+        // the provider below seeds itself once from whatever it is given.
+        onOpen={() => {
+          void fetchSession(sessionId)
+            .then(setSession)
+            .catch(() => setAttempt((n) => n + 1));
+        }}
+      />
+    );
+  }
+
   return (
     <InterviewSessionProvider initialSession={withFixtureContent(session)}>
+      <SessionSync />
       {/* No fixture fallback: an empty transcript is what a session that has not
           started actually has, and the panel already says so. */}
       <RoomShell transcript={session.transcript}>

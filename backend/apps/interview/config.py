@@ -18,6 +18,11 @@ class Settings(BaseSettings):
 
     plan_model: str = "claude-sonnet-4-5"
 
+    # The interviewer agent runs as its own process with no candidate cookie, so it
+    # presents this to read a session's brief and append transcript turns. Empty rejects
+    # every agent request rather than accepting any.
+    agent_bearer_token: str = ""
+
     temporal_address: str = "localhost:7233"
     # Mirrors nothing else -- this app owns its own queue. No worker ships yet; the
     # trigger is fire-and-forget so a missing worker is a logged gap, not a failure.

@@ -29,6 +29,8 @@ export type RoundStatus = "complete" | "active" | "locked";
 
 export type RoundKind = "setup" | "conversation" | "task";
 
+export type ContentState = "pending" | "generating" | "ready" | "failed";
+
 export interface Round {
   id: StageId;
   label: string;
@@ -38,6 +40,9 @@ export interface Round {
   citation?: number;
   /** Shown on the plan card, revealed on hover. */
   summary?: string;
+  /** Whether this round's task has been generated. Separate from where the round
+   * sits in the interview, which comes from progressIndex. */
+  contentState?: ContentState;
 }
 
 /** A quoted resume line, referenced by the numbered chips throughout the UI. */
@@ -78,21 +83,25 @@ export interface ResumeCandidate {
   yearsExperience: number;
 }
 
-export interface ResumeDoc {
+/** The document as a file: what is true before anyone has read it.
+ *
+ * Separate from ResumeDoc because the pre-flight has exactly this and no more --
+ * a file the candidate picked, not yet uploaded and certainly not yet parsed.
+ */
+export interface ResumeFile {
   fileName: string;
   sizeBytes: number;
-  /** Only known once the document has been parsed server-side. Absent for a
-   * file the candidate just chose, where asserting a count would contradict
-   * the preview sitting next to it. */
+  /** Only known once a parser has counted them. */
   pageCount?: number;
-  entityCount: number;
-  /** Object URL for the file the candidate chose, when there is one. Absent for
-   * a session restored from the server, which has no local blob to point at. */
+  /** Only known once the plan has been generated. */
+  entityCount?: number;
+  /** Object URL for a locally chosen file, or the served path for an uploaded one. */
   previewUrl?: string;
-  /** The chosen file's own MIME type. Decides whether the browser can render
-   * it: a PDF it can, a DOCX it cannot, and guessing from the extension would
-   * put a download prompt where a preview should be. */
   previewType?: string;
+}
+
+export interface ResumeDoc extends ResumeFile {
+  entityCount: number;
   candidate: ResumeCandidate;
   sections: ResumeSection[];
   probes: Probe[];
@@ -298,7 +307,10 @@ export interface RoundContent {
   quiz?: QuizQuestion;
   qa?: { suggestions: string[]; messages: QaMessage[] };
   wrap?: WrapUp;
-  behavioral?: { questionNumber: number; questionTotal: number; question: string; derivedFrom: string[]; citation?: number };
+  /** questionTotal is optional because a generated round does not have one: the
+   * interviewer follows up live, so how many questions there will be is not
+   * knowable when the opening question is written. */
+  behavioral?: { questionNumber: number; questionTotal?: number; question: string; derivedFrom: string[]; citation?: number };
 }
 
 export interface InterviewSession {
@@ -315,4 +327,8 @@ export interface InterviewSession {
   consent: ConsentState;
   startedAt: string | null;
   content: RoundContent;
+  /** How far the server has got turning the resume into a plan. Absent on a
+   * draft session, which has no server behind it yet. */
+  planState?: "idle" | "processing" | "ready" | "failed";
+  planError?: string;
 }

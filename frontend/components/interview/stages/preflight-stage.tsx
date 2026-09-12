@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -16,8 +17,9 @@ import { DevicePreviewProvider, useDevicePreviews } from "@/lib/interview/media/
 import { useScreenShareSupport } from "@/lib/interview/media/use-screen-share-support";
 import type { SharedSurface } from "@/lib/interview/media/use-screen-share-test";
 import { deriveDeviceGate, derivePreflightCta } from "@/lib/interview/selectors";
-import { MOCK_RESUME } from "@/lib/interview/mock/session.fixture";
-import type { ConsentState, DeviceKind } from "@/lib/interview/types";
+import { createSession, patchSession, uploadResume } from "@/lib/api/interview";
+import { ApiError } from "@/lib/api/client";
+import type { ConsentState, DeviceKind, ResumeFile } from "@/lib/interview/types";
 
 const CONSENT_TERMS: { key: keyof ConsentState; label: string }[] = [
   {
@@ -121,6 +123,7 @@ function DeviceCheck({
 }
 
 function PreflightBody() {
+  const router = useRouter();
   const { session, dispatch } = useInterviewSession();
   const { tested, wholeScreen } = useDevicePreviews();
   const support = useScreenShareSupport();
@@ -128,9 +131,14 @@ function PreflightBody() {
   // Set only by a click on the CTA -- the candidate is told what is missing at
   // the moment they try, rather than being warned about it from the start.
   const [flagged, setFlagged] = useState<readonly DeviceKind[]>([]);
+  // The file itself, not a ResumeDoc: nothing has read it, so there is nothing
+  // to say about it beyond its name, its size and the bytes to send.
+  const [chosen, setChosen] = useState<{ file: File; previewUrl: string } | null>(null);
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const firstFlaggedRef = useRef<HTMLButtonElement | null>(null);
 
-  const cta = derivePreflightCta(session);
+  const cta = derivePreflightCta(session, chosen !== null);
   const gate = deriveDeviceGate(tested, { screenSupported: support.supported, wholeScreen });
 
   // A flag cannot outlive the thing it was flagging, so it is intersected with
@@ -152,41 +160,62 @@ function PreflightBody() {
       requestAnimationFrame(() => firstFlaggedRef.current?.focus());
       return;
     }
-    dispatch({ type: "ADVANCE" });
+    void submit();
   };
 
-  // The extracted content is still mocked; the file the candidate actually
-  // chose supplies its name, size and preview so nothing on screen misreports
-  // what was read. Object URLs are revoked on replace rather than accumulating.
+  /** Creates the interview, records what was agreed to, hands over the resume,
+   * and leaves.
+   *
+   * The session is created here rather than on page load so a visitor who never
+   * uploads anything leaves nothing behind. That means the consent boxes were
+   * ticked against a session with no id, which use-session-persistence rightly
+   * declines to send -- so it is sent here, before the resume and before any
+   * recording could be armed. A session that recorded someone whose agreement
+   * was never written down is the one outcome this whole screen exists to
+   * prevent.
+   */
+  const submit = async () => {
+    if (chosen === null || sending) return;
+    setSending(true);
+    setSendError(null);
+    try {
+      const created = await createSession(session.roleTitle);
+      await patchSession(created.id, { consent: session.consent });
+      await uploadResume(created.id, chosen.file);
+      router.push(`/interview/${created.id}`);
+    } catch (cause: unknown) {
+      setSending(false);
+      setSendError(
+        cause instanceof ApiError ? cause.detail : "We couldn't start your interview. Try again."
+      );
+    }
+  };
+
+  // Object URLs are revoked on replace rather than accumulating.
   const acceptResume = (file: File) => {
-    if (session.resume?.previewUrl) URL.revokeObjectURL(session.resume.previewUrl);
-    dispatch({
-      type: "SET_RESUME",
-      resume: {
-        // Extracted content (sections, probes, citations) is fixture; the file
-        // facts are the real ones; the page count is dropped because nothing
-        // here has actually read the document.
-        ...MOCK_RESUME,
-        fileName: file.name,
-        sizeBytes: file.size,
-        pageCount: undefined,
-        previewUrl: URL.createObjectURL(file),
-        previewType: file.type,
-      },
-    });
+    if (chosen) URL.revokeObjectURL(chosen.previewUrl);
+    setSendError(null);
+    setChosen({ file, previewUrl: URL.createObjectURL(file) });
   };
 
   const clearResume = () => {
-    if (session.resume?.previewUrl) URL.revokeObjectURL(session.resume.previewUrl);
-    dispatch({ type: "CLEAR_RESUME" });
+    if (chosen) URL.revokeObjectURL(chosen.previewUrl);
+    setChosen(null);
+  };
+
+  const chosenFile: ResumeFile | null = chosen && {
+    fileName: chosen.file.name,
+    sizeBytes: chosen.file.size,
+    previewUrl: chosen.previewUrl,
+    previewType: chosen.file.type,
   };
 
   return (
     <div className="flex min-h-0 flex-1 gap-[22px] px-[26px] py-[22px]">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <Card className="flex min-h-0 flex-1 flex-col p-4">
-          {session.resume ? (
-            <ResumeInspector resume={session.resume} onReplace={clearResume} />
+          {chosenFile ? (
+            <ResumeInspector file={chosenFile} parsed={false} onReplace={clearResume} />
           ) : (
             <ResumeDropzone onFile={acceptResume} />
           )}
@@ -237,15 +266,19 @@ function PreflightBody() {
             <Button
               variant="primary"
               className="w-full"
-              disabled={cta.disabled || gate.blockingReason !== null}
+              disabled={cta.disabled || gate.blockingReason !== null || sending}
               onClick={attemptAdvance}
             >
-              {cta.label}
+              {sending ? "Sending your resume…" : cta.label}
             </Button>
-            {/* Only once the resume and consent are settled: while one of those
+            {sendError ? (
+              <span role="alert" className="text-center text-xs text-danger">
+                {sendError}
+              </span>
+            ) : /* Only once the resume and consent are settled: while one of those
                 is outstanding it is the more immediate blocker, and stacking a
-                second reason under a button says less than naming the first. */}
-            {gate.blockingReason && !cta.disabled ? (
+                second reason under a button says less than naming the first. */
+            gate.blockingReason && !cta.disabled ? (
               // Not an alert: this is on screen before any click, so announcing
               // it would interrupt a candidate who has not asked anything yet.
               <span className="text-center text-xs text-warning">{gate.blockingReason}</span>

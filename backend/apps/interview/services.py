@@ -13,6 +13,7 @@ from django.utils import timezone
 
 from apps.core.clients.vas_client import VasError, VasUnavailable
 from apps.core.services import room_service
+from apps.interview import workflow_client
 from apps.interview.config import settings
 from apps.interview.models import (
     InterviewRound,
@@ -98,9 +99,12 @@ async def update_session(session: InterviewSession, body: dict) -> InterviewSess
                 fields.append(field)
 
     stage = body.get("activeStage")
+    advanced_to = None
     if stage is not None:
         if stage not in STAGE_IDS:
             raise InterviewError(f"Unknown stage: {stage}")
+        if stage != session.active_stage:
+            advanced_to = stage
         session.active_stage = stage
         fields.append("active_stage")
         # progress_index only ever moves forward: it marks the furthest round unlocked,
@@ -117,6 +121,10 @@ async def update_session(session: InterviewSession, body: dict) -> InterviewSess
 
     if fields:
         await session.asave(update_fields=[*fields, "updated_at"])
+    if advanced_to is not None:
+        # The server decides how far ahead to prepare, not the browser: a client that
+        # asked for its own rounds could ask for all of them.
+        await workflow_client.round_reached(session.id, advanced_to)
     return session
 
 
@@ -259,24 +267,13 @@ async def end_session(session: InterviewSession) -> InterviewSession:
 
 
 async def trigger_post_session_processing(session_id: str) -> None:
-    """Starts InterviewSessionWorkflow by name, without importing whatever owns it.
+    """Tells the session's workflow to stop preparing rounds and wind up.
 
-    The id is deterministic so /end and the recording callback can both trigger it
-    without double-running. No worker ships in this change: a failure here is a logged
-    gap, which is why this never raises.
+    A signal rather than a start: the workflow exists only where a resume was uploaded,
+    and a session that never had one has nothing generating to stop. /end and the
+    recording callback can both send it -- the workflow ignores the second.
     """
-    from temporalio.client import Client
-
-    try:
-        client = await Client.connect(settings.temporal_address)
-        await client.start_workflow(
-            "InterviewSessionWorkflow",
-            session_id,
-            id=f"interview-session-{session_id}",
-            task_queue=settings.temporal_task_queue,
-        )
-    except Exception:
-        logger.warning("Couldn't start post-session processing for %s", session_id, exc_info=True)
+    await workflow_client.session_ended(session_id)
 
 
 def record_recording_sync(session: InterviewSession, payload: dict) -> SessionRecording:

@@ -35,6 +35,12 @@ class InterviewSession(models.Model):
         ACTIVE = "active", "active"
         ENDED = "ended", "ended"
 
+    class PlanState(models.TextChoices):
+        IDLE = "idle", "idle"
+        PROCESSING = "processing", "processing"
+        READY = "ready", "ready"
+        FAILED = "failed", "failed"
+
     class RecordingState(models.TextChoices):
         OFF = "off", "off"
         # Consented and registered with the video service, which starts recording the
@@ -67,6 +73,14 @@ class InterviewSession(models.Model):
     # locked; rounds before it are complete.
     progress_index = models.IntegerField(default=0)
 
+    # Whether the resume has been turned into a plan. Only the terminal answer lives
+    # here; the step-by-step account belongs to the workflow, which can be queried for
+    # it, and duplicating that in a column would give two versions of the same story.
+    # This one has to be durable because Temporal drops history on its own schedule and
+    # "is this interview ready" must outlive that.
+    plan_state = models.CharField(max_length=16, choices=PlanState.choices, default=PlanState.IDLE)
+    plan_error = models.TextField(blank=True, default="")
+
     room_name = models.CharField(unique=True, max_length=255)
     vas_session_id = models.CharField(db_index=True, max_length=24, blank=True, default="")
     resume_document_id = models.CharField(db_index=True, max_length=24, blank=True, default="")
@@ -96,6 +110,12 @@ class InterviewRound(models.Model):
         CONVERSATION = "conversation", "conversation"
         TASK = "task", "task"
 
+    class ContentState(models.TextChoices):
+        PENDING = "pending", "pending"
+        GENERATING = "generating", "generating"
+        READY = "ready", "ready"
+        FAILED = "failed", "failed"
+
     id = models.CharField(primary_key=True, max_length=24, default=generate_id, editable=False)
     session = models.ForeignKey(
         InterviewSession, on_delete=models.CASCADE, related_name="rounds", db_index=True
@@ -112,6 +132,12 @@ class InterviewRound(models.Model):
     # until something generates it; the UI already renders a missing-content state, which
     # is honest where inventing a task would not be.
     content = models.JSONField(default=dict, blank=True)
+    # Whether that payload has been generated yet. Distinct from the round's relation to
+    # progress, which stays derived: a round can be next in line and still be waiting for
+    # its task, and the button that starts it needs to know which.
+    content_state = models.CharField(
+        max_length=16, choices=ContentState.choices, default=ContentState.PENDING
+    )
 
     class Meta:
         db_table = "interview_round"

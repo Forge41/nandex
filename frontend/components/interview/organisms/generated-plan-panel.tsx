@@ -13,6 +13,14 @@ export function GeneratedPlanPanel() {
   const plan = derivePlanSummary(session);
   const lockLabel = deriveNextLockLabel(session);
 
+  // The next round's task is written while the candidate reads this page, on a
+  // two-round lookahead -- so it is almost always there by the time they press
+  // this. Almost always is not always, and the button must not open a round with
+  // nothing in it.
+  const index = session.rounds.findIndex((round) => round.id === session.activeStage);
+  const next = index >= 0 ? session.rounds[index + 1] : undefined;
+  const preparing = next?.contentState === "pending" || next?.contentState === "generating";
+
   return (
     <div className="scrollbar-thin flex w-[400px] shrink-0 flex-col overflow-y-auto bg-surface-subtle px-6 py-6">
       <Eyebrow>Generated plan</Eyebrow>
@@ -46,8 +54,13 @@ export function GeneratedPlanPanel() {
         <span>Rounds unlock one at a time. You&apos;ll always see what&apos;s next before it starts.</span>
       </Banner>
 
-      <Button variant="primary" className="mt-4 w-full" onClick={() => dispatch({ type: "ADVANCE" })}>
-        Start interview
+      <Button
+        variant="primary"
+        className="mt-4 w-full"
+        disabled={preparing}
+        onClick={() => dispatch({ type: "ADVANCE" })}
+      >
+        {preparing ? `Preparing ${next?.label ?? "the next round"}…` : "Start interview"}
       </Button>
 
       <div className="mt-3 flex items-center justify-center gap-[7px]">

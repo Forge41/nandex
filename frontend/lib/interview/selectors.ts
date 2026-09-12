@@ -71,8 +71,10 @@ export function deriveRoundHeader(session: InterviewSession) {
   };
 }
 
-export function derivePreflightCta(session: InterviewSession) {
-  const hasResume = session.resume !== null;
+/** `hasResume` is a parameter because the pre-flight holds a file the candidate
+ * chose and has not sent yet -- there is no ResumeDoc until the server has read
+ * one, and the button has to unlock before that. */
+export function derivePreflightCta(session: InterviewSession, hasResume = session.resume !== null) {
   // The design gates only on the resume. Consent gates too here: these terms
   // cover recording and integrity monitoring, so proceeding past an unchecked
   // one would be consent the candidate never gave.

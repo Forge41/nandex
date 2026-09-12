@@ -7,6 +7,7 @@ export type SessionAction =
   | { type: "CLEAR_RESUME" }
   | { type: "TOGGLE_CONSENT"; key: keyof ConsentState }
   | { type: "START" }
+  | { type: "SYNC"; server: InterviewSession }
   | { type: "END_SESSION" };
 
 export function sessionReducer(state: InterviewSession, action: SessionAction): InterviewSession {
@@ -40,6 +41,25 @@ export function sessionReducer(state: InterviewSession, action: SessionAction): 
 
     case "TOGGLE_CONSENT":
       return { ...state, consent: { ...state.consent, [action.key]: !state.consent[action.key] } };
+
+    /** Folds in what the server has generated since, without touching what the
+     * candidate is doing.
+     *
+     * The split is not cosmetic: use-session-persistence deliberately keeps the
+     * client ahead of the server on the stage, the progress and the consent
+     * boxes, so replacing the whole session with a server copy would drag the
+     * candidate back to whichever round the last PATCH had reached. */
+    case "SYNC":
+      return {
+        ...state,
+        rounds: action.server.rounds,
+        content: action.server.content,
+        resume: action.server.resume,
+        candidateName: action.server.candidateName,
+        totalDurationMin: action.server.totalDurationMin,
+        planState: action.server.planState,
+        planError: action.server.planError,
+      };
 
     case "START":
       return state.startedAt ? state : { ...state, startedAt: new Date().toISOString() };

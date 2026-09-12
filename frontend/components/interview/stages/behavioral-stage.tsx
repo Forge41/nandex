@@ -38,7 +38,9 @@ export function BehavioralStage() {
           eyebrow={`Round ${roundNumber} · ${round?.label ?? "Behavioral"}`}
           eyebrowAside={
             <Badge tone="neutral" size="sm">
-              question {content.questionNumber} of {content.questionTotal}
+              {content.questionTotal
+                ? `question ${content.questionNumber} of ${content.questionTotal}`
+                : `question ${content.questionNumber}`}
             </Badge>
           }
           prompt={content.question}

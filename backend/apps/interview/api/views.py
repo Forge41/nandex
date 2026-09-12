@@ -8,19 +8,22 @@ Nothing here reaches tps or vas directly. Every one of those calls goes through
 apps.core.services.room_service, because core is the orchestrator.
 """
 
+import io
 import json
 import logging
 
 from asgiref.sync import sync_to_async
-from django.http import HttpRequest, JsonResponse
+from django.http import FileResponse, HttpRequest, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from apps.core.api.views import _require_user
 from apps.core.models import Project
 from apps.core.services.workspace_service import current_workspace_for
-from apps.interview import resume as resume_service
-from apps.interview import services
-from apps.interview.serializers import serialize_resume, serialize_session
+from apps.importer.models import RawDocument
+from apps.importer.uploads import UploadRejected, create_uploaded_document
+from apps.interview import services, workflow_client
+from apps.interview.models import InterviewSession
+from apps.interview.serializers import serialize_session
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +45,11 @@ def _default_project_sync(user) -> Project | None:
     if workspace is None:
         return None
     return Project.objects.filter(workspace=workspace).first()
+
+
+async def _serialized(session) -> dict:
+    rounds, facts, turns = await services.load_for_serialization(session)
+    return serialize_session(session, rounds, facts, turns)
 
 
 async def _session_for(request: HttpRequest, session_id: str):
@@ -75,8 +83,7 @@ async def sessions(request: HttpRequest) -> JsonResponse:
         return JsonResponse({"detail": "No project for this user"}, status=409)
 
     session = await services.create_session(project.id, user.id, role_title)
-    rounds, facts, turns = await services.load_for_serialization(session)
-    return JsonResponse(serialize_session(session, rounds, facts, turns), status=201)
+    return JsonResponse(await _serialized(session), status=201)
 
 
 @csrf_exempt
@@ -93,12 +100,20 @@ async def session_detail(request: HttpRequest, session_id: str) -> JsonResponse:
     elif request.method != "GET":
         return JsonResponse({"detail": "Method not allowed"}, status=405)
 
-    rounds, facts, turns = await services.load_for_serialization(session)
-    return JsonResponse(serialize_session(session, rounds, facts, turns))
+    return JsonResponse(await _serialized(session))
 
 
 @csrf_exempt
 async def session_resume(request: HttpRequest, session_id: str) -> JsonResponse:
+    """Accepts the file itself, and answers before the plan exists.
+
+    202, not 201: reading a resume and planning an interview from it is two model-scale
+    steps, and holding a request open for them is exactly what this app's workflow rule
+    forbids. The caller watches /plan for the rest.
+
+    The project comes from the session rather than the body -- the browser has no
+    business knowing project ids, and one it sent would have to be checked anyway.
+    """
     if request.method != "POST":
         return JsonResponse({"detail": "Method not allowed"}, status=405)
 
@@ -106,20 +121,97 @@ async def session_resume(request: HttpRequest, session_id: str) -> JsonResponse:
     if error is not None:
         return error
 
-    document_id = _parse_body(request).get("documentId")
-    if not document_id:
-        return JsonResponse({"detail": "documentId is required"}, status=400)
+    upload = request.FILES.get("file")
+    if upload is not None:
+        try:
+            document = await create_uploaded_document(
+                project_id=session.project_id, upload=upload, trigger_ingest=False
+            )
+        except UploadRejected as e:
+            return JsonResponse({"detail": str(e)}, status=400)
+        document_id = document.id
+    elif request.content_type == "application/json":
+        # Reading request.FILES has already consumed the stream, so request.body is only
+        # reachable when this was never a multipart request in the first place.
+        document_id = _parse_body(request).get("documentId")
+        if not document_id:
+            return JsonResponse({"detail": "A resume file is required"}, status=400)
+    else:
+        return JsonResponse({"detail": "A resume file is required"}, status=400)
 
-    try:
-        facts = await resume_service.attach_resume(session, document_id)
-    except resume_service.ResumeUnreadable as e:
-        return JsonResponse({"detail": str(e)}, status=400)
-    except Exception:
-        # A plan that could not be produced must not look like a client mistake.
-        logger.warning("Couldn't plan the interview for session %s", session.id, exc_info=True)
-        return JsonResponse({"detail": "Couldn't read that resume"}, status=502)
+    session.plan_state = InterviewSession.PlanState.PROCESSING
+    session.plan_error = ""
+    session.resume_document_id = document_id
+    await session.asave(
+        update_fields=["plan_state", "plan_error", "resume_document_id", "updated_at"]
+    )
 
-    return JsonResponse(serialize_resume(facts), status=201)
+    if not await workflow_client.start_plan(session.id, document_id):
+        session.plan_state = InterviewSession.PlanState.FAILED
+        session.plan_error = "We couldn't start reading your resume. Try again."
+        await session.asave(update_fields=["plan_state", "plan_error", "updated_at"])
+        return JsonResponse({"detail": session.plan_error}, status=502)
+
+    return JsonResponse(await _serialized(session), status=202)
+
+
+async def session_plan(request: HttpRequest, session_id: str) -> JsonResponse:
+    """What is being done to the resume, step by step.
+
+    The steps are the workflow's own account of itself, so they describe this resume --
+    its page count, the rounds its plan actually named. When the workflow cannot be
+    reached the session row still knows whether the plan is ready, which is the part a
+    page load cannot do without.
+    """
+    if request.method != "GET":
+        return JsonResponse({"detail": "Method not allowed"}, status=405)
+
+    session, error = await _session_for(request, session_id)
+    if error is not None:
+        return error
+
+    live = await workflow_client.plan_progress(session.id)
+    if live is not None and live.get("status") == session.plan_state:
+        return JsonResponse(live)
+
+    # Either no workflow to ask, or it has moved on since the row was written. The row is
+    # the durable answer; the steps are detail, and detail is allowed to be missing.
+    return JsonResponse(
+        {
+            "status": session.plan_state,
+            "error": session.plan_error,
+            "steps": (live or {}).get("steps", []),
+        }
+    )
+
+
+async def session_resume_file(request: HttpRequest, session_id: str):
+    """The candidate's own document, as they uploaded it.
+
+    Served rather than linked: the object URL the browser made at the dropzone dies at
+    the first navigation, and the plan screen offers to open the source document.
+    """
+    if request.method != "GET":
+        return JsonResponse({"detail": "Method not allowed"}, status=405)
+
+    session, error = await _session_for(request, session_id)
+    if error is not None:
+        return error
+
+    document = await RawDocument.objects.filter(
+        id=session.resume_document_id, project_id=session.project_id
+    ).afirst()
+    if document is None:
+        return JsonResponse({"detail": "No resume on this session"}, status=404)
+
+    response = FileResponse(
+        io.BytesIO(bytes(document.payload)),
+        content_type=document.content_type or "application/octet-stream",
+        # Inline: this opens in a viewer tab, it is not a download.
+        as_attachment=False,
+        filename=document.display_name or "resume",
+    )
+    return response
 
 
 @csrf_exempt

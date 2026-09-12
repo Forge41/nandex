@@ -97,15 +97,27 @@ without a valid key.
 
 | Command | What it does |
 | --- | --- |
-| `make serve-all` | Run everything: Temporal, backend (ASGI), `tps-grpc`, `importer`/`ingest` workers, frontend |
+| `make up` | Everything, from nothing: containers, migrations, then every service |
+| `make down` | Stop the containers `up` started (Ctrl-C already stopped the processes) |
+| `make doctor` | Say what `backend/.env` is missing, and what stops working without it |
+| `make serve-all` | Every service, assuming containers and migrations are already done |
 | `make asgi` | Run just the backend, under a real ASGI server (needed for `core`/`chat`/marketplace to work) |
 | `make tps` | Run the Django dev server under WSGI — only reliable for `tps`'s own HTTP API, see below |
 | `make tps-grpc` | Run `tps`'s gRPC server (`core`/`importer` talk to `tps` only via this) |
 | `make importer-worker` | Run the Temporal worker for `importer`'s sync workflows |
 | `make ingest-worker` | Run the Temporal worker for `ingest`'s parse/chunk/embed workflows |
+| `make interview-worker` | Run the Temporal worker that reads a resume and writes the interview plan |
+| `make interviewer-agent` | Run the LiveKit agent that joins the room and talks to the candidate |
+| `make vas-stack` | Start the containers `vas` needs: LiveKit, Egress, fake-GCS, Redis |
 | `make frontend` | Run the Next.js dev server (proxies `/api/*` to the backend) |
 | `make migrate` | Apply pending database migrations for every app |
 | `make tps-migrate` / `importer-migrate` / `ingest-migrate` | Migrate just that one app |
+
+`make up` is the cold-start command: it reports what your `.env` is missing, brings up the
+containers (LiveKit, Egress, fake-GCS, Redis) and creates the recordings bucket, applies every
+migration, and then hands over to `serve-all`. Run it the first time, after pulling a change that
+adds a migration, or any time the containers are down. Day to day, `make serve-all` is the one you
+want — the prerequisites are already in place and it starts in seconds.
 
 `make serve-all` (`scripts/dev_serve.sh`) is genuinely a one-command "run everything": it starts
 a local Temporal dev server itself (reusing one that's already running instead of erroring),

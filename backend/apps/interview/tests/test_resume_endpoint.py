@@ -1,191 +1,122 @@
-"""The resume path end to end: a real upload through importer's endpoint, a real parse
-through ingest's parsers, and only the model call stubbed.
+"""The HTTP surface for handing over a resume.
 
-Stubbing the parser too would leave the reuse claim untested -- and the page count, which
-is the one number here that must come from the document rather than an assertion.
+The endpoint's whole job is now to take the file, remember it, and hand the work to the
+workflow -- so what these pin is that it answers immediately and that nothing it accepts
+depends on the browser knowing a project id.
 """
 
 import io
-import json
 
 import pytest
 
-from apps.interview.models import InterviewRound, InterviewSession, ResumeFacts
+from apps.interview.models import InterviewSession
 
 pytestmark = pytest.mark.django_db
 
-RESUME_TEXT = (
-    "Priya Raghunathan\nSenior Backend Engineer, Bengaluru\n\n"
-    "Owned the double-entry ledger handling 1.4M transactions a day at Northwind.\n"
-)
-
-PLAN = {
-    "candidate": {
-        "name": "Priya Raghunathan",
-        "title": "Senior Backend Engineer",
-        "location": "Bengaluru",
-        "email": "priya@example.com",
-        "yearsExperience": 6,
-    },
-    "citations": [{"id": 1, "quote": "1.4M transactions a day", "source": "Experience"}],
-    "sections": [
-        {
-            "id": "experience",
-            "label": "Experience",
-            "paragraphs": [
-                [
-                    {"text": "Owned the double-entry ledger handling "},
-                    {"text": "1.4M transactions a day", "citation": 1},
-                    {"text": " at Northwind."},
-                ]
-            ],
-        }
-    ],
-    "probes": [
-        {
-            "id": "p1",
-            "title": "Ledger at 1.4M/day",
-            "note": "Scale claim worth grounding",
-            "citation": 1,
-            "round": "coding",
-        }
-    ],
-    "rounds": [{"id": "coding", "citation": 1, "summary": "Retry-safe transfer applier."}],
-    "entityCount": 4,
-}
+RESUME = b"Priya Raghunathan\nSenior Backend Engineer\n"
 
 
-@pytest.fixture
-def fake_plan(monkeypatch):
-    async def complete(*, system_prompt, messages, model):
-        # The prompt must be the file's contents, not an f-string assembled here.
-        assert "Return only JSON" in system_prompt
-        assert messages[0]["content"].strip()
-        return json.dumps(PLAN)
-
-    monkeypatch.setattr("apps.interview.resume.complete", complete)
+def _file(name: str = "resume.txt", body: bytes = RESUME) -> io.BytesIO:
+    upload = io.BytesIO(body)
+    upload.name = name
+    return upload
 
 
-@pytest.fixture
-def uploaded_resume(client, project):
-    upload = io.BytesIO(RESUME_TEXT.encode())
-    upload.name = "Priya_Raghunathan_Resume.txt"
-    response = client.post(
-        "/documents/upload",
-        data={"project_id": project.id, "file": upload},
-    )
-    assert response.status_code == 201, response.content
-    return response.json()["id"]
+def test_a_resume_is_accepted_and_the_work_handed_over(client, session, workflows):
+    response = client.post(f"/interview/sessions/{session['id']}/resume", data={"file": _file()})
 
-
-def test_attaching_a_resume_reads_it_and_plans_the_rounds(
-    client, session, uploaded_resume, fake_plan
-):
-    response = client.post(
-        f"/interview/sessions/{session['id']}/resume",
-        data={"documentId": uploaded_resume},
-        content_type="application/json",
-    )
-
-    assert response.status_code == 201, response.content
+    assert response.status_code == 202, response.content
     body = response.json()
-    assert body["candidate"]["name"] == "Priya Raghunathan"
-    assert body["fileName"] == "Priya_Raghunathan_Resume.txt"
-    assert body["sizeBytes"] == len(RESUME_TEXT.encode())
-    assert body["entityCount"] == 4
-    assert [c["id"] for c in body["citations"]] == [1]
-    assert body["probes"][0]["round"] == "coding"
+    assert body["planState"] == "processing"
+    # The plan is not in the answer, because it does not exist yet.
+    assert body["resume"] is None
 
-    coding = InterviewRound.objects.get(session_id=session["id"], stage_id="coding")
-    assert coding.summary == "Retry-safe transfer applier."
-    assert coding.citation == 1
+    started = workflows["started"]
+    assert len(started) == 1
+    assert started[0][0] == session["id"]
+    assert started[0][1] == InterviewSession.objects.get(id=session["id"]).resume_document_id
 
 
-def test_the_plan_updates_the_session_and_the_subsequent_get(
-    client, session, uploaded_resume, fake_plan
-):
-    client.post(
-        f"/interview/sessions/{session['id']}/resume",
-        data={"documentId": uploaded_resume},
-        content_type="application/json",
-    )
+def test_the_project_comes_from_the_session_not_the_caller(client, session, project, workflows):
+    """The browser is never told a project id, so it cannot be asked for one -- and one
+    it did send would have to be checked against the session anyway."""
+    client.post(f"/interview/sessions/{session['id']}/resume", data={"file": _file()})
 
-    body = client.get(f"/interview/sessions/{session['id']}").json()
-    assert body["candidateName"] == "Priya Raghunathan"
-    assert body["resume"]["candidate"]["title"] == "Senior Backend Engineer"
-    assert InterviewSession.objects.get(id=session["id"]).resume_document_id == uploaded_resume
+    document_id = InterviewSession.objects.get(id=session["id"]).resume_document_id
+    from apps.importer.models import RawDocument
+
+    assert RawDocument.objects.get(id=document_id).project_id == project.id
 
 
-def test_page_count_is_omitted_for_a_document_whose_parser_reports_no_pages(
-    client, session, uploaded_resume, fake_plan
-):
-    """A text file has no pages. Asserting a count next to a preview of the document is
-    the fabrication this field's optionality exists for."""
-    body = client.post(
-        f"/interview/sessions/{session['id']}/resume",
-        data={"documentId": uploaded_resume},
-        content_type="application/json",
-    ).json()
+def test_an_interview_resume_is_not_pushed_into_the_search_index(client, session, monkeypatch):
+    """A candidate's resume belongs to one interview, not to the workspace's corpus."""
+    started = []
 
-    assert "pageCount" not in body
-    assert ResumeFacts.objects.get(session_id=session["id"]).page_count is None
+    async def trigger(raw_document_id):
+        started.append(raw_document_id)
+
+    monkeypatch.setattr("apps.importer.uploads._trigger_ingest", trigger)
+    client.post(f"/interview/sessions/{session['id']}/resume", data={"file": _file()})
+
+    assert started == []
 
 
-def test_reattaching_a_resume_replaces_the_facts_rather_than_duplicating_them(
-    client, session, uploaded_resume, fake_plan
-):
-    for _ in range(2):
-        client.post(
-            f"/interview/sessions/{session['id']}/resume",
-            data={"documentId": uploaded_resume},
-            content_type="application/json",
-        )
-
-    assert ResumeFacts.objects.filter(session_id=session["id"]).count() == 1
-
-
-def test_a_document_id_is_required(client, session, fake_plan):
+def test_an_unsupported_file_is_refused_before_any_work_starts(client, session, workflows):
     response = client.post(
-        f"/interview/sessions/{session['id']}/resume", data={}, content_type="application/json"
+        f"/interview/sessions/{session['id']}/resume",
+        data={"file": _file("resume.exe", b"MZ\x00")},
     )
+
+    assert response.status_code == 400
+    assert workflows["started"] == []
+    assert InterviewSession.objects.get(id=session["id"]).plan_state == "idle"
+
+
+def test_a_request_with_no_file_is_a_client_error(client, session):
+    response = client.post(f"/interview/sessions/{session['id']}/resume", data={})
     assert response.status_code == 400
 
 
-def test_a_document_from_another_project_is_not_found(client, session, fake_plan):
-    response = client.post(
-        f"/interview/sessions/{session['id']}/resume",
-        data={"documentId": "d" * 24},
-        content_type="application/json",
-    )
-    assert response.status_code == 400
+def test_a_workflow_that_cannot_be_started_leaves_the_session_saying_so(
+    client, session, workflows, monkeypatch
+):
+    """Not a spinner: a candidate whose resume was never picked up has to be able to
+    retry, which means the failure has to be on the session rather than only in a log."""
 
+    async def refuse(session_id, document_id):
+        return False
 
-def test_a_resume_with_no_readable_text_is_rejected(client, session, project, fake_plan):
-    empty = io.BytesIO(b"   \n  ")
-    empty.name = "blank.txt"
-    document_id = client.post(
-        "/documents/upload", data={"project_id": project.id, "file": empty}
-    ).json()["id"]
+    monkeypatch.setattr("apps.interview.workflow_client.start_plan", refuse)
 
-    response = client.post(
-        f"/interview/sessions/{session['id']}/resume",
-        data={"documentId": document_id},
-        content_type="application/json",
-    )
-    assert response.status_code == 400
-    assert not ResumeFacts.objects.exists()
+    response = client.post(f"/interview/sessions/{session['id']}/resume", data={"file": _file()})
 
-
-def test_a_model_failure_is_a_502_not_a_client_error(client, session, uploaded_resume, monkeypatch):
-    async def explode(**kwargs):
-        raise RuntimeError("anthropic: overloaded_error")
-
-    monkeypatch.setattr("apps.interview.resume.complete", explode)
-
-    response = client.post(
-        f"/interview/sessions/{session['id']}/resume",
-        data={"documentId": uploaded_resume},
-        content_type="application/json",
-    )
     assert response.status_code == 502
-    assert "anthropic" not in response.json()["detail"]
+    stored = InterviewSession.objects.get(id=session["id"])
+    assert stored.plan_state == "failed"
+    assert stored.plan_error
+
+
+def test_another_visitor_cannot_attach_a_resume(other_client, session):
+    response = other_client.post(
+        f"/interview/sessions/{session['id']}/resume", data={"file": _file()}
+    )
+    assert response.status_code == 404
+
+
+def test_the_uploaded_document_is_served_back_for_the_plan_screen(client, session):
+    client.post(f"/interview/sessions/{session['id']}/resume", data={"file": _file()})
+
+    response = client.get(f"/interview/sessions/{session['id']}/resume/file")
+
+    assert response.status_code == 200
+    assert b"".join(response.streaming_content) == RESUME
+
+
+def test_another_visitor_cannot_read_the_document(client, other_client, session):
+    client.post(f"/interview/sessions/{session['id']}/resume", data={"file": _file()})
+
+    assert other_client.get(f"/interview/sessions/{session['id']}/resume/file").status_code == 404
+
+
+def test_a_session_with_no_resume_has_no_document_to_serve(client, session):
+    assert client.get(f"/interview/sessions/{session['id']}/resume/file").status_code == 404

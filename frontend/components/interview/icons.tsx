@@ -129,6 +129,14 @@ export function CollapseIcon(props: IconProps) {
   );
 }
 
+export function CheckIcon(props: IconProps) {
+  return (
+    <Icon strokeWidth={1.8} {...props}>
+      <path d="M13 4.5 6.2 11.5 3 8.3" />
+    </Icon>
+  );
+}
+
 export function FileIcon(props: IconProps) {
   return (
     <Icon {...props}>
