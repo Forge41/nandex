@@ -59,6 +59,7 @@ export function sessionReducer(state: InterviewSession, action: SessionAction): 
         totalDurationMin: action.server.totalDurationMin,
         planState: action.server.planState,
         planError: action.server.planError,
+        status: action.server.status,
       };
 
     case "START":
@@ -68,7 +69,15 @@ export function sessionReducer(state: InterviewSession, action: SessionAction): 
      * to what they already gave, rather than dropped out of the room. */
     case "END_SESSION": {
       const last = state.rounds.length - 1;
-      return { ...state, activeStage: state.rounds[last].id, progressIndex: last };
+      // status too, and not only the stage: the server stops issuing join tokens
+      // for an ended interview, so anything still holding a room open would ask
+      // for one it can never be given.
+      return {
+        ...state,
+        activeStage: state.rounds[last].id,
+        progressIndex: last,
+        status: "ended",
+      };
     }
   }
 }

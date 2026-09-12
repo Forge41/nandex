@@ -22,10 +22,11 @@ export function RoomShell({
   children: React.ReactNode;
 }) {
   const { session } = useInterviewSession();
-  const live = LIVE_STAGES.has(session.activeStage);
+  const ended = session.status === "ended";
+  const live = LIVE_STAGES.has(session.activeStage) && !ended;
 
   return (
-    <RoomProvider sessionId={session.id} activeStage={session.activeStage}>
+    <RoomProvider sessionId={session.id} activeStage={session.activeStage} ended={ended}>
       {live ? (
         <LiveTranscriptProvider startedAt={session.startedAt} persisted={transcript}>
           {children}
