@@ -87,9 +87,12 @@ def test_a_session_with_no_plan_yet_says_so_rather_than_failing(client, session)
 
 
 def test_the_wrong_token_is_refused(client, session):
-    assert client.get(
-        f"/interview/agent/sessions/{session['id']}/brief", **auth("not-the-token")
-    ).status_code == 401
+    assert (
+        client.get(
+            f"/interview/agent/sessions/{session['id']}/brief", **auth("not-the-token")
+        ).status_code
+        == 401
+    )
 
 
 def test_no_token_is_refused(client, session):
@@ -102,9 +105,10 @@ def test_an_unset_token_refuses_everything_rather_than_accepting_anything(
     """A misconfigured deployment must be unreachable, not open."""
     monkeypatch.setattr("apps.interview.config.settings.agent_bearer_token", "")
 
-    assert client.get(
-        f"/interview/agent/sessions/{session['id']}/brief", **auth("")
-    ).status_code == 401
+    assert (
+        client.get(f"/interview/agent/sessions/{session['id']}/brief", **auth("")).status_code
+        == 401
+    )
 
 
 def test_turns_are_appended_in_the_order_they_were_said(client, session):

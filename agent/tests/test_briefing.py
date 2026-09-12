@@ -88,7 +88,9 @@ def test_a_round_with_no_summary_is_still_named():
 
 
 def test_an_unnamed_candidate_is_not_given_an_invented_name():
-    text = describe(brief(candidateName="", resume={"candidate": {}, "probes": [], "citations": []}))
+    text = describe(
+        brief(candidateName="", resume={"candidate": {}, "probes": [], "citations": []})
+    )
     assert "do not guess" in text
 
 

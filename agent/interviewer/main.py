@@ -75,7 +75,9 @@ async def entrypoint(ctx: JobContext) -> None:
     modality = voice.available()
     if not modality.voice:
         # Loud, because this is a product decision made by a missing environment variable.
-        logger.warning("Interviewing in %s -- the candidate will read, not hear", modality.describe())
+        logger.warning(
+            "Interviewing in %s -- the candidate will read, not hear", modality.describe()
+        )
     session = voice.build_session(ctx.proc.userdata["vad"], modality)
 
     recorder = TranscriptRecorder(session_id)

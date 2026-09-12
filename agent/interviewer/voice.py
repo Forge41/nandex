@@ -37,7 +37,10 @@ class Modality:
             return "voice"
         missing = [
             name
-            for name, present in (("DEEPGRAM_API_KEY", self.can_hear), ("CARTESIA_API_KEY", self.can_speak))
+            for name, present in (
+                ("DEEPGRAM_API_KEY", self.can_hear),
+                ("CARTESIA_API_KEY", self.can_speak),
+            )
             if not present
         ]
         return f"text only ({' and '.join(missing)} not set)"

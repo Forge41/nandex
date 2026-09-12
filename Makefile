@@ -1,7 +1,8 @@
 .DEFAULT_GOAL := help
 .PHONY: help install hooks agent-permissions link-agents fmt lint lint-ci test check \
-	serve-all tps tps-migrate tps-grpc grpc-gen migrate importer-migrate ingest-migrate \
-	importer-worker ingest-worker vas vas-worker vas-stack vas-stack-down asgi frontend
+	up down doctor serve-all tps tps-migrate tps-grpc grpc-gen migrate importer-migrate \
+	ingest-migrate importer-worker ingest-worker interview-worker interviewer-agent \
+	vas vas-worker vas-stack vas-stack-down asgi frontend
 
 help: ## List available targets
 	@grep -hE '^[a-z][a-zA-Z0-9_-]*:.*?## ' $(MAKEFILE_LIST) \
@@ -13,6 +14,8 @@ help: ## List available targets
 
 install: ## Install dependencies and git hooks
 	uv sync --all-groups
+	cd agent && uv sync --all-groups
+	cd frontend && pnpm install
 	$(MAKE) link-agents
 	$(MAKE) hooks
 
@@ -30,10 +33,27 @@ agent-permissions: ## Regenerate per-tool permission configs from .agents/permis
 	uv run python scripts/gen_agent_permissions.py
 
 # ---------------------------------------------------------------------------
+# Running it
+# ---------------------------------------------------------------------------
+
+up: ## Everything, from nothing: containers, migrations, then every service
+	@$(MAKE) --no-print-directory doctor
+	@echo ""
+	$(MAKE) vas-stack
+	$(MAKE) migrate
+	$(MAKE) serve-all
+
+down: ## Stop the containers `up` started. Ctrl-C already stopped the processes.
+	$(MAKE) vas-stack-down
+
+doctor: ## Say what backend/.env is missing, and what stops working without it
+	@uv run python scripts/check_env.py
+
+# ---------------------------------------------------------------------------
 # Backend services
 # ---------------------------------------------------------------------------
 
-serve-all: ## Run the whole local stack: Temporal, backend (ASGI), tps-grpc, importer/ingest workers, frontend
+serve-all: ## Every service, assuming containers and migrations are already done (see `up`)
 	bash scripts/dev_serve.sh
 
 tps: ## Run the Django dev server under WSGI -- only reliable for tps's own HTTP API (see README)
@@ -60,9 +80,13 @@ importer-worker: ## Run importer's Temporal worker (needs a Temporal server alre
 vas-stack: ## Start the containers vas needs locally: LiveKit, Egress, fake-GCS, Redis
 	@test -f dev/gcs-fake-credentials.json || (cd backend && uv run python ../scripts/gen_fake_gcs_credentials.py)
 	docker compose -f dev/docker-compose.yml up -d
-	@echo "Creating the recordings bucket in fake-gcs..."
-	@until curl -sf -X POST 'http://localhost:4443/storage/v1/b?project=local-dev' \
-		-H 'Content-Type: application/json' -d '{"name":"local-recordings"}' >/dev/null; do sleep 1; done
+	@echo "Waiting for the recordings bucket in fake-gcs..."
+	@# Checked before created, because fake-gcs keeps its volume across `down` and answers
+	@# 409 for a bucket that is already there -- which curl -f reads as failure, so
+	@# creating first looped forever on every run after the first.
+	@until curl -sf -o /dev/null 'http://localhost:4443/storage/v1/b/local-recordings' \
+		|| curl -sf -o /dev/null -X POST 'http://localhost:4443/storage/v1/b?project=local-dev' \
+			-H 'Content-Type: application/json' -d '{"name":"local-recordings"}'; do sleep 1; done
 	@echo "LiveKit ws://localhost:7880 | fake-GCS http://localhost:4443"
 
 vas-stack-down: ## Stop and remove the local vas containers
