@@ -17,6 +17,9 @@ from dataclasses import dataclass, field
 class TranscriptRecorder:
     session_id: str
     started_at: float = field(default_factory=time.monotonic)
+    # Wall clock beside the monotonic one, because a chat item carries its own wall-clock
+    # created_at and the two have to be comparable to place it on the session's timeline.
+    started_wall: float = field(default_factory=time.time)
     _turns: list[dict] = field(default_factory=list)
     _flushed: int = 0
 
@@ -39,11 +42,23 @@ class TranscriptRecorder:
             {
                 "speaker": "candidate" if role == "user" else "interviewer",
                 "text": text,
-                # Seconds since this agent joined, which is what the timer on screen counts
-                # from -- a wall-clock stamp would disagree with what the candidate saw.
-                "atSeconds": int(time.monotonic() - self.started_at),
+                "atSeconds": self._at(item),
             }
         )
+
+    def _at(self, item) -> int:
+        """Seconds since this agent joined, counted from when the turn *began*.
+
+        The item is only handed over once it is finished, so timing it on arrival puts a
+        minute-long answer at the moment it ended -- a transcript a human reads should say
+        when someone started speaking. created_at is the item's own wall clock, so it is
+        compared against a wall clock and then expressed on the session's timeline, which
+        is what the timer on screen counts.
+        """
+        created = getattr(item, "created_at", None)
+        if isinstance(created, (int, float)) and created > 0:
+            return max(0, int(created - self.started_wall))
+        return max(0, int(time.monotonic() - self.started_at))
 
     def turns(self) -> list[dict]:
         return list(self._turns)

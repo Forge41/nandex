@@ -14,6 +14,7 @@ from dataclasses import dataclass
 
 import anthropic as anthropic_sdk
 from livekit.agents import AgentSession, RoomInputOptions, RoomOutputOptions
+from livekit.agents.voice.turn import InterruptionOptions, TurnHandlingOptions
 from livekit.plugins import anthropic, cartesia, deepgram
 
 from interviewer.config import settings
@@ -76,6 +77,11 @@ def build_session(vad, modality: Modality) -> AgentSession:
         stt=deepgram.STT(model="nova-3", language="en"),
         llm=llm,
         tts=cartesia.TTS(voice=settings.voice_id),
+        # Interruptions from the local VAD rather than LiveKit Cloud's adaptive service,
+        # which a self-hosted deployment has no credentials for: left to choose, the
+        # session tries it three times per job and logs a 401 each time before falling
+        # back here anyway.
+        turn_handling=TurnHandlingOptions(interruption=InterruptionOptions(mode="vad")),
     )
 
 

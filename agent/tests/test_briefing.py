@@ -193,3 +193,32 @@ def test_only_the_conversation_is_recorded():
     recorder.add(Item("user", "Real words."))
 
     assert [(t["speaker"], t["text"]) for t in recorder.turns()] == [("candidate", "Real words.")]
+
+
+def test_a_turn_is_timed_from_when_it_started_not_when_it_ended():
+    """Items arrive complete, so timing them on arrival puts a minute-long answer at the
+    moment it finished -- a transcript a human reads should say when someone began."""
+    import time
+
+    from interviewer.transcript import TranscriptRecorder
+
+    class Item:
+        def __init__(self, role, text, created_at):
+            self.role, self.text_content, self.created_at = role, text, created_at
+
+    joined = time.time()
+    recorder = TranscriptRecorder("s1", started_wall=joined)
+    # Began two seconds in; handed over a minute later, when it finished.
+    recorder.add(Item("assistant", "A long greeting.", joined + 2))
+
+    assert recorder.turns()[0]["atSeconds"] == 2
+
+
+def test_an_item_with_no_timestamp_still_lands_on_the_timeline():
+    from interviewer.transcript import TranscriptRecorder
+
+    class Item:
+        def __init__(self):
+            self.role, self.text_content, self.created_at = "user", "Hello.", None
+
+    assert TranscriptRecorder("s1").add(Item()) is None
