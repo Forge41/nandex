@@ -46,6 +46,14 @@ if ! command -v temporal >/dev/null 2>&1; then
     exit 1
 fi
 
+# A warning, not an error: without LiveKit there is no room and no interviewer, but the
+# upload, the plan and every other screen work perfectly well. `make up` starts these.
+if ! nc -z localhost 7880 2>/dev/null; then
+    echo "warning: nothing is listening on :7880 -- LiveKit isn't running, so no room can" >&2
+    echo "         be joined and the interviewer can't connect. Start it with 'make vas-stack'" >&2
+    echo "         (or use 'make up', which does it for you)." >&2
+fi
+
 # ---------------------------------------------------------------------------
 # Clean up anything left bound to our ports from a previous crashed run
 # ---------------------------------------------------------------------------
@@ -89,7 +97,13 @@ fi
 (cd backend && uv run manage.py run_importer_worker; kill 0) &
 (cd backend && uv run manage.py run_ingest_worker; kill 0) &
 (cd backend && uv run manage.py run_interview_worker; kill 0) &
-(cd agent && uv run python -m interviewer.main dev; kill 0) &
+# Deliberately not `kill 0`, unlike every line above it. The workers share the stack's
+# fate because a silently dead worker leaves work queued and nothing to run it. The
+# interviewer is different: without it a candidate gets no interviewer and everything
+# else -- upload, plan, room, recording -- still works. Taking the frontend and the API
+# down because the voice agent cannot reach LiveKit is the worse failure.
+(cd agent && uv run python -m interviewer.main dev; \
+    echo "!! the interviewer agent stopped. Everything else is still running.") &
 (cd frontend && pnpm dev; kill 0) &
 
 # ---------------------------------------------------------------------------
