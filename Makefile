@@ -80,6 +80,9 @@ ingest-worker: ## Run ingest's Temporal worker (needs a Temporal server already 
 interview-worker: ## Run interview's Temporal worker -- reads resumes and writes the plan
 	cd backend && uv run manage.py run_interview_worker
 
+interviewer-agent: ## Run the LiveKit agent that joins the room and talks to the candidate
+	cd agent && uv run python -m interviewer.main dev
+
 asgi: ## Run the full API under a real ASGI server (needed for core/chat/marketplace to work)
 	cd backend && uv run uvicorn config.asgi:application --reload
 

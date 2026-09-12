@@ -89,6 +89,7 @@ fi
 (cd backend && uv run manage.py run_importer_worker; kill 0) &
 (cd backend && uv run manage.py run_ingest_worker; kill 0) &
 (cd backend && uv run manage.py run_interview_worker; kill 0) &
+(cd agent && uv run python -m interviewer.main dev; kill 0) &
 (cd frontend && pnpm dev; kill 0) &
 
 # ---------------------------------------------------------------------------
@@ -118,6 +119,7 @@ printf "│  %-15s →  %-40s│\n" "importer worker" "(no port -- task queue \"
 printf "│  %-15s →  %-40s│\n" "ingest worker" "(no port -- task queue \"ingest\")"
 printf "│  %-15s →  %-40s│\n" "vas worker" "(no port -- task queue \"vas\")"
 printf "│  %-15s →  %-40s│\n" "interview worker" "(no port -- task queue \"interview\")"
+printf "│  %-15s →  %-40s│\n" "interviewer" "(no port -- LiveKit agent \"interviewer\")"
 echo "└─────────────────────────────────────────────────────────────┘"
 echo ""
 

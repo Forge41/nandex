@@ -1,6 +1,6 @@
 from django.urls import path
 
-from apps.interview.api import callbacks, views
+from apps.interview.api import agent, callbacks, views
 
 app_name = "interview"
 
@@ -16,4 +16,7 @@ urlpatterns = [
     path("interview/sessions/<str:session_id>/recording", views.session_recording),
     path("interview/sessions/<str:session_id>/end", views.session_end),
     path("interview/callbacks/vas", callbacks.vas_callback),
+    # The interviewer agent's own door: a shared bearer token, no candidate cookie.
+    path("interview/agent/sessions/<str:session_id>/brief", agent.session_brief),
+    path("interview/agent/sessions/<str:session_id>/transcript", agent.session_transcript),
 ]
