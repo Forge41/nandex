@@ -331,4 +331,7 @@ export interface InterviewSession {
    * draft session, which has no server behind it yet. */
   planState?: "idle" | "processing" | "ready" | "failed";
   planError?: string;
+  /** The server's view of whether this interview is still running. An ended one
+   * is refused a join token, so nothing may try to hold a room open for it. */
+  status?: "created" | "active" | "ended";
 }

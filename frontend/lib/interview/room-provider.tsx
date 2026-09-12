@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import {
   RoomAudioRenderer,
   SessionProvider,
@@ -18,7 +18,7 @@ import { ConnectionQuality, ConnectionState, Track, TokenSource } from "livekit-
 // Re-exported by components-react; components-core is a transitive dependency
 // and importing it directly would pin a version nothing declares.
 import type { TrackReference } from "@livekit/components-react";
-import { apiFetch } from "@/lib/api/client";
+import { ApiError, apiFetch } from "@/lib/api/client";
 import type { StageId } from "./types";
 
 /** Rounds that join a real room. A set rather than an inequality so a stage can
@@ -262,7 +262,17 @@ function LiveRoomBridge({
   );
 }
 
-function LiveRoomState({ sessionId, children }: { sessionId: string; children: React.ReactNode }) {
+function LiveRoomState({
+  sessionId,
+  onEnded,
+  children,
+}: {
+  sessionId: string;
+  /** Called when the server says this interview is over, so the room can be
+   * taken down rather than left asking for a token it will never be given. */
+  onEnded: () => void;
+  children: React.ReactNode;
+}) {
   const [attempt, setAttempt] = useState(0);
   // Compared against the current attempt rather than reset on retry, so the
   // effect below never sets state synchronously -- this lint config treats that
@@ -288,6 +298,15 @@ function LiveRoomState({ sessionId, children }: { sessionId: string; children: R
         cache.minted = { serverUrl: minted.ws_url, participantToken: minted.token };
         return cache.minted;
       } catch (error) {
+        // An ended interview is refused a token, and will be refused every time.
+        // useSession retries a failing token source for as long as it is mounted,
+        // so without this the browser asks forever -- a 409 per second, each one
+        // an unhandled rejection. Tell the provider to take the room down instead.
+        if (error instanceof ApiError && error.status === 409) {
+          cache.minted = null;
+          onEnded();
+          throw error;
+        }
         // useSession force-refetches a token on every disconnect and does not
         // await it, so a rejection there escapes as an unhandled rejection --
         // once per failed attempt. Returning the last credentials keeps that
@@ -298,7 +317,7 @@ function LiveRoomState({ sessionId, children }: { sessionId: string; children: R
         throw error;
       }
     });
-  }, [sessionId]);
+  }, [sessionId, onEnded]);
 
   const session = useSession(tokenSource);
 
@@ -335,18 +354,28 @@ function LiveRoomState({ sessionId, children }: { sessionId: string; children: R
 export function RoomProvider({
   sessionId,
   activeStage,
+  ended = false,
   children,
 }: {
   sessionId: string;
   activeStage: StageId;
+  /** The server's view, so a room is never opened for an interview that is over.
+   * Without it the stage alone decides, and a candidate returning to an ended
+   * session mounts a room that can only be refused. */
+  ended?: boolean;
   children: React.ReactNode;
 }) {
+  // Set when the server refuses a token because the interview has ended, which
+  // can happen while the room is open -- another tab, or the wrap-up itself.
+  const [refused, setRefused] = useState(false);
+  const onEnded = useCallback(() => setRefused(true), []);
+
   // Remounting on the switch is deliberate: the live implementation owns a real
   // connection, and leaving it mounted through the coding round would hold a
   // room open for a candidate who is not in it.
-  if (LIVE_STAGES.has(activeStage)) {
+  if (LIVE_STAGES.has(activeStage) && !ended && !refused) {
     return (
-      <LiveRoomState key={`live-${sessionId}`} sessionId={sessionId}>
+      <LiveRoomState key={`live-${sessionId}`} sessionId={sessionId} onEnded={onEnded}>
         {children}
       </LiveRoomState>
     );
