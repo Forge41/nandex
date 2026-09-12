@@ -21,6 +21,10 @@ export function useSessionPersistence(session: InterviewSession) {
   const sent = useRef<string | null>(null);
 
   useEffect(() => {
+    // A draft has no id because it does not exist server-side yet -- there is
+    // nothing to mirror to until the candidate creates it.
+    if (!id) return;
+
     const snapshot = JSON.stringify({ consent, activeStage, started: startedAt !== null });
 
     // The first run is the state we just loaded from the server, so sending it
