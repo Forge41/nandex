@@ -31,6 +31,7 @@ def _serialize_session(session: VideoSession) -> dict:
         "external_session_id": session.external_session_id,
         "room_name": session.room_name,
         "status": session.status,
+        "auto_record": session.auto_record,
         "metadata": session.metadata,
         "created_at": session.created_at.isoformat(),
     }
@@ -68,7 +69,10 @@ async def sessions(request: HttpRequest) -> JsonResponse:
         )
 
     session = await services.register_session(
-        external_session_id, room_name, body.get("metadata") or {}
+        external_session_id,
+        room_name,
+        body.get("metadata") or {},
+        auto_record=bool(body.get("auto_record")),
     )
     return JsonResponse(_serialize_session(session), status=201)
 

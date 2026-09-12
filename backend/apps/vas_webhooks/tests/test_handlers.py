@@ -148,3 +148,62 @@ async def test_registry_warns_rather_than_raises_on_an_unknown_event(caplog):
     with caplog.at_level(logging.WARNING):
         await registry.dispatch(_event("something_we_do_not_handle"))
     assert "No handler for webhook" in caplog.text
+
+
+async def test_room_started_auto_starts_a_recording_when_the_session_asked_for_one(
+    monkeypatch,
+):
+    """The only moment a room exists is when the provider says it started: Egress answers
+    not_found for a room with no participants, so a caller that wants a recording has to
+    ask in advance and be obeyed here.
+    """
+    started = []
+
+    async def start_recording(session_id, layout, audio_only):
+        started.append((session_id, layout, audio_only))
+
+    monkeypatch.setattr("apps.vas_recordings.services.start_recording", start_recording)
+    session = await VideoSession.objects.acreate(
+        external_session_id="iv-auto", room_name="interview-iv-auto", auto_record=True
+    )
+
+    await handlers.on_room_started(_event("room_started", room_name="interview-iv-auto"))
+
+    await session.arefresh_from_db()
+    assert session.status == VideoSession.Status.ACTIVE
+    assert started == [(session.id, "speaker", False)]
+
+
+async def test_room_started_does_not_record_a_session_that_did_not_ask(monkeypatch):
+    started = []
+
+    async def start_recording(session_id, layout, audio_only):
+        started.append(session_id)
+
+    monkeypatch.setattr("apps.vas_recordings.services.start_recording", start_recording)
+    await VideoSession.objects.acreate(
+        external_session_id="iv-quiet", room_name="interview-iv-quiet", auto_record=False
+    )
+
+    await handlers.on_room_started(_event("room_started", room_name="interview-iv-quiet"))
+
+    assert started == []
+
+
+async def test_a_failure_to_auto_start_does_not_fail_the_webhook(monkeypatch):
+    """A 5xx would make the provider retry the whole event, re-running every other
+    handler with it."""
+    from apps.vas_recordings.services import RecordingAlreadyActive
+
+    async def already_running(session_id, layout, audio_only):
+        raise RecordingAlreadyActive("Recording EG_1 is already active")
+
+    monkeypatch.setattr("apps.vas_recordings.services.start_recording", already_running)
+    session = await VideoSession.objects.acreate(
+        external_session_id="iv-dup", room_name="interview-iv-dup", auto_record=True
+    )
+
+    await handlers.on_room_started(_event("room_started", room_name="interview-iv-dup"))
+
+    await session.arefresh_from_db()
+    assert session.status == VideoSession.Status.ACTIVE

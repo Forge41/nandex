@@ -15,7 +15,18 @@ from temporalio import workflow
 from temporalio.client import Client
 from temporalio.common import RetryPolicy
 
-from apps.vas_recordings.config import settings
+# The activities reach httpx and the ORM, which the workflow sandbox forbids importing.
+# Same pattern as apps.ingest.ingester.workflows; importing them inside run() is not
+# enough, because the sandbox re-walks the whole import graph.
+with workflow.unsafe.imports_passed_through():
+    from apps.vas_recordings.activities import (
+        delete_recording_object,
+        finish_artifact_deletion,
+        list_deletable_recordings,
+        post_recording_to_main_backend,
+        verify_recording_object_exists,
+    )
+    from apps.vas_recordings.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -35,11 +46,6 @@ class ArtifactDeletionInput:
 class NotifyMainBackendWorkflow:
     @workflow.run
     async def run(self, payload: NotifyMainBackendInput) -> None:
-        from apps.vas_recordings.activities import (
-            post_recording_to_main_backend,
-            verify_recording_object_exists,
-        )
-
         # Egress reports the job ended before the upload has necessarily landed, so this
         # polls rather than assuming presence -- the retries *are* the wait.
         await workflow.execute_activity(
@@ -64,12 +70,6 @@ class NotifyMainBackendWorkflow:
 class ArtifactDeletionWorkflow:
     @workflow.run
     async def run(self, payload: ArtifactDeletionInput) -> None:
-        from apps.vas_recordings.activities import (
-            delete_recording_object,
-            finish_artifact_deletion,
-            list_deletable_recordings,
-        )
-
         recordings = await workflow.execute_activity(
             list_deletable_recordings,
             payload.session_id,

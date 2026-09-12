@@ -31,4 +31,5 @@ urlpatterns = [
     path("", include("apps.chat.api.urls")),
     path("", include("apps.importer.api.urls")),
     path("", include("apps.ingest.api.urls")),
+    path("", include("apps.interview.api.urls")),
 ]

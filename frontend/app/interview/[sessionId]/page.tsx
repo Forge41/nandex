@@ -1,22 +1,12 @@
-import { InterviewRoom } from "@/components/interview/interview-room";
-import { InterviewSessionProvider } from "@/lib/interview/session-provider";
-import { RoomProvider } from "@/lib/interview/room-provider";
-import { TranscriptProvider } from "@/lib/interview/transcript-provider";
-import { MOCK_SESSION, MOCK_TRANSCRIPT } from "@/lib/interview/mock/session.fixture";
+import { InterviewSessionLoader } from "@/components/interview/interview-session-loader";
 
-/** The fixture stands in for GET /api/interview/:id. When the endpoint lands,
- * this is the only place that changes. */
+/** The session is fetched in the browser, not here.
+ *
+ * A candidate's identity is their session cookie, and the anonymous one is
+ * minted on their first request -- so a server-side fetch would either carry no
+ * cookie or mint a second identity that owns nothing. */
 export default async function InterviewPage({ params }: { params: Promise<{ sessionId: string }> }) {
   const { sessionId } = await params;
-  const session = { ...MOCK_SESSION, id: sessionId };
 
-  return (
-    <InterviewSessionProvider initialSession={session}>
-      <RoomProvider>
-        <TranscriptProvider turns={MOCK_TRANSCRIPT}>
-          <InterviewRoom />
-        </TranscriptProvider>
-      </RoomProvider>
-    </InterviewSessionProvider>
-  );
+  return <InterviewSessionLoader sessionId={sessionId} />;
 }

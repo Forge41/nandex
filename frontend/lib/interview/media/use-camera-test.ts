@@ -7,6 +7,9 @@ export type LightingVerdict = "good" | "dark" | "bright";
 
 export interface CameraTestState {
   status: MediaTestStatus;
+  /** The live stream, so several previews can show the same camera at once --
+   * one MediaStream feeds any number of <video> elements. */
+  stream: MediaStream | null;
   deviceLabel: string | null;
   resolution: { width: number; height: number } | null;
   frameRate: number | null;
@@ -22,14 +25,31 @@ const SAMPLE_HEIGHT = 24;
 const DARK_BELOW = 60;
 const BRIGHT_ABOVE = 200;
 
-const PENDING: CameraTestState = {
-  status: "requesting",
+const IDLE: CameraTestState = {
+  status: "idle",
+  stream: null,
   deviceLabel: null,
   resolution: null,
   frameRate: null,
   lighting: null,
   errorMessage: null,
 };
+
+const PENDING: CameraTestState = {
+  status: "requesting",
+  stream: null,
+  deviceLabel: null,
+  resolution: null,
+  frameRate: null,
+  lighting: null,
+  errorMessage: null,
+};
+
+export interface CameraTest extends CameraTestState {
+  /** The last conclusive result, which outlives the device being released.
+   * See MicTest.settled -- same latch, same reason. */
+  settled: CameraTestState | null;
+}
 
 export const LIGHTING_COPY: Record<LightingVerdict, string> = {
   good: "Framing and lighting look fine",
@@ -40,13 +60,18 @@ export const LIGHTING_COPY: Record<LightingVerdict, string> = {
 /** Opens the camera while `active` and reports what the track actually
  * negotiated, plus a mean-luminance read of the picture.
  *
- * The caller owns the <video> ref and passes it in: the stream binds to the
- * element directly so the preview never re-renders, and returning a ref
- * alongside the state would taint every read of that state during render. */
+ * The caller owns the sampling <video> and passes its ref in: luminance needs
+ * a decoded frame, which only an element in the document reliably provides.
+ * The stream is returned as well, so previews elsewhere can bind it without a
+ * second acquisition -- opening the camera twice fails outright on some
+ * devices.
+ *
+ * `nonce` re-acquires on change, for "run the test again". */
 export function useCameraTest(
   active: boolean,
-  videoRef: RefObject<HTMLVideoElement | null>
-): CameraTestState {
+  videoRef: RefObject<HTMLVideoElement | null>,
+  nonce = 0
+): CameraTest {
   const [published, setPublished] = useState<CameraTestState | null>(null);
 
   useEffect(() => {
@@ -81,6 +106,7 @@ export function useCameraTest(
         const settings = track?.getSettings() ?? {};
         const base: CameraTestState = {
           status: "running",
+          stream: granted,
           deviceLabel: track?.label ?? null,
           resolution:
             settings.width && settings.height ? { width: settings.width, height: settings.height } : null,
@@ -139,7 +165,10 @@ export function useCameraTest(
       if (element) element.srcObject = null;
       stream?.getTracks().forEach((track) => track.stop());
     };
-  }, [active, videoRef]);
+  }, [active, videoRef, nonce]);
 
-  return published ?? PENDING;
+  // The live half must not be the last published value: a released camera
+  // cannot keep reporting a resolution and a stream that no longer exist. The
+  // settled half is exactly that value, for the verdict that outlives it.
+  return { ...(active ? (published ?? PENDING) : IDLE), settled: published };
 }

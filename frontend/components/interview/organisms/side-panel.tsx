@@ -1,5 +1,6 @@
 "use client";
 
+import { VideoTrack } from "@livekit/components-react";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { LiveDot } from "@/components/ui/indicators";
@@ -12,18 +13,34 @@ import { derivePanelCopy } from "@/lib/interview/selectors";
 import { useTranscript } from "@/lib/interview/transcript-provider";
 import { formatClock, initialsOf } from "@/lib/interview/format";
 
-/** Self-view placeholder. The real feed arrives with the published camera
- * track -- acquiring a second independent stream here would fight the
- * pre-flight camera test for the device. */
+/** The candidate's own camera, as published to the room -- not a second
+ * independent stream, which would fight the pre-flight camera test for the
+ * device. Falls back to the hatched placeholder when no camera is published.
+ *
+ * The REC badge is conditional on the provider reporting an active recording.
+ * Claiming "REC" with nothing recording is the same fabrication the rail's
+ * connection label was deliberately left empty to avoid. */
 function ProctorTile() {
+  const { selfCameraTrack, isRecording } = useRoomState();
+
   return (
     <div className="flex gap-2 border-b border-line p-3">
       <div className="bg-stripes relative flex aspect-4/3 flex-1 items-center justify-center overflow-hidden rounded-md">
-        <Mono className="text-[10px] text-content-muted">self view</Mono>
-        <span className="absolute right-1.5 bottom-1.5 flex items-center gap-1 rounded-full bg-surface px-1.5 py-0.5">
-          <LiveDot size={5} />
-          <span className="text-[9px] font-medium">REC</span>
-        </span>
+        {selfCameraTrack ? (
+          <VideoTrack
+            trackRef={selfCameraTrack}
+            // Mirrored, so the candidate sees themselves the way a mirror does.
+            className="absolute inset-0 size-full scale-x-[-1] object-cover"
+          />
+        ) : (
+          <Mono className="text-[10px] text-content-muted">camera off</Mono>
+        )}
+        {isRecording && (
+          <span className="absolute right-1.5 bottom-1.5 flex items-center gap-1 rounded-full bg-surface px-1.5 py-0.5">
+            <LiveDot size={5} />
+            <span className="text-[9px] font-medium">REC</span>
+          </span>
+        )}
       </div>
     </div>
   );

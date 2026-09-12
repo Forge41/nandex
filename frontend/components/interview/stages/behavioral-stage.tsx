@@ -6,6 +6,8 @@ import { Eyebrow } from "@/components/ui/typography";
 import { RoundHeader } from "@/components/interview/molecules/round-header";
 import { TranscriptTurn } from "@/components/interview/molecules/transcript-turn";
 import { CitationChip } from "@/components/interview/molecules/citation-chip";
+import { CaptionOverlay } from "@/components/interview/organisms/caption-overlay";
+import { ConnectionBanner } from "@/components/interview/organisms/connection-banner";
 import { CitationProvider } from "@/lib/interview/citation-context";
 import { useInterviewSession } from "@/lib/interview/session-provider";
 import { useTranscript } from "@/lib/interview/transcript-provider";
@@ -19,11 +21,19 @@ export function BehavioralStage() {
   const round = session.rounds.find((r) => r.id === "behavioral");
   const roundNumber = session.rounds.findIndex((r) => r.id === "behavioral") + 1;
 
-  if (!content) return <MissingRoundContent />;
+  if (!content) {
+    return (
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        <ConnectionBanner />
+        <MissingRoundContent />
+      </div>
+    );
+  }
 
   return (
     <CitationProvider>
-      <div className="flex min-h-0 flex-1 flex-col">
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        <ConnectionBanner />
         <RoundHeader
           eyebrow={`Round ${roundNumber} · ${round?.label ?? "Behavioral"}`}
           eyebrowAside={
@@ -59,6 +69,8 @@ export function BehavioralStage() {
             ))}
           </div>
         </div>
+
+        <CaptionOverlay />
       </div>
     </CitationProvider>
   );

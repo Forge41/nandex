@@ -7,6 +7,7 @@ import { PanelIcon } from "@/components/interview/icons";
 import { LiveTimerBadge } from "@/components/interview/molecules/live-timer-badge";
 import { useElapsedSeconds } from "@/lib/hooks/use-elapsed-seconds";
 import { useInterviewSession } from "@/lib/interview/session-provider";
+import { useSessionEnd } from "@/lib/interview/use-session-end";
 import { useRoomState } from "@/lib/interview/room-provider";
 import { deriveRoundHeader, derivePanelCopy } from "@/lib/interview/selectors";
 
@@ -37,6 +38,9 @@ export function InterviewTopBar() {
   const { session, dispatch } = useInterviewSession();
   const { panelOpen, togglePanel } = useRoomState();
   const elapsedSeconds = useElapsedSeconds(session.startedAt);
+  // The beacon is armed while the interview is running, so a closed tab still
+  // tells the server -- see useSessionEnd for why that is not the only signal.
+  const endSession = useSessionEnd(session.id, session.startedAt !== null);
 
   const header = deriveRoundHeader(session);
   const panel = derivePanelCopy(session.activeStage, panelOpen);
@@ -60,7 +64,16 @@ export function InterviewTopBar() {
           {panel.buttonLabel}
         </Button>
         <SessionHelp />
-        <Button variant="danger" size="sm" onClick={() => dispatch({ type: "END_SESSION" })}>
+        <Button
+          variant="danger"
+          size="sm"
+          onClick={() => {
+            // The UI moves to wrap-up immediately: the candidate should not
+            // wait on a network round-trip to be told what happens next.
+            dispatch({ type: "END_SESSION" });
+            void endSession();
+          }}
+        >
           End session
         </Button>
       </div>

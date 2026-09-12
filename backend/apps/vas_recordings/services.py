@@ -13,7 +13,7 @@ from django.utils import timezone
 from apps.vas_recordings.config import settings
 from apps.vas_recordings.models import Recording, VideoSession
 from apps.vas_recordings.providers import get_egress_provider, get_storage_provider
-from apps.vas_recordings.providers.base import FileInfo, RecordingOptions
+from apps.vas_recordings.providers.base import FileInfo, RecordingOptions, RoomNotReady
 
 logger = logging.getLogger(__name__)
 
@@ -53,8 +53,16 @@ class RecordingInFlight(VasError):
     status = 409
 
 
+class RoomNotStarted(VasError):
+    """Asked to record a room the provider does not have yet. 409 rather than 5xx: a
+    retry will not help until someone joins, and core must not spend its retry budget
+    on it."""
+
+    status = 409
+
+
 async def register_session(
-    external_session_id: str, room_name: str, metadata: dict
+    external_session_id: str, room_name: str, metadata: dict, auto_record: bool = False
 ) -> VideoSession:
     """Idempotent on external_session_id, which is what makes lazy provisioning safe to
     call on every token mint.
@@ -64,9 +72,17 @@ async def register_session(
     """
     existing = await VideoSession.objects.filter(external_session_id=external_session_id).afirst()
     if existing is not None:
+        # Registration is idempotent, but auto_record is not: a caller may consent after
+        # first registering, and the flag has to be able to turn on.
+        if auto_record and not existing.auto_record:
+            existing.auto_record = True
+            await existing.asave(update_fields=["auto_record", "updated_at"])
         return existing
     return await VideoSession.objects.acreate(
-        external_session_id=external_session_id, room_name=room_name, metadata=metadata
+        external_session_id=external_session_id,
+        room_name=room_name,
+        metadata=metadata,
+        auto_record=auto_record,
     )
 
 
@@ -90,15 +106,18 @@ async def start_recording(session_id: str, layout: str, audio_only: bool) -> Rec
     object_key = f"recordings/{session.id}/{int(time.time())}.mp4"
     upload = storage.upload_config(object_key)
 
-    result = await get_egress_provider().start_recording(
-        session.room_name,
-        RecordingOptions(
-            storage_path=object_key,
-            storage_config=upload,
-            layout=layout,
-            audio_only=audio_only,
-        ),
-    )
+    try:
+        result = await get_egress_provider().start_recording(
+            session.room_name,
+            RecordingOptions(
+                storage_path=object_key,
+                storage_config=upload,
+                layout=layout,
+                audio_only=audio_only,
+            ),
+        )
+    except RoomNotReady as e:
+        raise RoomNotStarted(f"Room {session.room_name} has no participants yet") from e
 
     recording = await Recording.objects.acreate(
         session=session,

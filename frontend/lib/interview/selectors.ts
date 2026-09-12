@@ -1,5 +1,7 @@
+import { ConnectionQuality } from "livekit-client";
+import type { RoomConnection } from "./room-provider";
 import type { SegmentTone } from "@/components/ui/segmented-progress";
-import type { ConsentState, InterviewSession, RoundStatus, StageId } from "./types";
+import type { ConsentState, DeviceKind, InterviewSession, RoundStatus, StageId } from "./types";
 
 export interface StageChrome {
   topBar: boolean;
@@ -90,6 +92,67 @@ export function derivePreflightCta(session: InterviewSession) {
   };
 }
 
+const DEVICE_NOUN: Record<DeviceKind, string> = {
+  mic: "microphone",
+  camera: "camera",
+  screen: "screen share",
+};
+
+const DEVICE_ORDER: readonly DeviceKind[] = ["mic", "camera", "screen"];
+
+export interface DeviceGate {
+  ready: boolean;
+  untested: DeviceKind[];
+  /** Names the specific rows. "Test something first" would leave the candidate
+   * hunting for which one. */
+  message: string;
+  /** A blocker that is already known, as opposed to a check that simply has not
+   * run. Null when there is none. The button is disabled while this is set,
+   * because refusing a click is only fair when the candidate could not have
+   * known -- here they can be told up front, and told exactly what to change. */
+  blockingReason: string | null;
+}
+
+/** Whether the candidate has actually run the device checks they just consented
+ * to being monitored by.
+ *
+ * A device that failed counts as checked: they tried, and a candidate whose
+ * webcam is blocked at the OS level must not be trapped on this page. The Fail
+ * badge stays visible, and a human reviews the session regardless.
+ */
+export function deriveDeviceGate(
+  tested: Record<DeviceKind, boolean>,
+  { screenSupported, wholeScreen }: { screenSupported: boolean; wholeScreen: boolean }
+): DeviceGate {
+  const untested = DEVICE_ORDER.filter((kind) => {
+    // A browser with no getDisplayMedia cannot run this check at all, so
+    // requiring it would be a gate with no key.
+    if (kind === "screen" && !screenSupported) return false;
+    return !tested[kind];
+  });
+
+  // A share narrower than a screen is the one device result the candidate can
+  // always put right, so unlike a failed microphone it holds them here.
+  const partialScreen = screenSupported && tested.screen && !wholeScreen;
+
+  return {
+    ready: untested.length === 0 && !partialScreen,
+    untested,
+    message: untested.length
+      ? `Test your ${formatList(untested.map((kind) => DEVICE_NOUN[kind]))} before continuing.`
+      : "",
+    blockingReason: partialScreen
+      ? "Share your entire screen — a single window or browser tab isn't enough."
+      : null,
+  };
+}
+
+/** Intl.ListFormat is built in, so "a, b and c" needs no dependency and no
+ * hand-rolled comma juggling. */
+function formatList(items: string[]): string {
+  return new Intl.ListFormat("en", { style: "long", type: "conjunction" }).format(items);
+}
+
 /** The panel's own labels change wording before the session starts, when it is
  * a chat rather than the interviewer's transcript. */
 export function derivePanelCopy(stage: StageId, isOpen: boolean) {
@@ -156,4 +219,80 @@ export function derivePlanSummary(session: InterviewSession): PlanSummary {
 export function deriveNextLockLabel(session: InterviewSession): string {
   const next = session.rounds[session.progressIndex + 1];
   return next ? `${next.label} unlocks when this round is submitted` : "All rounds unlocked";
+}
+
+/** What the connection banner should say, or nothing when there is nothing
+ * worth saying.
+ *
+ * "live" deliberately renders no banner: a reassurance that stays on screen
+ * through a working interview is noise, and the rail's connection label already
+ * carries the steady state. */
+export function deriveConnectionView(
+  connection: RoomConnection,
+  agentState?: string
+): { tone: "info" | "success" | "warning" | "danger"; message: string; canRetry?: boolean; canUnblockAudio?: boolean } | null {
+  switch (connection) {
+    case "offline":
+    case "live":
+      return null;
+    case "connecting":
+      return {
+        tone: "info",
+        message:
+          agentState === "initializing"
+            ? "Your interviewer is starting up."
+            : "Connecting you to your interviewer.",
+      };
+    case "degraded":
+      return {
+        tone: "warning",
+        message: "Your connection is unstable. Audio may drop out for a moment.",
+      };
+    case "failed":
+      return {
+        tone: "danger",
+        message:
+          agentState === "failed"
+            ? "Your interviewer couldn't join. Nothing you said has been lost."
+            : "We couldn't connect you to the room. Nothing you said has been lost.",
+        canRetry: true,
+      };
+    case "ended":
+      return {
+        tone: "info",
+        message: "You've left the room.",
+        canRetry: true,
+      };
+  }
+}
+
+/** The rail's steady-state connection label. Renders only with something real
+ * to report -- the prop it feeds is optional precisely so that an unknown
+ * connection shows nothing rather than a guess. */
+export function deriveConnectionLabel(
+  connection: RoomConnection,
+  quality?: ConnectionQuality,
+  agentState?: string
+): string | undefined {
+  if (connection !== "live" && connection !== "degraded") return undefined;
+
+  const qualityWord =
+    quality === ConnectionQuality.Excellent
+      ? "excellent"
+      : quality === ConnectionQuality.Good
+        ? "good"
+        : quality === ConnectionQuality.Poor
+          ? "poor"
+          : undefined;
+  const agentWord =
+    agentState === "listening"
+      ? "interviewer listening"
+      : agentState === "thinking"
+        ? "interviewer thinking"
+        : agentState === "speaking"
+          ? "interviewer speaking"
+          : undefined;
+
+  const parts = [qualityWord && `Connection ${qualityWord}`, agentWord].filter(Boolean);
+  return parts.length ? parts.join(" · ") : undefined;
 }

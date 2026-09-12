@@ -25,6 +25,7 @@ export function ControlBar() {
     <footer className="flex h-13 shrink-0 items-center justify-center gap-2 border-t border-line bg-surface-subtle px-4">
       <IconButton
         danger={!room.micEnabled}
+        disabled={room.devicePending}
         onClick={room.toggleMic}
         title={room.micEnabled ? "Microphone on" : "Microphone muted"}
         aria-pressed={room.micEnabled}
@@ -33,6 +34,7 @@ export function ControlBar() {
       </IconButton>
       <IconButton
         danger={!room.cameraEnabled}
+        disabled={room.devicePending}
         onClick={room.toggleCamera}
         title={room.cameraEnabled ? "Camera on" : "Camera off"}
         aria-pressed={room.cameraEnabled}
@@ -41,6 +43,7 @@ export function ControlBar() {
       </IconButton>
       <IconButton
         off={!room.screenEnabled}
+        disabled={room.devicePending}
         onClick={room.toggleScreen}
         title={room.screenEnabled ? "Sharing screen" : "Not sharing screen"}
         aria-pressed={room.screenEnabled}
@@ -58,7 +61,12 @@ export function ControlBar() {
 
       <Divider />
 
-      <InterviewerVoicePill enabled={room.interviewerVoiceEnabled} onToggle={room.toggleInterviewerVoice} />
+      <InterviewerVoicePill
+        enabled={room.interviewerVoiceEnabled}
+        onToggle={room.toggleInterviewerVoice}
+        levels={room.agentLevels}
+        agentState={room.agentState}
+      />
 
       {canSkip && (
         <>

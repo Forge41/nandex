@@ -158,3 +158,41 @@ async def test_an_in_flight_recording_cannot_be_deleted(video_session, fake_egre
     with pytest.raises(services.RecordingInFlight):
         await services.delete_recording(video_session.id, recording.id)
     assert fake_storage.deleted == []
+
+
+async def test_recording_a_room_the_provider_does_not_have_yet_is_a_409(
+    video_session, fake_storage, monkeypatch
+):
+    """Egress answers not_found until the room's first participant joins. A 5xx here
+    would burn core's retry budget on something no retry can fix, so it is a 409.
+    """
+    from apps.vas_recordings.providers.base import RoomNotReady
+
+    class NotReadyEgress:
+        async def start_recording(self, room_name, options):
+            raise RoomNotReady(room_name)
+
+        async def stop_recording(self, egress_id):
+            return None
+
+    monkeypatch.setattr(
+        "apps.vas_recordings.services.get_egress_provider", lambda: NotReadyEgress()
+    )
+
+    with pytest.raises(services.RoomNotStarted) as exc_info:
+        await services.start_recording(video_session.id, "speaker", False)
+
+    assert exc_info.value.status == 409
+    assert await Recording.objects.acount() == 0
+
+
+async def test_auto_record_can_be_turned_on_by_a_later_registration():
+    """A candidate may consent after the session was first registered, so the idempotent
+    path has to let the flag rise."""
+    first = await services.register_session("iv-late", "interview-iv-late", {})
+    assert first.auto_record is False
+
+    second = await services.register_session("iv-late", "interview-iv-late", {}, auto_record=True)
+
+    assert second.id == first.id
+    assert second.auto_record is True

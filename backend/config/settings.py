@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     "apps.ingest",
     "apps.retrieval",
     "apps.chat",
+    "apps.interview",
     # A second leaf beside apps.tps: no app imports these, and they import nothing above
     # them. Deployed as their own process (config.settings_vas) but sharing this database.
     "apps.vas_recordings",

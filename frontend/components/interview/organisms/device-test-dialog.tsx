@@ -1,19 +1,24 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AudioBars } from "@/components/ui/audio-bars";
-import { useMicTest, type MediaTestStatus } from "@/lib/interview/media/use-mic-test";
-import { useCameraTest, LIGHTING_COPY } from "@/lib/interview/media/use-camera-test";
-import type { DeviceStatus } from "@/lib/interview/types";
+import { StreamVideo } from "@/components/interview/molecules/device-preview";
+import { LIGHTING_COPY } from "@/lib/interview/media/use-camera-test";
+import { REQUIRED_SPEECH_SECONDS, type MediaTestStatus } from "@/lib/interview/media/use-mic-test";
+import { useMediaPermission } from "@/lib/interview/media/use-media-permission";
+import { failureAction } from "@/lib/interview/media/failure-action";
+import { SURFACE_COPY } from "@/lib/interview/media/use-screen-share-test";
+import { useDevicePreviews, type DeviceKind } from "@/lib/interview/media/device-preview-provider";
 
-export type DeviceTestKind = "mic" | "camera";
+export type DeviceTestKind = DeviceKind;
 
-/** Panels report upward so the device rows can show a real verdict instead of
- * decorative motion, which in a device check would read as "this works". */
-type VerdictProps = { onVerdict: (status: DeviceStatus) => void };
+const TITLE: Record<DeviceKind, string> = {
+  mic: "Microphone test",
+  camera: "Camera test",
+  screen: "Screen share",
+};
 
 /** Read-only: the browser only reveals device labels after permission, and
  * switching devices needs a picker the pre-flight doesn't have yet. Showing
@@ -33,50 +38,86 @@ function StatusStrip({
   tone,
   children,
   badge,
+  action,
 }: {
   tone: "success" | "warning" | "danger";
   children: React.ReactNode;
   badge: string;
+  action?: React.ReactNode;
 }) {
   const surface = tone === "success" ? "bg-success-bg" : tone === "warning" ? "bg-warning-bg" : "bg-danger-bg";
   const text = tone === "success" ? "text-success" : tone === "warning" ? "text-warning" : "text-danger";
 
   return (
-    <div className={`flex items-center justify-between gap-3 rounded-md px-3 py-2.5 ${surface}`}>
-      <span className={`text-sm ${text}`}>{children}</span>
-      <Badge tone={tone} size="sm">
-        {badge}
-      </Badge>
+    <div className={`flex flex-col gap-2.5 rounded-md px-3 py-2.5 ${surface}`}>
+      <div className="flex items-center justify-between gap-3">
+        <span className={`text-sm ${text}`}>{children}</span>
+        <Badge tone={tone} size="sm">
+          {badge}
+        </Badge>
+      </div>
+      {action}
     </div>
   );
 }
 
-function FailureNote({ status, message }: { status: MediaTestStatus; message: string | null }) {
-  if (status === "requesting") {
-    return <p className="text-sm text-content-subtle">Waiting for permission…</p>;
-  }
-  return <StatusStrip tone="danger" badge={status === "denied" ? "Blocked" : "Failed"}>{message}</StatusStrip>;
+function Pending({ message }: { message: string }) {
+  return <p className="text-sm text-content-subtle">{message}</p>;
 }
 
-function MicTestPanel({ onVerdict }: VerdictProps) {
-  const mic = useMicTest(true);
+/** Null for screen sharing, which keeps no permission of its own --
+ * getDisplayMedia prompts every time. */
+const PERMISSION_NAME: Record<DeviceKind, "microphone" | "camera" | null> = {
+  mic: "microphone",
+  camera: "camera",
+  screen: null,
+};
+
+/** The failure state, with the way out of it attached -- next to the message
+ * explaining it, rather than in the footer under a generic label. */
+function Failure({
+  kind,
+  status,
+  message,
+}: {
+  kind: DeviceKind;
+  status: MediaTestStatus | "ended";
+  message: string | null;
+}) {
+  const { restart } = useDevicePreviews();
+  const permission = useMediaPermission(PERMISSION_NAME[kind]);
+  const action = failureAction(kind, status, permission, message);
+
+  return (
+    <StatusStrip
+      tone="danger"
+      badge={action.badge}
+      action={
+        action.actionLabel && (
+          <span className="flex">
+            <Button variant="secondary" size="sm" onClick={() => restart(kind)}>
+              {action.actionLabel}
+            </Button>
+          </span>
+        )
+      }
+    >
+      {action.message}
+    </StatusStrip>
+  );
+}
+
+function MicPanel() {
+  const { mic } = useDevicePreviews();
   const running = mic.status === "running";
-  const tooQuiet = mic.peakDb === null || mic.peakDb < -45;
-
-  const verdict: DeviceStatus = !running
-    ? mic.status === "requesting"
-      ? "untested"
-      : "fail"
-    : mic.clipping || tooQuiet
-      ? "check"
-      : "ok";
-
-  useEffect(() => onVerdict(verdict), [verdict, onVerdict]);
+  const listening = mic.speechSeconds < REQUIRED_SPEECH_SECONDS;
+  const heard = Math.min(1, mic.speechSeconds / REQUIRED_SPEECH_SECONDS);
 
   return (
     <div className="px-5 py-[22px]">
       <p className="text-base text-content-subtle">
-        Say a few words at your normal speaking volume. You should see the bars move.
+        Say a few words at your normal speaking volume. The microphone stays open, so the reading
+        below follows you as you talk.
       </p>
 
       <div className="mt-5 flex h-[120px] items-center justify-center rounded-lg bg-surface-interactive">
@@ -94,43 +135,40 @@ function MicTestPanel({ onVerdict }: VerdictProps) {
         <ActiveDevice label={mic.deviceLabel} fallback="System microphone" />
 
         {running ? (
-          mic.clipping ? (
+          listening ? (
+            <div className="flex flex-col gap-2 rounded-md bg-surface-subtle px-3 py-2.5">
+              <span className="text-sm text-content-subtle">
+                Listening — keep talking until this fills.
+              </span>
+              <span className="h-[3px] overflow-hidden rounded-[2px] bg-line-strong">
+                <span
+                  className="block h-full bg-info transition-[width] duration-200 ease-out"
+                  style={{ width: `${heard * 100}%` }}
+                />
+              </span>
+            </div>
+          ) : mic.clipping ? (
             <StatusStrip tone="warning" badge="Check">
               Clipping at {mic.peakDb?.toFixed(0)} dB — move back from the mic or lower its input gain
-            </StatusStrip>
-          ) : tooQuiet ? (
-            <StatusStrip tone="warning" badge="Quiet">
-              No speech detected yet — say a few words
             </StatusStrip>
           ) : (
             <StatusStrip tone="success" badge="Pass">
               Level healthy · peak {mic.peakDb?.toFixed(0)} dB, no clipping
             </StatusStrip>
           )
+        ) : mic.status === "requesting" ? (
+          <Pending message="Waiting for permission…" />
         ) : (
-          <FailureNote status={mic.status} message={mic.errorMessage} />
+          <Failure kind="mic" status={mic.status} message={mic.errorMessage} />
         )}
       </div>
     </div>
   );
 }
 
-function CameraTestPanel({ onVerdict }: VerdictProps) {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const camera = useCameraTest(true, videoRef);
+function CameraPanel() {
+  const { camera } = useDevicePreviews();
   const running = camera.status === "running";
-
-  const verdict: DeviceStatus = !running
-    ? camera.status === "requesting"
-      ? "untested"
-      : "fail"
-    : camera.lighting === null
-      ? "untested"
-      : camera.lighting === "good"
-        ? "ok"
-        : "check";
-
-  useEffect(() => onVerdict(verdict), [verdict, onVerdict]);
 
   return (
     <div className="px-5 py-[22px]">
@@ -139,15 +177,7 @@ function CameraTestPanel({ onVerdict }: VerdictProps) {
       </p>
 
       <div className="bg-stripes relative mt-5 flex h-[240px] items-center justify-center overflow-hidden rounded-lg">
-        <video
-          ref={videoRef}
-          muted
-          playsInline
-          className="size-full object-cover"
-          // Mirrored so the candidate sees themselves as in a mirror, which is
-          // what every other video tool does.
-          style={{ transform: "scaleX(-1)" }}
-        />
+        <StreamVideo stream={camera.stream} mirrored />
         <span className="pointer-events-none absolute h-[170px] w-[130px] rounded-t-[80px] rounded-b-[70px] border-[1.5px] border-dashed border-content-muted" />
         {running && camera.resolution && (
           <span className="absolute top-2.5 left-2.5 rounded-full bg-surface px-1.5 py-0.5 text-[10px] font-medium">
@@ -161,7 +191,7 @@ function CameraTestPanel({ onVerdict }: VerdictProps) {
 
         {running ? (
           camera.lighting === null ? (
-            <p className="text-sm text-content-subtle">Checking lighting…</p>
+            <Pending message="Checking lighting…" />
           ) : (
             <StatusStrip
               tone={camera.lighting === "good" ? "success" : "warning"}
@@ -170,31 +200,100 @@ function CameraTestPanel({ onVerdict }: VerdictProps) {
               {LIGHTING_COPY[camera.lighting]}
             </StatusStrip>
           )
+        ) : camera.status === "requesting" ? (
+          <Pending message="Waiting for permission…" />
         ) : (
-          <FailureNote status={camera.status} message={camera.errorMessage} />
+          <Failure kind="camera" status={camera.status} message={camera.errorMessage} />
         )}
       </div>
     </div>
   );
 }
 
+function ScreenPanel() {
+  const { screen, restart } = useDevicePreviews();
+  const running = screen.status === "running";
+  const partial = screen.surface === "window" || screen.surface === "browser";
+
+  return (
+    <div className="px-5 py-[22px]">
+      <p className="text-base text-content-subtle">
+        Share your entire screen. The integrity terms cover the whole screen, so a single
+        window or browser tab will not be accepted — pick a screen in the picker.
+      </p>
+
+      <div className="bg-stripes relative mt-5 flex h-[240px] items-center justify-center overflow-hidden rounded-lg">
+        {/* Never mirrored: a flipped screen share is unreadable. */}
+        <StreamVideo stream={screen.stream} className="object-contain" />
+        {running && screen.resolution && (
+          <span className="absolute top-2.5 left-2.5 rounded-full bg-surface px-1.5 py-0.5 text-[10px] font-medium">
+            {screen.resolution.width}×{screen.resolution.height}
+            {screen.frameRate ? ` · ${screen.frameRate} fps` : ""}
+          </span>
+        )}
+      </div>
+
+      <div className="mt-4 flex flex-col gap-2.5">
+        {running ? (
+          <>
+            <StatusStrip
+              tone={partial ? "danger" : "success"}
+              badge={partial ? "Not enough" : "Pass"}
+              action={
+                partial && (
+                  <span className="flex">
+                    <Button variant="secondary" size="sm" onClick={() => restart("screen")}>
+                      Share entire screen
+                    </Button>
+                  </span>
+                )
+              }
+            >
+              {partial
+                ? `${SURFACE_COPY[screen.surface]} — the interview needs your entire screen.`
+                : `${SURFACE_COPY[screen.surface]}${screen.sharingAudio ? " · system audio included" : ""}`}
+            </StatusStrip>
+            <p className="text-xs text-content-muted">
+              You can stop sharing at any time from your browser&apos;s own sharing bar.
+            </p>
+          </>
+        ) : screen.status === "requesting" ? (
+          <Pending message="Pick a screen in your browser's prompt…" />
+        ) : screen.status === "ended" ? (
+          <StatusStrip tone="warning" badge="Stopped">
+            You stopped sharing. Share again before the timed tasks.
+          </StatusStrip>
+        ) : (
+          <Failure kind="screen" status={screen.status} message={screen.errorMessage} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+const PANELS: Record<DeviceKind, () => React.ReactElement> = {
+  mic: MicPanel,
+  camera: CameraPanel,
+  screen: ScreenPanel,
+};
+
+/** The test and the enlarged preview are the same thing: both show the device
+ * that is already open, which is why this owns no acquisition of its own. */
 export function DeviceTestDialog({
   kind,
   onClose,
-  onVerdict,
 }: {
-  kind: DeviceTestKind | null;
+  kind: DeviceKind | null;
   onClose: () => void;
-  onVerdict: (kind: DeviceTestKind, status: DeviceStatus) => void;
 }) {
-  // Remounting per open is what keeps the media hooks from having to reset
-  // their own state -- a fresh open gets a fresh acquisition.
-  const [runId, setRunId] = useState(0);
+  const previews = useDevicePreviews();
+  const { restart, stop, active } = previews;
+  const Panel = kind ? PANELS[kind] : null;
 
-  // Stable identities: the panels report from an effect keyed on the verdict,
-  // so a fresh closure each render would re-fire it on every level sample.
-  const reportMic = useCallback((status: DeviceStatus) => onVerdict("mic", status), [onVerdict]);
-  const reportCamera = useCallback((status: DeviceStatus) => onVerdict("camera", status), [onVerdict]);
+  // A failure now carries its own retry, next to the message explaining it, so
+  // the footer control is left with the one case that is not a failure: a live
+  // screen share whose surface the candidate wants to change.
+  const showRestart = kind === "screen" && previews.screen.status === "running";
 
   return (
     <Dialog open={kind !== null} onOpenChange={(open) => !open && onClose()}>
@@ -204,20 +303,37 @@ export function DeviceTestDialog({
       >
         <div className="flex items-center gap-3 border-b border-line px-5 py-4">
           <DialogTitle className="flex-1 text-md leading-normal font-medium">
-            {kind === "mic" ? "Microphone test" : "Camera test"}
+            {kind ? TITLE[kind] : ""}
           </DialogTitle>
           <Button variant="ghost" size="sm" className="text-content-subtle" onClick={onClose}>
             Close
           </Button>
         </div>
 
-        {kind === "mic" && <MicTestPanel key={runId} onVerdict={reportMic} />}
-        {kind === "camera" && <CameraTestPanel key={runId} onVerdict={reportCamera} />}
+        {Panel && <Panel />}
 
         <div className="flex items-center gap-2.5 border-t border-line bg-surface-subtle px-5 py-3.5">
-          <Button variant="secondary" size="sm" onClick={() => setRunId((id) => id + 1)}>
-            Run test again
-          </Button>
+          {showRestart && (
+            <Button variant="secondary" size="sm" onClick={() => kind && restart(kind)}>
+              {kind === "screen" ? "Share something else" : "Try again"}
+            </Button>
+          )}
+          {kind && active[kind] && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-content-subtle"
+              onClick={() => {
+                // Releasing on request matters: a candidate who has finished
+                // checking should be able to close the camera before the
+                // interview rather than sit in front of a live one.
+                stop(kind);
+                onClose();
+              }}
+            >
+              {kind === "screen" ? "Stop sharing" : "Turn off"}
+            </Button>
+          )}
           <span className="flex-1" />
           <Button variant="primary" size="sm" onClick={onClose}>
             Looks good

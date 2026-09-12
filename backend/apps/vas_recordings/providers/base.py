@@ -20,6 +20,12 @@ class EgressStatus(StrEnum):
     LIMIT_REACHED = "limit_reached"
 
 
+class RoomNotReady(Exception):
+    """The provider has no such room yet. A room exists from the first join, so this is
+    the normal answer to "record this room" asked too early -- not a fault, and not
+    something a retry will fix."""
+
+
 @dataclass(frozen=True)
 class StorageUploadConfig:
     backend: str

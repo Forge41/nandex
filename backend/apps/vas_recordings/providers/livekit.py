@@ -16,6 +16,7 @@ from apps.vas_recordings.providers.base import (
     FileInfo,
     ProviderEvent,
     RecordingOptions,
+    RoomNotReady,
 )
 
 logger = logging.getLogger(__name__)
@@ -68,6 +69,13 @@ class LiveKitEgressProvider:
         client = self._client()
         try:
             info = await client.egress.start_room_composite_egress(request)
+        except api.ServerError as e:
+            # LiveKit answers not_found until the room's first participant joins. The SDK
+            # raises its own exception type, which is neither a ValueError nor anything a
+            # view would catch, so it would otherwise surface as a 500 and be retried.
+            if e.code == "not_found":
+                raise RoomNotReady(room_name) from e
+            raise
         finally:
             await client.aclose()
         return EgressResult(egress_id=info.egress_id, status=EgressStatus.STARTING)
