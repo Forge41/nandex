@@ -77,6 +77,9 @@ vas-worker: ## Run vas's Temporal worker (needs a Temporal server already runnin
 ingest-worker: ## Run ingest's Temporal worker (needs a Temporal server already running)
 	cd backend && uv run manage.py run_ingest_worker
 
+interview-worker: ## Run interview's Temporal worker -- reads resumes and writes the plan
+	cd backend && uv run manage.py run_interview_worker
+
 asgi: ## Run the full API under a real ASGI server (needed for core/chat/marketplace to work)
 	cd backend && uv run uvicorn config.asgi:application --reload
 

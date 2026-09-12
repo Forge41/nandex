@@ -51,9 +51,7 @@ async def _generate_behavioral(session: InterviewSession) -> dict | None:
         raise RoundContentUnusable("The round question was empty")
 
     derived = [
-        str(label).strip()
-        for label in written.get("derivedFrom") or []
-        if str(label).strip()
+        str(label).strip() for label in written.get("derivedFrom") or [] if str(label).strip()
     ][:3]
 
     content = {

@@ -213,8 +213,8 @@ async def test_only_rounds_with_a_generator_are_offered_for_preparing(session):
 
 
 async def test_a_round_already_prepared_is_not_offered_again(session):
-    await InterviewRound.objects.filter(
-        session_id=session["id"], stage_id="behavioral"
-    ).aupdate(content_state=InterviewRound.ContentState.READY)
+    await InterviewRound.objects.filter(session_id=session["id"], stage_id="behavioral").aupdate(
+        content_state=InterviewRound.ContentState.READY
+    )
 
     assert await rounds_needing_content_activity(session["id"], ["behavioral"]) == []

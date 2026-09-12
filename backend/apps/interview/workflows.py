@@ -106,7 +106,7 @@ class InterviewSessionWorkflow:
                 await workflow.wait_condition(
                     lambda: bool(self._reached) or self._ended, timeout=IDLE_LIMIT
                 )
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 return
             while self._reached:
                 await self._prepare(session_id, lookahead_from(self._reached.pop(0)))
@@ -165,7 +165,9 @@ class InterviewSessionWorkflow:
 
         for round_ in wanted:
             self._progress.steps.append(
-                PlanStep(f"round:{round_['stageId']}", f"Preparing {round_['label']}", state=RUNNING)
+                PlanStep(
+                    f"round:{round_['stageId']}", f"Preparing {round_['label']}", state=RUNNING
+                )
             )
 
         # Independent rounds, so they run together -- and gathered here rather than

@@ -36,12 +36,29 @@ PLAN = {
         {
             "id": "experience",
             "label": "Experience",
-            "paragraphs": [[{"text": "Owned the ledger handling "}, {"text": "1.4M transactions a day", "citation": 1}]],
+            "paragraphs": [
+                [
+                    {"text": "Owned the ledger handling "},
+                    {"text": "1.4M transactions a day", "citation": 1},
+                ]
+            ],
         }
     ],
     "probes": [
-        {"id": "p1", "title": "Ledger scale", "note": "Worth grounding", "citation": 1, "round": "behavioral"},
-        {"id": "p2", "title": "Retry safety", "note": "Core to the role", "citation": 1, "round": "coding"},
+        {
+            "id": "p1",
+            "title": "Ledger scale",
+            "note": "Worth grounding",
+            "citation": 1,
+            "round": "behavioral",
+        },
+        {
+            "id": "p2",
+            "title": "Retry safety",
+            "note": "Core to the role",
+            "citation": 1,
+            "round": "coding",
+        },
     ],
     "rounds": [
         {"id": "behavioral", "citation": 1, "summary": "Probe the ledger decision."},
@@ -169,9 +186,7 @@ async def test_the_plan_is_ready_before_any_round_content_is(
     worker, handle = await _start(temporal_env, session["id"], uploaded_resume)
     async with worker:
         await _wait_for(
-            lambda: InterviewSession.objects.filter(
-                id=session["id"], plan_state="ready"
-            ).acount()
+            lambda: InterviewSession.objects.filter(id=session["id"], plan_state="ready").acount()
         )
         ready_at_plan = await InterviewRound.objects.filter(
             session_id=session["id"], stage_id="behavioral", content_state="ready"
@@ -253,6 +268,7 @@ async def test_reaching_a_round_prepares_the_ones_after_it(
 
     worker, handle = await _start(temporal_env, session["id"], uploaded_resume)
     async with worker:
+
         async def both_ready():
             return (
                 await InterviewRound.objects.filter(

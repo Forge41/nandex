@@ -23,8 +23,12 @@ import type { StageId } from "./types";
 
 /** Rounds that join a real room. A set rather than an inequality so a stage can
  * never drift into it by accident: useSession calls prepareConnection() on
- * mount, which mints a token, so it must not be mounted during pre-flight. */
-export const LIVE_STAGES: ReadonlySet<StageId> = new Set<StageId>(["behavioral"]);
+ * mount, which mints a token, so it must not be mounted during pre-flight.
+ *
+ * "resume" is here because the interviewer greets the candidate over the
+ * generated plan and can be asked about it before anything is timed. Kept in
+ * step with LIVE_STAGE_IDS in backend/apps/interview/rounds.py by hand. */
+export const LIVE_STAGES: ReadonlySet<StageId> = new Set<StageId>(["resume", "behavioral"]);
 
 export type RoomConnection = "offline" | "connecting" | "live" | "degraded" | "failed" | "ended";
 

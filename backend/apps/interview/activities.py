@@ -67,9 +67,7 @@ async def generate_round_content_activity(session_id: str, stage_id: str) -> boo
     retry, and the workflow should carry on preparing the rounds that do have one.
     """
     session = await _session(session_id)
-    round_ = await InterviewRound.objects.filter(
-        session_id=session_id, stage_id=stage_id
-    ).afirst()
+    round_ = await InterviewRound.objects.filter(session_id=session_id, stage_id=stage_id).afirst()
     if round_ is None:
         return False
 

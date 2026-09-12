@@ -88,6 +88,7 @@ fi
 (cd backend && uv run manage.py run_vas_worker; kill 0) &
 (cd backend && uv run manage.py run_importer_worker; kill 0) &
 (cd backend && uv run manage.py run_ingest_worker; kill 0) &
+(cd backend && uv run manage.py run_interview_worker; kill 0) &
 (cd frontend && pnpm dev; kill 0) &
 
 # ---------------------------------------------------------------------------
@@ -116,6 +117,7 @@ printf "│  %-15s →  %-40s│\n" "Temporal gRPC" "localhost:$TEMPORAL_PORT"
 printf "│  %-15s →  %-40s│\n" "importer worker" "(no port -- task queue \"importer\")"
 printf "│  %-15s →  %-40s│\n" "ingest worker" "(no port -- task queue \"ingest\")"
 printf "│  %-15s →  %-40s│\n" "vas worker" "(no port -- task queue \"vas\")"
+printf "│  %-15s →  %-40s│\n" "interview worker" "(no port -- task queue \"interview\")"
 echo "└─────────────────────────────────────────────────────────────┘"
 echo ""
 
