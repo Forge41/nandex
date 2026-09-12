@@ -17,7 +17,7 @@ import { DevicePreviewProvider, useDevicePreviews } from "@/lib/interview/media/
 import { useScreenShareSupport } from "@/lib/interview/media/use-screen-share-support";
 import type { SharedSurface } from "@/lib/interview/media/use-screen-share-test";
 import { deriveDeviceGate, derivePreflightCta } from "@/lib/interview/selectors";
-import { createSession, uploadResume } from "@/lib/api/interview";
+import { createSession, patchSession, uploadResume } from "@/lib/api/interview";
 import { ApiError } from "@/lib/api/client";
 import type { ConsentState, DeviceKind, ResumeFile } from "@/lib/interview/types";
 
@@ -163,12 +163,16 @@ function PreflightBody() {
     void submit();
   };
 
-  /** Creates the interview, hands over the resume, and leaves.
+  /** Creates the interview, records what was agreed to, hands over the resume,
+   * and leaves.
    *
    * The session is created here rather than on page load so a visitor who never
-   * uploads anything leaves nothing behind. Reading the file and planning from
-   * it happen on the other side of the navigation, where a refresh resumes them
-   * instead of losing them.
+   * uploads anything leaves nothing behind. That means the consent boxes were
+   * ticked against a session with no id, which use-session-persistence rightly
+   * declines to send -- so it is sent here, before the resume and before any
+   * recording could be armed. A session that recorded someone whose agreement
+   * was never written down is the one outcome this whole screen exists to
+   * prevent.
    */
   const submit = async () => {
     if (chosen === null || sending) return;
@@ -176,6 +180,7 @@ function PreflightBody() {
     setSendError(null);
     try {
       const created = await createSession(session.roleTitle);
+      await patchSession(created.id, { consent: session.consent });
       await uploadResume(created.id, chosen.file);
       router.push(`/interview/${created.id}`);
     } catch (cause: unknown) {
