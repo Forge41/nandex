@@ -48,20 +48,24 @@ export function TestCasePanel({ task, tests }: { task: CodingTask; tests: TestCa
         })}
       </div>
 
-      <div className="border-b border-line px-3 py-2.5">
-        <Eyebrow>Complexity</Eyebrow>
-        <div className="mt-2 flex flex-col gap-[5px]">
-          {task.complexity.map((row) => (
-            <div key={row.label} className="flex justify-between text-xs">
-              <span className="text-content-subtle">{row.label}</span>
-              <Mono className={row.tone === "warning" ? "text-warning" : undefined}>{row.value}</Mono>
-            </div>
-          ))}
+      {task.complexity.length > 0 && (
+        <div className="border-b border-line px-3 py-2.5">
+          <Eyebrow>Complexity target</Eyebrow>
+          <div className="mt-2 flex flex-col gap-[5px]">
+            {task.complexity.map((row) => (
+              <div key={row.label} className="flex justify-between text-xs">
+                <span className="text-content-subtle">{row.label}</span>
+                <Mono className={row.tone === "warning" ? "text-warning" : undefined}>
+                  {row.value}
+                </Mono>
+              </div>
+            ))}
+          </div>
+          {task.complexityNote && (
+            <p className="t-xs mt-2 leading-[1.5] text-content-muted">{task.complexityNote}</p>
+          )}
         </div>
-        {task.complexityNote && (
-          <p className="t-xs mt-2 leading-[1.5] text-content-muted">{task.complexityNote}</p>
-        )}
-      </div>
+      )}
     </div>
   );
 }

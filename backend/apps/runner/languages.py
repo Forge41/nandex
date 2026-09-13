@@ -23,6 +23,12 @@ class Language:
     compile_ms: int
     run_ms: int
     memory_mb: int
+    # Scratch space, for the same reason memory is per language: a compiler needs room to
+    # write intermediate output, and a single-header test framework needs a great deal of
+    # it. Too small shows up as a compile error about the device being full, which reads
+    # like the candidate's fault and is not.
+    work_mb: int
+    tmp_mb: int
     # The file a candidate edits, and the one they may not. Core enforces this; the
     # runner records it so a task generated for the wrong shape fails loudly here too.
     default_solution: str
@@ -40,6 +46,8 @@ LANGUAGES: dict[str, Language] = {
         compile_ms=5_000,
         run_ms=15_000,
         memory_mb=256,
+        work_mb=64,
+        tmp_mb=32,
         default_solution="solution.py",
         default_tests="test_solution.py",
         harness="python",
@@ -53,6 +61,8 @@ LANGUAGES: dict[str, Language] = {
         # A JVM inside 256 MB dies before main(); -XX:MaxRAMPercentage in the harness
         # tells it about this number rather than letting it find out by being killed.
         memory_mb=768,
+        work_mb=256,
+        tmp_mb=128,
         default_solution="Solution.java",
         default_tests="SolutionTest.java",
         harness="java",
@@ -65,6 +75,8 @@ LANGUAGES: dict[str, Language] = {
         run_ms=20_000,
         # AddressSanitizer's shadow map wants considerably more than the program does.
         memory_mb=1024,
+        work_mb=512,
+        tmp_mb=512,
         default_solution="solution.c",
         default_tests="test_solution.cpp",
         harness="c",
@@ -76,6 +88,8 @@ LANGUAGES: dict[str, Language] = {
         compile_ms=60_000,
         run_ms=20_000,
         memory_mb=1024,
+        work_mb=512,
+        tmp_mb=512,
         default_solution="solution.cpp",
         default_tests="test_solution.cpp",
         harness="cpp",
@@ -88,6 +102,8 @@ LANGUAGES: dict[str, Language] = {
         compile_ms=60_000,
         run_ms=20_000,
         memory_mb=512,
+        work_mb=512,
+        tmp_mb=128,
         default_solution="query.sql",
         default_tests="schema.sql",
         harness="sql",

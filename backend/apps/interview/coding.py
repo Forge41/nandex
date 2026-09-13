@@ -55,6 +55,18 @@ def variant_for(task: dict, language: str) -> dict:
     return variant
 
 
+def case_list(task: dict, language: str) -> list[dict]:
+    """The cases that will run in this language.
+
+    Per variant when the variant says so. Tasks we generate share one canonical list by
+    construction, but an imported exercise names and counts its cases differently in every
+    track -- and the panel promises these are the cases that ran, so it has to follow the
+    file that runs them rather than a list that is merely nearby.
+    """
+    variant = (task.get("languages") or {}).get(language) or {}
+    return variant.get("tests") or task.get("tests") or []
+
+
 def editable_names(task: dict, language: str) -> set[str]:
     variant = variant_for(task, language)
     return {f["name"] for f in variant.get("files", []) if not f.get("readOnly")}
@@ -185,8 +197,8 @@ def serialize_run(run: CodeRun) -> dict:
     }
 
 
-def hidden_names(task: dict) -> set[str]:
-    return {t["name"] for t in task.get("tests", []) if t.get("hidden")}
+def hidden_names(task: dict, language: str = "") -> set[str]:
+    return {t["name"] for t in case_list(task, language) if t.get("hidden")}
 
 
 def attempt_state(session_id: str, stage_id: str, task_index: int) -> dict:
@@ -202,7 +214,11 @@ def attempt_state(session_id: str, stage_id: str, task_index: int) -> dict:
     already exist, and storing it would let it disagree with them.
     """
     task = task_for(session_id, stage_id, task_index)
-    hidden = hidden_names(task)
+    runs_all = CodeRun.objects.filter(
+        session_id=session_id, stage_id=stage_id, task_index=task_index
+    ).order_by("created_at")
+    language = runs_all.last().language if runs_all.exists() else ""
+    hidden = hidden_names(task, language)
     runs = list(
         CodeRun.objects.filter(
             session_id=session_id, stage_id=stage_id, task_index=task_index

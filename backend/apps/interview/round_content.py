@@ -16,7 +16,7 @@ from ai.client import complete
 from ai.prompt_loader import load_prompt
 from asgiref.sync import sync_to_async
 
-from apps.interview import coding_generation, sql_generation
+from apps.interview import coding_generation, sql_generation, task_bank
 from apps.interview.config import settings
 from apps.interview.models import InterviewRound, InterviewSession, ResumeFacts
 
@@ -79,6 +79,15 @@ async def _generate_coding(session: InterviewSession) -> dict | None:
         return None
 
     wanted = evidenced_language(brief)
+
+    # The bank first. Its tasks were proved runnable when they were imported, so setting
+    # one costs nothing and cannot fail in the middle of an interview -- where generating
+    # costs minutes and sometimes fails outright. Generation stays as the fallback for a
+    # bank that has nothing, which is the only case worth paying for it.
+    banked = task_bank.pick(CODING_TASKS, seed=session.id, language=wanted)
+    if len(banked) == CODING_TASKS:
+        return _from_bank(banked, wanted)
+
     tasks = []
     for index in range(CODING_TASKS):
         task = await coding_generation.generate_task({**brief, "taskNumber": index + 1})
@@ -94,6 +103,24 @@ async def _generate_coding(session: InterviewSession) -> dict | None:
         # language unless a task genuinely could not be written in it.
         wanted = task["defaultLanguage"]
         tasks.append(task)
+    return {"tasks": tasks, "defaultLanguage": tasks[0]["defaultLanguage"]}
+
+
+def _from_bank(banked: list[dict], wanted: str) -> dict:
+    tasks = []
+    for index, task in enumerate(banked):
+        available = list(task.get("languages") or {})
+        tasks.append(
+            {
+                **task,
+                "index": index + 1,
+                "total": len(banked),
+                # The evidenced language when this task has it, and what it does have
+                # otherwise. A track is not available for every exercise, and pointing the
+                # editor at one nobody imported would show an empty round.
+                "defaultLanguage": wanted if wanted in available else available[0],
+            }
+        )
     return {"tasks": tasks, "defaultLanguage": tasks[0]["defaultLanguage"]}
 
 

@@ -35,17 +35,28 @@ export function TaskBriefPanel({
 
       <div className="mt-4 h-px bg-line-strong" />
 
-      <Eyebrow className="mt-3.5 block">Example</Eyebrow>
-      <pre className="t-mono mt-2 overflow-x-auto rounded-sm border border-line bg-surface p-2.5 text-2xs leading-[1.6]">
-        {task.example}
-      </pre>
+      {/* Not every task has these. An imported exercise carries its instructions and
+          nothing else, and an empty Example box is a heading promising something that
+          is not there. */}
+      {task.example && (
+        <>
+          <Eyebrow className="mt-3.5 block">Example</Eyebrow>
+          <pre className="t-mono mt-2 overflow-x-auto rounded-sm border border-line bg-surface p-2.5 text-2xs leading-[1.6]">
+            {task.example}
+          </pre>
+        </>
+      )}
 
-      <Eyebrow className="mt-4 block">Constraints</Eyebrow>
-      <ul className="t-xs mt-2 list-disc pl-4 leading-[1.7] text-content-subtle">
-        {task.constraints.map((constraint) => (
-          <li key={constraint}>{constraint}</li>
-        ))}
-      </ul>
+      {task.constraints.length > 0 && (
+        <>
+          <Eyebrow className="mt-4 block">Constraints</Eyebrow>
+          <ul className="t-xs mt-2 list-disc pl-4 leading-[1.7] text-content-subtle">
+            {task.constraints.map((constraint) => (
+              <li key={constraint}>{constraint}</li>
+            ))}
+          </ul>
+        </>
+      )}
 
       <div className="mt-4 rounded-md border border-line bg-surface p-2.5">
         <div className="flex items-center justify-between">

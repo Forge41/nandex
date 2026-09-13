@@ -113,6 +113,7 @@ without a valid key.
 | `make vas-stack` | Start the containers `vas` needs: LiveKit, Egress, fake-GCS, Redis |
 | `make runner` | Run the code-execution sandbox on :8002 — loopback only, and it needs Docker |
 | `make runner-images` | Build the four sandbox images: Python, Java, C/C++, SQL |
+| `make import-tasks SLUGS=acronym,luhn` | Add Exercism exercises to the coding task bank |
 | `make frontend` | Run the Next.js dev server (proxies `/api/*` to the backend) |
 | `make migrate` | Apply pending database migrations for every app |
 | `make tps-migrate` / `importer-migrate` / `ingest-migrate` | Migrate just that one app |
@@ -132,6 +133,17 @@ containers on this host.
 `make runner-images` builds the four images the coding and SQL rounds run in. Without them, the
 Run button reports that the runner is unavailable rather than failing at click time, and the
 sandbox tests skip. `make up` builds them for you.
+
+**Coding tasks come from a bank, not from a model call during the interview.**
+`backend/apps/interview/task_bank/` holds them as JSON, imported from
+[Exercism](https://exercism.org) (MIT) with `make import-tasks`. Every one was executed on
+import -- its own reference solution had to pass its own tests in the real sandbox -- so a
+task that cannot be passed never reaches a candidate, and setting one costs nothing.
+Generation is the fallback for a bank with nothing suitable in it; it costs minutes and can
+fail mid-interview, which is why it is not the default.
+
+The licence travels with each task rather than living in a note elsewhere, because the
+attribution obligation belongs to the content.
 
 **Temporal is the one service `serve-all` does not own.** It starts one only when :7233 is free,
 and a server that was already running is reused and therefore outlives Ctrl-C — which is usually

@@ -202,8 +202,8 @@ def _container_args(spec: RunSpec, budget_ms: int) -> dict:
         # mode=1777 because the container runs as an unprivileged uid and a tmpfs is
         # created root-owned: without it the harness cannot write the files it is given.
         "tmpfs": {
-            "/work": "rw,exec,nosuid,size=64m,mode=1777",
-            "/tmp": "rw,nosuid,size=16m,mode=1777",
+            "/work": f"rw,exec,nosuid,size={language.work_mb}m,mode=1777",
+            "/tmp": f"rw,nosuid,size={language.tmp_mb}m,mode=1777",
         },
         "environment": {
             "HOME": "/work",

@@ -117,7 +117,7 @@ def _coding_sync(session: InterviewSession) -> dict | None:
     last = runs[-1] if runs else None
     task_index = last.task_index if last else 0
     task = tasks[min(task_index, len(tasks) - 1)]
-    hidden = coding.hidden_names(task)
+    hidden = coding.hidden_names(task, last.language if last else "")
 
     brief = {
         "taskNumber": task_index + 1,

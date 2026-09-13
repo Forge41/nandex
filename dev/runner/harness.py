@@ -99,7 +99,8 @@ def canonical(name, language):
     them shows every case as "not run" -- so the stripping happens here, once, rather
     than in each of the three places that consume a result.
     """
-    if language == "python":
+    # pytest and Unity both require a `test_` prefix on anything they collect.
+    if language in ("python", "c"):
         return name.removeprefix("test_")
     return name
 
@@ -218,13 +219,15 @@ def pytest_runtest_logreport(report):
 
 def run_java(compile_ms, run_ms):
     jar = os.environ["JUNIT_JAR"]
+    # Anything else the image carries for imported exercises, AssertJ among them.
+    classpath = os.pathsep.join(filter(None, [jar, os.environ.get("EXTRA_JARS", "")]))
     classes = WORK / "classes"
     classes.mkdir(exist_ok=True)
     sources = sorted(str(p) for p in WORK.glob("*.java"))
     if not sources:
         return {"phase": "compile_failed", "tests": []}
 
-    code, _ = shell(["javac", "-cp", jar, "-d", str(classes), *sources], compile_ms)
+    code, _ = shell(["javac", "-cp", classpath, "-d", str(classes), *sources], compile_ms)
     if code != 0:
         return {"phase": "compile_failed", "tests": []}
 
@@ -238,7 +241,7 @@ def run_java(compile_ms, run_ms):
             jar,
             "execute",
             "--class-path",
-            str(classes),
+            os.pathsep.join([str(classes), classpath]),
             "--scan-class-path",
             "--details=none",
             "--disable-ansi-colors",
@@ -261,8 +264,122 @@ def run_java(compile_ms, run_ms):
 
 
 def run_native(compile_ms, run_ms, language):
+    """C and C++, under whichever test framework the task brought with it.
+
+    Tasks we generate use GoogleTest. Imported exercises vendor their own -- Unity for C,
+    Catch2 for C++ -- and vendoring is what makes them runnable here at all: the framework
+    arrives in the tar with the task, so no image has to carry every framework anyone
+    might send.
+    """
+    if (WORK / "test-framework" / "unity.c").exists():
+        return run_unity(compile_ms, run_ms)
+    if (WORK / "test" / "catch.hpp").exists():
+        return run_catch(compile_ms, run_ms)
+    return run_gtest(compile_ms, run_ms)
+
+
+SANITIZE = "-fsanitize=address,undefined"
+
+
+def run_unity(compile_ms, run_ms):
+    """Unity, whose test file carries its own main() and RUN_TEST calls."""
     binary = WORK / "tests"
-    sanitize = "-fsanitize=address,undefined"
+    sources = [
+        *sorted(str(p) for p in WORK.glob("*.c")),
+        str(WORK / "test-framework" / "unity.c"),
+    ]
+    code, _ = shell(
+        [
+            "gcc",
+            "-std=c99",
+            "-g",
+            "-O0",
+            SANITIZE,
+            "-DUNITY_SUPPORT_64",
+            "-I",
+            str(WORK),
+            "-I",
+            str(WORK / "test-framework"),
+            *sources,
+            "-lm",
+            "-o",
+            str(binary),
+        ],
+        compile_ms,
+    )
+    if code != 0:
+        return {"phase": "compile_failed", "tests": []}
+
+    output = WORK / "unity.out"
+    code, elapsed = shell(["sh", "-c", f"{binary} | tee {output}"], run_ms)
+    return classify(code, unity_tests(output, elapsed))
+
+
+def unity_tests(path, elapsed_ms):
+    """Unity's own report line: `file.c:LINE:test_name:PASS`.
+
+    Machine output rather than a human summary -- Unity prints one line per case for
+    exactly this purpose, which is why reading it is not the same thing as parsing
+    "6 passed, 2 failed" out of a report.
+    """
+    if not path.exists():
+        return []
+    results = []
+    for line in path.read_text(errors="replace").splitlines():
+        parts = line.split(":")
+        if len(parts) < 4 or parts[3].strip() not in ("PASS", "FAIL", "IGNORE"):
+            continue
+        verdict = parts[3].strip()
+        if verdict == "IGNORE":
+            continue
+        result = {
+            "name": canonical(parts[2].strip(), "c"),
+            "outcome": "pass" if verdict == "PASS" else "fail",
+            "durationMs": 0,
+        }
+        results.append(result)
+        emit("test", result)
+    return results
+
+
+def run_catch(compile_ms, run_ms):
+    """Catch2, which writes JUnit XML on request -- the same shape as everything else."""
+    binary = WORK / "tests"
+    sources = sorted(str(p) for p in WORK.glob("*.cpp"))
+    sources.append(str(WORK / "test" / "tests-main.cpp"))
+    code, _ = shell(
+        [
+            "g++",
+            "-std=c++17",
+            "-g",
+            "-O0",
+            SANITIZE,
+            # Not EXERCISM_TEST_SUITE: that switches the include to a system Catch2 the
+            # image does not carry. RUN_ALL_TESTS unguards the cases past the first.
+            "-DEXERCISM_RUN_ALL_TESTS",
+            "-I",
+            str(WORK),
+            "-I",
+            str(WORK / "test"),
+            *sources,
+            "-o",
+            str(binary),
+        ],
+        compile_ms,
+    )
+    if code != 0:
+        return {"phase": "compile_failed", "tests": []}
+
+    report = WORK / "catch.xml"
+    code, _ = shell([str(binary), "-r", "junit", "-o", str(report), "-s"], run_ms)
+    tests = junit_tests(report, "cpp")
+    for test in tests:
+        emit("test", test)
+    return classify(code, tests)
+
+
+def run_gtest(compile_ms, run_ms):
+    binary = WORK / "tests"
     sources = sorted(str(p) for p in WORK.glob("*.cpp"))
     c_sources = sorted(str(p) for p in WORK.glob("*.c"))
 
@@ -270,7 +387,7 @@ def run_native(compile_ms, run_ms, language):
     for source in c_sources:
         obj = source + ".o"
         code, _ = shell(
-            ["gcc", "-std=c17", "-g", "-O0", sanitize, "-c", source, "-o", obj], compile_ms
+            ["gcc", "-std=c17", "-g", "-O0", SANITIZE, "-c", source, "-o", obj], compile_ms
         )
         if code != 0:
             return {"phase": "compile_failed", "tests": []}
@@ -282,7 +399,7 @@ def run_native(compile_ms, run_ms, language):
             "-std=c++20",
             "-g",
             "-O0",
-            sanitize,
+            SANITIZE,
             *sources,
             *objects,
             "-I",

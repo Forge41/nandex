@@ -116,7 +116,20 @@ async def verify(task: dict, language: str, generated: dict) -> None:
     """
     files = {f["name"]: f["content"] for f in generated["files"]}
     files[SOLUTION_NAMES[language]] = generated["reference"]
+    await verify_files(language, files, {t["name"] for t in task["tests"]})
 
+
+async def verify_files(
+    language: str, files: dict[str, str], expected: set[str] | None = None
+) -> list[dict]:
+    """The check both paths share: does this actually run, and are these the cases?
+
+    Returns the cases the run reported. For an imported exercise that return value **is**
+    the canonical list -- reading case names out of a test file means writing a parser per
+    framework, and those parsers get multi-line declarations and concatenated strings
+    wrong. The run already knows. `expected` is for the generated path, where the task
+    declared its cases first and the run has to agree with them.
+    """
     done = None
     for event in await sync_to_async(_run_sync, thread_sensitive=False)(language, files):
         if event["event"] == "done":
@@ -127,14 +140,18 @@ async def verify(task: dict, language: str, generated: dict) -> None:
             f"the reference solution did not run ({(done or {}).get('phase', 'no result')})"
         )
 
-    reported = {t["name"] for t in done.get("tests", []) if t.get("name")}
-    expected = {t["name"] for t in task["tests"]}
-    if reported != expected:
+    ran = [t for t in done.get("tests", []) if t.get("name")]
+    if not ran:
+        raise TaskUnusable("the reference solution ran no tests")
+
+    reported = {t["name"] for t in ran}
+    if expected is not None and reported != expected:
         raise TaskUnusable(f"tests ran {sorted(reported)}, task promises {sorted(expected)}")
 
-    failed = [t["name"] for t in done["tests"] if t.get("outcome") == "fail"]
+    failed = [t["name"] for t in ran if t.get("outcome") == "fail"]
     if failed:
         raise TaskUnusable(f"the reference solution fails its own tests: {failed}")
+    return ran
 
 
 def _run_sync(language: str, files: dict[str, str]) -> list[dict]:
