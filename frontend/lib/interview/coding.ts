@@ -1,4 +1,4 @@
-import type { AttemptOutcome, CodingTask, TestCase } from "./types";
+import type { AttemptOutcome, TestCase } from "./types";
 import type { SegmentTone } from "@/components/ui/segmented-progress";
 import type { DotTone } from "@/components/ui/indicators";
 
@@ -49,15 +49,15 @@ const ATTEMPT_TONE: Record<AttemptOutcome, SegmentTone> = {
 
 /** The attempts meter, padded to the allowance.
  *
- * Derived rather than read straight off the task, because a task that has never
- * been run carries no outcomes at all and the meter still has to draw. */
-export function attemptSegments(task: CodingTask): SegmentTone[] {
-  const outcomes = task.attemptOutcomes ?? [];
-  return Array.from({ length: task.attemptsAllowed }, (_, index) =>
-    ATTEMPT_TONE[outcomes[index] ?? "unused"]
+ * Padded rather than read straight off the outcomes, because a task nobody has run
+ * carries none at all and the meter still has to draw. */
+export function attemptSegments(attempts: {
+  attemptsAllowed: number;
+  attemptOutcomes?: AttemptOutcome[];
+}): SegmentTone[] {
+  const outcomes = attempts.attemptOutcomes ?? [];
+  return Array.from(
+    { length: attempts.attemptsAllowed },
+    (_, index) => ATTEMPT_TONE[outcomes[index] ?? "unused"]
   );
-}
-
-export function attemptsUsed(task: CodingTask): number {
-  return task.attemptsUsed ?? task.attemptOutcomes?.filter((o) => o !== "unused").length ?? 0;
 }

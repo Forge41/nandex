@@ -187,13 +187,24 @@ def serialize_run(run: CodeRun) -> dict:
     }
 
 
+def hidden_names(task: dict) -> set[str]:
+    return {t["name"] for t in task.get("tests", []) if t.get("hidden")}
+
+
 def attempt_state(session_id: str, stage_id: str, task_index: int) -> dict:
     """What the attempts meter and the last-run line render from.
+
+    **Nothing here is computed from a hidden case's outcome.** A summary reading "3 of 3
+    passed" beside a panel reading "2 of 2 passing" tells the candidate exactly what the
+    hidden case did, and an attempt bar that turns amber while every visible case passed
+    says the same thing more quietly. Hidden means the candidate does not learn the
+    result; the whole outcome stays on the run row for whoever reviews the interview.
 
     `lastRunSummary` is derived rather than stored: it is a sentence about numbers that
     already exist, and storing it would let it disagree with them.
     """
     task = task_for(session_id, stage_id, task_index)
+    hidden = hidden_names(task)
     runs = list(
         CodeRun.objects.filter(
             session_id=session_id, stage_id=stage_id, task_index=task_index
@@ -205,11 +216,13 @@ def attempt_state(session_id: str, stage_id: str, task_index: int) -> dict:
     state = {
         "attemptsAllowed": allowed,
         "attemptsUsed": len(scored),
-        "attemptOutcomes": [run.outcome for run in scored][:allowed],
+        "attemptOutcomes": [
+            run.outcome_over(run.visible_tests(hidden)) for run in scored
+        ][:allowed],
     }
     last = runs[-1] if runs else None
     if last is not None and last.phase == CodeRun.Phase.RAN:
-        reported = [t for t in last.tests if t.get("outcome")]
+        reported = [t for t in last.visible_tests(hidden) if t.get("outcome")]
         passed = sum(1 for t in reported if t["outcome"] == "pass")
         state["lastRunSummary"] = f"Last run: {passed} of {len(reported)} tests passed"
     elif last is not None and last.phase == CodeRun.Phase.COMPILE_FAILED:

@@ -241,3 +241,73 @@ def test_a_compile_failure_says_so_rather_than_reporting_a_score(coded):
     assert state["lastRunSummary"] == "Last run: didn't compile, so no attempt was used"
     assert state["attemptOutcomes"] == []
     assert state["attemptsUsed"] == 0
+
+
+HIDDEN_TASK = {
+    **TASK,
+    "tests": [
+        {"name": "visible_one", "hidden": False},
+        {"name": "visible_two", "hidden": False},
+        {"name": "scale", "hidden": True},
+    ],
+}
+
+
+@pytest.fixture
+def with_hidden(client, session):
+    InterviewRound.objects.filter(session_id=session["id"], stage_id="coding").update(
+        content={"tasks": [HIDDEN_TASK], "defaultLanguage": "python"},
+        content_state=InterviewRound.ContentState.READY,
+    )
+    return session["id"]
+
+
+def test_the_summary_never_counts_a_hidden_case(with_hidden):
+    """"3 of 3 passed" beside a panel reading "2 of 2 passing" is the hidden result,
+    spelled out in arithmetic."""
+    _run(
+        with_hidden,
+        CodeRun.Phase.RAN,
+        [
+            {"name": "visible_one", "outcome": "pass"},
+            {"name": "visible_two", "outcome": "pass"},
+            {"name": "scale", "outcome": "pass"},
+        ],
+        1,
+    )
+
+    state = coding.attempt_state(with_hidden, "coding", 0)
+
+    assert state["lastRunSummary"] == "Last run: 2 of 2 tests passed"
+
+
+def test_a_hidden_failure_does_not_turn_the_attempt_bar_amber(with_hidden):
+    """A bar going partial while every visible case passed says a hidden one failed."""
+    _run(
+        with_hidden,
+        CodeRun.Phase.RAN,
+        [
+            {"name": "visible_one", "outcome": "pass"},
+            {"name": "visible_two", "outcome": "pass"},
+            {"name": "scale", "outcome": "fail"},
+        ],
+        1,
+    )
+
+    state = coding.attempt_state(with_hidden, "coding", 0)
+
+    assert state["attemptOutcomes"] == ["pass"]
+    assert state["lastRunSummary"] == "Last run: 2 of 2 tests passed"
+
+
+def test_the_run_row_still_records_the_hidden_failure_for_a_reviewer(with_hidden):
+    """Hidden from the candidate, not from whoever reads the interview afterwards."""
+    run = _run(
+        with_hidden,
+        CodeRun.Phase.RAN,
+        [{"name": "visible_one", "outcome": "pass"}, {"name": "scale", "outcome": "fail"}],
+        1,
+    )
+
+    assert run.outcome == "partial"
+    assert {t["name"]: t["outcome"] for t in run.tests}["scale"] == "fail"

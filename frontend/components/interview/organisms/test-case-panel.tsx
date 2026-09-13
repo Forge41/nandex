@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Eyebrow, Mono } from "@/components/ui/typography";
 import { StatusDot } from "@/components/ui/indicators";
 import { testDot, testLabel, testSummary } from "@/lib/interview/coding";
-import type { CodingTask } from "@/lib/interview/types";
+import type { CodingTask, TestCase } from "@/lib/interview/types";
 
 const SUMMARY_TONE = {
   "not-run": "neutral",
@@ -10,8 +10,8 @@ const SUMMARY_TONE = {
   passing: "success",
 } as const;
 
-export function TestCasePanel({ task }: { task: CodingTask }) {
-  const summary = testSummary(task.tests);
+export function TestCasePanel({ task, tests }: { task: CodingTask; tests: TestCase[] }) {
+  const summary = testSummary(tests);
 
   return (
     <div className="scrollbar-thin w-[288px] shrink-0 overflow-y-auto border-l border-line bg-surface">
@@ -23,7 +23,7 @@ export function TestCasePanel({ task }: { task: CodingTask }) {
       </div>
 
       <div className="flex flex-col">
-        {task.tests.map((test) => {
+        {tests.map((test) => {
           const isFail = !test.hidden && test.outcome === "fail";
           const isMuted = test.hidden || test.outcome === undefined;
 

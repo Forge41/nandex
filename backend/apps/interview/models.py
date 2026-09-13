@@ -368,15 +368,23 @@ class CodeRun(models.Model):
 
     @property
     def outcome(self) -> str:
-        """pass, partial or fail -- what the attempts meter fills with.
+        """pass, partial or fail over every case, hidden ones included.
 
-        `partial` is the ordinary result once runs are real, and the reason the meter
-        needs a third colour.
+        The whole truth, for whoever reviews this interview. What the candidate is shown
+        is `outcome_over(visible_tests(...))`, which is deliberately not the same thing.
         """
-        reported = [t for t in self.tests if t.get("outcome")]
+        return self.outcome_over(self.tests)
+
+    def outcome_over(self, tests: list[dict]) -> str:
+        """`partial` is the ordinary result once runs are real, and the reason the
+        attempts meter needs a third colour."""
+        reported = [t for t in tests if t.get("outcome")]
         if not reported:
             return "fail"
         passed = sum(1 for t in reported if t["outcome"] == "pass")
         if passed == len(reported):
             return "pass"
         return "fail" if passed == 0 else "partial"
+
+    def visible_tests(self, hidden_names: set[str]) -> list[dict]:
+        return [t for t in self.tests if t.get("name") not in hidden_names]

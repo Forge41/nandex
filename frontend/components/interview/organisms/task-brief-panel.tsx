@@ -1,10 +1,19 @@
 import { Badge } from "@/components/ui/badge";
 import { Eyebrow, Mono } from "@/components/ui/typography";
 import { SegmentedProgress } from "@/components/ui/segmented-progress";
-import { attemptSegments, attemptsUsed } from "@/lib/interview/coding";
+import { attemptSegments } from "@/lib/interview/coding";
+import type { AttemptState } from "@/lib/api/coding";
 import type { CodingTask } from "@/lib/interview/types";
 
-export function TaskBriefPanel({ task }: { task: CodingTask }) {
+export function TaskBriefPanel({
+  task,
+  attempts,
+}: {
+  task: CodingTask;
+  /** The server's count, derived from the run rows. A compile failure is not among
+   * them, so it does not show here either. */
+  attempts: AttemptState;
+}) {
   return (
     <div className="scrollbar-thin w-[300px] shrink-0 overflow-y-auto border-r border-line bg-surface-subtle px-4.5 pt-4.5 pb-6">
       <div className="flex items-center gap-1.5">
@@ -42,15 +51,17 @@ export function TaskBriefPanel({ task }: { task: CodingTask }) {
         <div className="flex items-center justify-between">
           <Eyebrow>Attempts</Eyebrow>
           <Mono className="text-xs">
-            {attemptsUsed(task)} / {task.attemptsAllowed}
+            {attempts.attemptsUsed} / {attempts.attemptsAllowed}
           </Mono>
         </div>
         <SegmentedProgress
           className="mt-2 gap-1"
           segmentClassName="h-1"
-          segments={attemptSegments(task)}
+          segments={attemptSegments(attempts)}
         />
-        {task.lastRunSummary && <p className="t-xs mt-2 text-content-muted">{task.lastRunSummary}</p>}
+        {attempts.lastRunSummary && (
+          <p className="t-xs mt-2 text-content-muted">{attempts.lastRunSummary}</p>
+        )}
       </div>
     </div>
   );

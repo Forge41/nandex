@@ -142,7 +142,7 @@ export interface DeviceReport {
   detail?: string;
 }
 
-export type CodeLanguage = "python" | "go" | "typescript" | "sql";
+export type CodeLanguage = "python" | "java" | "c" | "cpp" | "sql";
 
 export interface CodeFile {
   name: string;
@@ -178,6 +178,13 @@ export interface TerminalLine {
   text: string;
 }
 
+/** One language's files for a task. Absent until that language is generated --
+ * only the evidenced one is prepared up front, because four languages times two
+ * tasks is eight generations for a round almost nobody answers twice. */
+export interface LanguageVariant {
+  files: CodeFile[];
+}
+
 export interface CodingTask {
   index: number;
   total: number;
@@ -194,8 +201,11 @@ export interface CodingTask {
   attemptsUsed?: number;
   attemptOutcomes?: AttemptOutcome[];
   lastRunSummary?: string;
-  files: CodeFile[];
-  languages: CodeLanguage[];
+  /** Keyed by language: the same task is answered in four of them, each with its
+   * own starter and test files. */
+  languages: Partial<Record<CodeLanguage, LanguageVariant>>;
+  /** The canonical case list -- the same names in every language, so the panel
+   * beside the editor means the same thing whichever chip is selected. */
   tests: TestCase[];
   terminal?: TerminalLine[];
   exitCode?: number;
@@ -313,7 +323,9 @@ export interface WrapUp {
 /** Round content, keyed by the round it belongs to. Absent entries mean the
  * server has not generated that round yet. */
 export interface RoundContent {
-  coding?: CodingTask;
+  /** A round holds more than one task -- the header reads "Task 1 of 2" -- so the
+   * generated content is the list and `total` is its length. */
+  coding?: { tasks: CodingTask[]; defaultLanguage: CodeLanguage };
   sql?: SqlTask;
   debug?: DebugTask;
   design?: DesignTask;

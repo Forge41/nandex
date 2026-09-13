@@ -1,28 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { attemptSegments, attemptsUsed, testDot, testLabel, testSummary } from "./coding";
-import type { CodingTask, TestCase } from "./types";
+import { attemptSegments, testDot, testLabel, testSummary } from "./coding";
+import type { TestCase } from "./types";
 
 function test_(name: string, over: Partial<TestCase> = {}): TestCase {
   return { name, hidden: false, ...over };
 }
 
-function task(over: Partial<CodingTask> = {}): CodingTask {
-  return {
-    index: 1,
-    total: 1,
-    title: "Retry-safe applier",
-    difficulty: "gold",
-    difficultyLabel: "Medium",
-    brief: [],
-    example: "",
-    constraints: [],
-    attemptsAllowed: 3,
-    files: [],
-    languages: ["python"],
-    tests: [],
-    complexity: [],
-    ...over,
-  };
+function attempts(over: Partial<{ attemptsAllowed: number; attemptOutcomes: ("pass" | "partial" | "fail" | "unused")[] }> = {}) {
+  return { attemptsAllowed: 3, attemptsUsed: 0, ...over };
 }
 
 describe("testSummary", () => {
@@ -101,25 +86,26 @@ describe("testLabel", () => {
 
 describe("attempts", () => {
   it("draws an empty meter for a task nobody has run", () => {
-    expect(attemptSegments(task())).toEqual(["off", "off", "off"]);
-    expect(attemptsUsed(task())).toBe(0);
+    expect(attemptSegments(attempts())).toEqual(["off", "off", "off"]);
   });
 
   it("fills a partial run in warning, between a pass and a failure", () => {
-    const segments = attemptSegments(task({ attemptOutcomes: ["fail", "partial", "pass"] }));
+    const segments = attemptSegments(attempts({ attemptOutcomes: ["fail", "partial", "pass"] }));
 
     expect(segments).toEqual(["danger", "warning", "success"]);
   });
 
   it("pads to the allowance when fewer attempts were taken", () => {
-    expect(attemptSegments(task({ attemptOutcomes: ["partial"] }))).toEqual([
+    expect(attemptSegments(attempts({ attemptOutcomes: ["partial"] }))).toEqual([
       "warning",
       "off",
       "off",
     ]);
   });
 
-  it("derives the count from the outcomes when the server sent no total", () => {
-    expect(attemptsUsed(task({ attemptOutcomes: ["fail", "partial", "unused"] }))).toBe(2);
+  it("never draws more segments than the allowance", () => {
+    expect(
+      attemptSegments(attempts({ attemptsAllowed: 2, attemptOutcomes: ["fail", "pass", "pass"] }))
+    ).toHaveLength(2);
   });
 });

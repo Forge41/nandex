@@ -106,9 +106,12 @@ def junit_tests(path):
         skipped = case.find("skipped") is not None
         if skipped:
             continue
+        # JUnit reports a Java method as "adds()"; the canonical case list this is
+        # checked against uses the bare name, and a mismatch there is a hard failure.
+        name = case.get("name", "").strip().removesuffix("()")
         results.append(
             {
-                "name": case.get("name", "").strip(),
+                "name": name,
                 "outcome": "fail" if failed else "pass",
                 "durationMs": int(float(case.get("time") or 0) * 1000),
             }

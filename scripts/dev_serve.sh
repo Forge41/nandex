@@ -16,6 +16,7 @@ cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 HTTP_PORT=8000
 VAS_PORT=8001
+RUNNER_PORT=8002
 GRPC_PORT=50051
 FRONTEND_PORT=3000
 TEMPORAL_PORT=7233
@@ -58,7 +59,7 @@ fi
 # Clean up anything left bound to our ports from a previous crashed run
 # ---------------------------------------------------------------------------
 
-for port in "$HTTP_PORT" "$VAS_PORT" "$GRPC_PORT" "$FRONTEND_PORT"; do
+for port in "$HTTP_PORT" "$VAS_PORT" "$RUNNER_PORT" "$GRPC_PORT" "$FRONTEND_PORT"; do
     lsof -ti ":$port" 2>/dev/null | xargs kill -9 2>/dev/null || true
 done
 
@@ -98,6 +99,9 @@ fi
 (cd backend && uv run manage.py run_importer_worker; kill 0) &
 (cd backend && uv run manage.py run_ingest_worker; kill 0) &
 (cd backend && uv run manage.py run_interview_worker; kill 0) &
+# Loopback only, deliberately: this is the one process that can start containers on the
+# host, and publishing it would put that behind a single leaked token.
+(cd backend && uv run uvicorn config.runner_asgi:application --host 127.0.0.1 --port 8002 --reload; kill 0) &
 # Deliberately not `kill 0`, unlike every line above it. The workers share the stack's
 # fate because a silently dead worker leaves work queued and nothing to run it. The
 # interviewer is different: without it a candidate gets no interviewer and everything
