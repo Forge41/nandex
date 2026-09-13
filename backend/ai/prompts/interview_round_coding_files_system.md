@@ -19,6 +19,13 @@ Write a correct solution that passes every one of your own tests. It is never sh
 candidate — it exists so the task can be proven solvable before anybody is graded against
 it. If you cannot write one that passes, the task or the tests are wrong.
 
+## The tests have to actually run
+
+Each case gets roughly a couple of seconds and a few hundred megabytes, with no network. A
+case that allocates for millions of items, or loops for millions of iterations, will be
+killed and the whole task thrown away. Test a scale property at a size that fits — a few
+thousand operations is enough to show a structure stays bounded.
+
 ## Rules
 
 - Standard library only. Nothing is installed at run time.

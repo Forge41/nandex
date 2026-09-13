@@ -8,7 +8,7 @@ import { useInterviewSession } from "@/lib/interview/session-provider";
 import { useCodingRound } from "@/lib/interview/use-coding-round";
 import { testLabel, testSummary } from "@/lib/interview/coding";
 import type { SqlResult, SqlTask } from "@/lib/interview/types";
-import { MissingRoundContent } from "./missing-round-content";
+import { MissingRoundContent, isGenerating } from "./missing-round-content";
 
 const QUERY_FILE = "query.sql";
 
@@ -17,7 +17,9 @@ export function SqlStage() {
   const content = session.content.sql;
   const roundNumber = session.rounds.findIndex((r) => r.id === "sql") + 1;
 
-  if (!content || content.tasks.length === 0) return <MissingRoundContent />;
+  if (!content || content.tasks.length === 0) {
+    return <MissingRoundContent generating={isGenerating(session, "sql")} />;
+  }
   return (
     <SqlRound
       sessionId={session.id}

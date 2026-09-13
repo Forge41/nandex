@@ -12,7 +12,7 @@ import { TerminalPanel } from "@/components/interview/organisms/terminal-panel";
 import { useInterviewSession } from "@/lib/interview/session-provider";
 import { useCodingRound } from "@/lib/interview/use-coding-round";
 import type { CodeLanguage } from "@/lib/interview/types";
-import { MissingRoundContent } from "./missing-round-content";
+import { MissingRoundContent, isGenerating } from "./missing-round-content";
 
 const LANGUAGE_LABEL: Record<CodeLanguage, string> = {
   python: "Python",
@@ -36,7 +36,9 @@ export function CodingStage() {
   const { session, dispatch } = useInterviewSession();
   const content = session.content.coding;
 
-  if (!content || content.tasks.length === 0) return <MissingRoundContent />;
+  if (!content || content.tasks.length === 0) {
+    return <MissingRoundContent generating={isGenerating(session, "coding")} />;
+  }
   return <CodingRound sessionId={session.id} content={content} onFinish={() => dispatch({ type: "ADVANCE" })} />;
 }
 

@@ -5,9 +5,11 @@ import { fetchSession } from "@/lib/api/interview";
 import { useInterviewSession } from "@/lib/interview/session-provider";
 
 const POLL_MS = 3000;
-/** Two minutes of asking. Past that the round is not being written -- six stages
- * still have no generator, and a poll with no end is worse than an empty round. */
-const MAX_POLLS = 40;
+/** Ten minutes of asking. A coding round is generated per language and each one is
+ * verified by actually compiling and running it, so a few minutes is ordinary. Past
+ * that the round is not being written -- and a poll with no end is worse than an
+ * empty round. */
+const MAX_POLLS = 200;
 
 /** Folds in rounds the server is still writing, while the candidate reads.
  *
@@ -18,12 +20,16 @@ const MAX_POLLS = 40;
 export function SessionSync() {
   const { session, dispatch } = useInterviewSession();
 
-  // Only the round the candidate is about to start. The ones beyond it are being
-  // prepared too, but nothing on screen is waiting for them -- and watching every
-  // round would mean watching the six that have no generator, forever.
+  // The round the candidate is looking at, and the one after it. The active round
+  // matters most: a candidate who arrives before their task is written is staring at
+  // the one screen on which nothing else will tell them it is coming. The ones beyond
+  // these are being prepared too, but nothing on screen is waiting for them -- and
+  // watching every round would mean watching the stages that have no generator, forever.
   const index = session.rounds.findIndex((round) => round.id === session.activeStage);
-  const next = index >= 0 ? session.rounds[index + 1] : undefined;
-  const waiting = next?.contentState === "pending" || next?.contentState === "generating";
+  const watched = index >= 0 ? [session.rounds[index], session.rounds[index + 1]] : [];
+  const waiting = watched.some(
+    (round) => round?.contentState === "pending" || round?.contentState === "generating"
+  );
 
   useEffect(() => {
     if (!waiting || !session.id) return;
