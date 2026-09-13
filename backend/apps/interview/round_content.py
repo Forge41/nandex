@@ -17,7 +17,7 @@ from ai.prompt_loader import load_prompt
 from asgiref.sync import sync_to_async
 
 from apps.interview.config import settings
-from apps.interview import coding_generation
+from apps.interview import coding_generation, sql_generation
 from apps.interview.models import InterviewRound, InterviewSession, ResumeFacts
 
 logger = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 # regenerated. Capped, because an uncapped retry is an unbounded wait in a timed round.
 GENERATION_ATTEMPTS = 3
 
-GENERATABLE_STAGE_IDS = frozenset({"behavioral", "coding"})
+GENERATABLE_STAGE_IDS = frozenset({"behavioral", "coding", "sql"})
 
 # How many tasks one coding round holds. Fixed here rather than left to whatever the model
 # emits, so two candidates sitting the same round get the same shape of interview.
@@ -42,7 +42,29 @@ async def generate(session: InterviewSession, stage_id: str) -> dict | None:
         return None
     if stage_id == "coding":
         return await _generate_coding(session)
+    if stage_id == "sql":
+        return await _generate_sql(session)
     return await _generate_behavioral(session)
+
+
+async def _generate_sql(session: InterviewSession) -> dict | None:
+    brief = await sync_to_async(_brief_sync, thread_sensitive=True)(session.id, "sql")
+    if brief is None:
+        return None
+    last: Exception | None = None
+    for _ in range(GENERATION_ATTEMPTS):
+        try:
+            task = await sql_generation.generate(brief)
+        except coding_generation.TaskUnusable as e:
+            logger.warning("regenerating the SQL task: %s", e)
+            last = e
+            continue
+        # Internals the generator needed and nothing else should keep.
+        for key in [k for k in task if k.startswith("_")]:
+            task.pop(key)
+        task["index"], task["total"] = 1, 1
+        return {"tasks": [task], "defaultLanguage": "sql"}
+    raise coding_generation.TaskUnusable(str(last))
 
 
 async def _generate_coding(session: InterviewSession) -> dict | None:

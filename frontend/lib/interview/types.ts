@@ -185,28 +185,34 @@ export interface LanguageVariant {
   files: CodeFile[];
 }
 
-export interface CodingTask {
+/** What the coding and SQL rounds have in common: a task you attempt, in a
+ * language, whose result comes from a run. */
+export interface RunnableTask {
   index: number;
   total: number;
   title: string;
-  difficulty: Tone;
-  difficultyLabel: string;
-  brief: string[];
-  example: string;
-  constraints: string[];
   attemptsAllowed: number;
-  /** The fields below are produced by a run, so a task nobody has run carries
-   * none of them. A generated value here would be a test result for code that
-   * never executed. */
-  attemptsUsed?: number;
-  attemptOutcomes?: AttemptOutcome[];
-  lastRunSummary?: string;
+  citation?: number;
   /** Keyed by language: the same task is answered in four of them, each with its
    * own starter and test files. */
   languages: Partial<Record<CodeLanguage, LanguageVariant>>;
   /** The canonical case list -- the same names in every language, so the panel
    * beside the editor means the same thing whichever chip is selected. */
   tests: TestCase[];
+}
+
+export interface CodingTask extends RunnableTask {
+  difficulty: Tone;
+  difficultyLabel: string;
+  brief: string[];
+  example: string;
+  constraints: string[];
+  /** The fields below are produced by a run, so a task nobody has run carries
+   * none of them. A generated value here would be a test result for code that
+   * never executed. */
+  attemptsUsed?: number;
+  attemptOutcomes?: AttemptOutcome[];
+  lastRunSummary?: string;
   terminal?: TerminalLine[];
   exitCode?: number;
   complexity: { label: string; value: string; tone?: Tone }[];
@@ -218,16 +224,20 @@ export interface SchemaTable {
   columns: { name: string; type: string }[];
 }
 
-export interface SqlTask {
+/** The starter query is a file like any other; the schema, seed and expected
+ * result are files the sandbox gets and the browser never does. */
+export interface SqlTask extends RunnableTask {
   prompt: string;
   schema: SchemaTable[];
-  query: string;
+}
+
+/** A result grid, as a run produced it. Absent means no query has been run --
+ * which is where the round starts, and nothing to apologise for. */
+export interface SqlResult {
   columns: string[];
-  rows: (string | number)[][];
+  rows: string[][];
   /** Right-aligned like a spreadsheet; indexes into `columns`. */
   numericColumns: number[];
-  timing?: string;
-  caveat?: string;
 }
 
 export interface DebugTask {
@@ -326,7 +336,7 @@ export interface RoundContent {
   /** A round holds more than one task -- the header reads "Task 1 of 2" -- so the
    * generated content is the list and `total` is its length. */
   coding?: { tasks: CodingTask[]; defaultLanguage: CodeLanguage };
-  sql?: SqlTask;
+  sql?: { tasks: SqlTask[]; defaultLanguage: CodeLanguage };
   debug?: DebugTask;
   design?: DesignTask;
   quiz?: QuizQuestion;

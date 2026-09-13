@@ -24,15 +24,23 @@ from apps.interview.models import CodeRun
 
 logger = logging.getLogger(__name__)
 
-STAGE_ID = "coding"
+# The rounds that run code. Both use the same machinery -- an attempt, a sandbox, a
+# recorded result -- and differ only in which runner image serves them.
+RUNNABLE_STAGES = ("coding", "sql")
 _SENTINEL = object()
 
 
+def _stage(stage_id: str) -> str | None:
+    return stage_id if stage_id in RUNNABLE_STAGES else None
+
+
 @csrf_exempt
-async def session_draft(request: HttpRequest, session_id: str) -> HttpResponse:
+async def session_draft(request: HttpRequest, session_id: str, stage_id: str) -> HttpResponse:
     session, error = await _session_for(request, session_id)
     if error is not None:
         return error
+    if _stage(stage_id) is None:
+        return JsonResponse({"detail": "That round does not run code"}, status=404)
     if request.method != "PUT":
         return JsonResponse({"detail": "Method not allowed"}, status=405)
 
@@ -44,7 +52,7 @@ async def session_draft(request: HttpRequest, session_id: str) -> HttpResponse:
     try:
         await sync_to_async(coding.save_draft, thread_sensitive=True)(
             session_id=session.id,
-            stage_id=STAGE_ID,
+            stage_id=stage_id,
             task_index=task_index,
             language=language,
             name=name,
@@ -59,15 +67,19 @@ async def session_draft(request: HttpRequest, session_id: str) -> HttpResponse:
 
 
 @csrf_exempt
-async def session_runs(request: HttpRequest, session_id: str) -> HttpResponse:
+async def session_runs(request: HttpRequest, session_id: str, stage_id: str) -> HttpResponse:
     session, error = await _session_for(request, session_id)
     if error is not None:
         return error
+    if _stage(stage_id) is None:
+        return JsonResponse({"detail": "That round does not run code"}, status=404)
 
     if request.method == "GET":
         task_index = int(request.GET.get("taskIndex") or 0)
         return JsonResponse(
-            await sync_to_async(_past_runs, thread_sensitive=True)(session.id, task_index)
+            await sync_to_async(_past_runs, thread_sensitive=True)(
+                session.id, stage_id, task_index
+            )
         )
 
     if request.method != "POST":
@@ -80,13 +92,13 @@ async def session_runs(request: HttpRequest, session_id: str) -> HttpResponse:
     try:
         files = await sync_to_async(coding.runner_payload, thread_sensitive=True)(
             session_id=session.id,
-            stage_id=STAGE_ID,
+            stage_id=stage_id,
             task_index=task_index,
             language=language,
         )
         run = await sync_to_async(coding.claim_attempt, thread_sensitive=True)(
             session_id=session.id,
-            stage_id=STAGE_ID,
+            stage_id=stage_id,
             task_index=task_index,
             language=language,
             files=files,
@@ -158,13 +170,13 @@ def _failed(phase: str, detail: str) -> dict:
     }
 
 
-def _past_runs(session_id: str, task_index: int) -> dict:
+def _past_runs(session_id: str, stage_id: str, task_index: int) -> dict:
     runs = CodeRun.objects.filter(
-        session_id=session_id, stage_id=STAGE_ID, task_index=task_index
+        session_id=session_id, stage_id=stage_id, task_index=task_index
     ).order_by("created_at")
     return {
         "runs": [coding.serialize_run(run) for run in runs],
-        **coding.attempt_state(session_id, STAGE_ID, task_index),
+        **coding.attempt_state(session_id, stage_id, task_index),
     }
 
 
@@ -174,7 +186,7 @@ def _sse(event: str, data: dict) -> str:
 
 @csrf_exempt
 async def session_language(
-    request: HttpRequest, session_id: str, task_index: int, language: str
+    request: HttpRequest, session_id: str, stage_id: str, task_index: int, language: str
 ) -> HttpResponse:
     """Generates one language's files for a task the candidate has switched to.
 
@@ -189,7 +201,7 @@ async def session_language(
         return JsonResponse({"detail": "Method not allowed"}, status=405)
 
     round_ = await InterviewRound.objects.filter(
-        session_id=session.id, stage_id=STAGE_ID
+        session_id=session.id, stage_id=stage_id
     ).afirst()
     if round_ is None:
         return JsonResponse({"detail": "That round does not exist"}, status=404)
@@ -199,6 +211,8 @@ async def session_language(
         return JsonResponse({"detail": "That task has not been generated yet"}, status=404)
 
     task = tasks[task_index]
+    if _stage(stage_id) is None:
+        return JsonResponse({"detail": "That round does not run code"}, status=404)
     if language in (task.get("languages") or {}):
         return JsonResponse({"files": task["languages"][language]["files"]})
     if language not in round_content.coding_generation.LANGUAGE_IDS:

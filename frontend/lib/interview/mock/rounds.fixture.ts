@@ -16,16 +16,6 @@ const CHARGE_PY = `def charge(order_id, cents):
 # CACHED is per-process. Three workers.
 `;
 
-const SETTLEMENT_SQL = `select a.merchant_id,
-       count(*) as n,
-       avg((s.settled_at - t.created_at > interval '24 hours')::int) as late_share
-from transfers t
-join accounts a on a.id = t.from_account
-left join settlements s on s.transfer_id = t.id
-where t.created_at >= now() - interval '30 days'
-group by 1 having count(*) >= 50
-order by late_share desc;`;
-
 export const MOCK_ROUND_CONTENT: RoundContent = {
   behavioral: {
     questionNumber: 2,
@@ -34,53 +24,6 @@ export const MOCK_ROUND_CONTENT: RoundContent = {
       "You moved the ledger from a single Postgres writer to Kafka. Walk me through the moment you knew the old design would not hold — and what you would have needed to see to abandon the migration.",
     derivedFrom: ["resume line 4", "your answer to Q1"],
     citation: 2,
-  },
-
-  sql: {
-    prompt:
-      "For each merchant, return the share of transfers that settled more than 24 hours after creation, for the last 30 days. Exclude merchants with fewer than 50 transfers.",
-    schema: [
-      {
-        name: "transfers",
-        columns: [
-          { name: "id", type: "uuid" },
-          { name: "from_account", type: "text" },
-          { name: "to_account", type: "text" },
-          { name: "amount_cents", type: "bigint" },
-          { name: "created_at", type: "timestamptz" },
-          { name: "status", type: "text" },
-        ],
-      },
-      {
-        name: "accounts",
-        columns: [
-          { name: "id", type: "text" },
-          { name: "merchant_id", type: "text" },
-          { name: "currency", type: "char(3)" },
-        ],
-      },
-      {
-        name: "settlements",
-        columns: [
-          { name: "batch_id", type: "uuid" },
-          { name: "transfer_id", type: "uuid" },
-          { name: "settled_at", type: "timestamptz" },
-        ],
-      },
-    ],
-    query: SETTLEMENT_SQL,
-    columns: ["merchant_id", "n", "late_share"],
-    numericColumns: [1, 2],
-    rows: [
-      ["mrc_9f21", "1,204", "0.312"],
-      ["mrc_4c80", "877", "0.241"],
-      ["mrc_1d05", "640", "0.188"],
-      ["mrc_77ab", "512", "0.104"],
-      ["mrc_2e63", "318", "0.061"],
-    ],
-    timing: "ran in 84 ms · 12,441 rows scanned",
-    caveat:
-      "Left join keeps unsettled transfers as null — they currently count as “on time”. Worth a follow-up.",
   },
 
   debug: {

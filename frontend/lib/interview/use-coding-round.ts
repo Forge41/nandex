@@ -12,7 +12,8 @@ import {
 import type {
   CodeFile,
   CodeLanguage,
-  CodingTask,
+  RunnableTask,
+  SqlResult,
   TerminalLine,
   TestCase,
 } from "@/lib/interview/types";
@@ -27,8 +28,8 @@ const NO_ATTEMPTS: AttemptState = {
 
 export type LanguageState = "ready" | "preparing" | "failed";
 
-export interface CodingRound {
-  task: CodingTask;
+export interface CodingRound<T extends RunnableTask = RunnableTask> {
+  task: T;
   taskIndex: number;
   language: CodeLanguage;
   languageState: LanguageState;
@@ -41,6 +42,8 @@ export interface CodingRound {
   attempts: AttemptState;
   running: boolean;
   result: RunResult | null;
+  /** The SQL round's result grid, from the run that produced it. */
+  rows: SqlResult | null;
   contentOf: (name: string) => string;
   edit: (name: string, content: string) => void;
   selectLanguage: (language: CodeLanguage) => void;
@@ -55,17 +58,21 @@ export interface CodingRound {
  * Drafts are keyed by task, language and file name: switching to Java and back must
  * return the Python buffer exactly as it was left, because they are different answers to
  * the same task rather than versions of one answer. */
-export function useCodingRound({
+export function useCodingRound<T extends RunnableTask>({
   sessionId,
+  stage,
   tasks,
   defaultLanguage,
   onFinish,
 }: {
   sessionId: string;
-  tasks: CodingTask[];
+  /** "coding" or "sql" -- both rounds take an attempt, run it in the sandbox and
+   * record the result; they differ only in which image serves them. */
+  stage: string;
+  tasks: T[];
   defaultLanguage: CodeLanguage;
   onFinish: () => void;
-}): CodingRound {
+}): CodingRound<T> {
   const [taskIndex, setTaskIndex] = useState(0);
   const [language, setLanguage] = useState<CodeLanguage>(defaultLanguage);
   const [prepared, setPrepared] = useState<Record<string, CodeFile[]>>({});
@@ -76,6 +83,7 @@ export function useCodingRound({
   const [attempts, setAttempts] = useState<AttemptState>(NO_ATTEMPTS);
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<RunResult | null>(null);
+  const [rows, setRows] = useState<SqlResult | null>(null);
 
   const task = tasks[taskIndex];
   const variantKey = `${taskIndex}:${language}`;
@@ -91,7 +99,7 @@ export function useCodingRound({
   // whatever this component happened to witness.
   useEffect(() => {
     let current = true;
-    fetchRuns(sessionId, taskIndex)
+    fetchRuns(sessionId, stage, taskIndex)
       .then((past) => {
         if (!current) return;
         setAttempts(past);
@@ -104,7 +112,7 @@ export function useCodingRound({
     return () => {
       current = false;
     };
-  }, [sessionId, taskIndex]);
+  }, [sessionId, stage, taskIndex]);
 
   // Derived, not stored: the language is ready exactly when its files are in hand, and a
   // second source of truth for that would be free to disagree with the files themselves.
@@ -113,7 +121,7 @@ export function useCodingRound({
   useEffect(() => {
     if (files.length > 0 || failed[variantKey]) return;
     let current = true;
-    prepareLanguage(sessionId, taskIndex, language)
+    prepareLanguage(sessionId, stage, taskIndex, language)
       .then((response) => {
         if (current) setPrepared((all) => ({ ...all, [variantKey]: response.files }));
       })
@@ -123,7 +131,7 @@ export function useCodingRound({
     return () => {
       current = false;
     };
-  }, [sessionId, taskIndex, language, files.length, failed, variantKey]);
+  }, [sessionId, stage, taskIndex, language, files.length, failed, variantKey]);
 
   const contentOf = useCallback(
     (name: string) =>
@@ -137,10 +145,10 @@ export function useCodingRound({
       setDrafts((all) => ({ ...all, [key]: content }));
       clearTimeout(timers.current[key]);
       timers.current[key] = setTimeout(() => {
-        saveDraft(sessionId, { taskIndex, language, name, content }).catch(() => undefined);
+        saveDraft(sessionId, stage, { taskIndex, language, name, content }).catch(() => undefined);
       }, DRAFT_DEBOUNCE_MS);
     },
-    [sessionId, taskIndex, language, variantKey]
+    [sessionId, stage, taskIndex, language, variantKey]
   );
 
   useEffect(() => {
@@ -154,12 +162,14 @@ export function useCodingRound({
     setRunning(true);
     setResult(null);
     setTerminal([]);
+    setRows(null);
     // Every case goes back to "not run" for the duration: showing the previous run's
     // verdicts beside a run in progress attributes them to code that has not been tested.
     setOutcomes({});
 
     void startRun(
       sessionId,
+      stage,
       { taskIndex, language },
       {
         onLine: (line) => setTerminal((lines) => [...lines, line]),
@@ -168,11 +178,12 @@ export function useCodingRound({
           setResult(done);
           setOutcomes(Object.fromEntries(done.tests.map((t) => [t.name, t as TestCase])));
           setRunning(false);
-          fetchRuns(sessionId, taskIndex).then(setAttempts).catch(() => undefined);
+          fetchRuns(sessionId, stage, taskIndex).then(setAttempts).catch(() => undefined);
         },
+        onRows: (csv) => setRows(parseCsv(csv)),
       }
     );
-  }, [sessionId, taskIndex, language]);
+  }, [sessionId, stage, taskIndex, language]);
 
   const isLastTask = taskIndex >= tasks.length - 1;
 
@@ -204,6 +215,7 @@ export function useCodingRound({
     attempts,
     running,
     result,
+    rows,
     contentOf,
     edit,
     selectLanguage: setLanguage,
@@ -213,4 +225,22 @@ export function useCodingRound({
       !running && languageState === "ready" && attempts.attemptsUsed < attempts.attemptsAllowed,
     isLastTask,
   };
+}
+
+
+/** psql's own CSV, turned into a grid.
+ *
+ * Deliberately minimal: the values are whatever Postgres printed, and a column is
+ * right-aligned when every cell in it is a number, which is what a spreadsheet does and
+ * what the mockup shows. */
+function parseCsv(csv: string): SqlResult | null {
+  const lines = csv.trim().split("\n").filter(Boolean);
+  if (lines.length === 0) return null;
+  const split = (line: string) => line.split(",").map((cell) => cell.trim());
+  const columns = split(lines[0]);
+  const rows = lines.slice(1).map(split);
+  const numericColumns = columns
+    .map((_, index) => index)
+    .filter((index) => rows.length > 0 && rows.every((row) => /^-?\d+(\.\d+)?$/.test(row[index] ?? "")));
+  return { columns, rows, numericColumns };
 }

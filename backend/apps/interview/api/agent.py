@@ -16,8 +16,15 @@ from asgiref.sync import sync_to_async
 from django.http import HttpRequest, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
+from apps.interview import coding
 from apps.interview.deps import has_agent_token
-from apps.interview.models import InterviewRound, InterviewSession, ResumeFacts, TranscriptTurn
+from apps.interview.models import (
+    CodeRun,
+    InterviewRound,
+    InterviewSession,
+    ResumeFacts,
+    TranscriptTurn,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +92,56 @@ def _brief_sync(session: InterviewSession) -> dict:
             "probes": facts.probes,
             "citations": facts.citations,
         },
+        "coding": _coding_sync(session),
     }
+
+
+def _coding_sync(session: InterviewSession) -> dict | None:
+    """What the interviewer may know about the coding round in progress.
+
+    The task, and the counts from the candidate's last run. **Never their source**: an
+    interviewer that can quote the code back is reading over a shoulder, and nothing it
+    needs to ask requires it. Failing case names are here because "your out-of-order
+    replay case is failing -- what do you think is happening there?" is the whole reason
+    this round has an interviewer in the room, and "it looks like something is failing"
+    is not a question.
+    """
+    if session.active_stage != "coding":
+        return None
+    round_ = InterviewRound.objects.filter(session=session, stage_id="coding").first()
+    tasks = ((round_.content if round_ else None) or {}).get("tasks") or []
+    if not tasks:
+        return None
+
+    runs = list(CodeRun.objects.filter(session=session, stage_id="coding").order_by("created_at"))
+    last = runs[-1] if runs else None
+    task_index = last.task_index if last else 0
+    task = tasks[min(task_index, len(tasks) - 1)]
+    hidden = coding.hidden_names(task)
+
+    brief = {
+        "taskNumber": task_index + 1,
+        "taskTotal": len(tasks),
+        "title": task.get("title", ""),
+        "brief": task.get("brief", []),
+        "constraints": task.get("constraints", []),
+        "citation": task.get("citation"),
+        "language": last.language if last else task.get("defaultLanguage"),
+        "hasRun": last is not None,
+    }
+    if last is None:
+        return brief
+
+    visible = [t for t in last.visible_tests(hidden) if t.get("outcome")]
+    brief |= {
+        "phase": last.phase,
+        "passed": sum(1 for t in visible if t["outcome"] == "pass"),
+        "total": len(visible),
+        "failing": [t["name"] for t in visible if t["outcome"] == "fail"],
+        "attemptsUsed": coding.attempts_used(session.id, "coding", task_index),
+        "attemptsAllowed": coding.attempts_allowed(task),
+    }
+    return brief
 
 
 @csrf_exempt

@@ -32,4 +32,7 @@ TOTAL_DURATION_MIN = sum(round_["duration_min"] for round_ in DEFAULT_ROUNDS)
 # regardless of stage, because the browser only asks for a token when it needs one.
 # "resume" is here because the interviewer greets the candidate over the generated plan
 # and can be asked about it before anything is timed or scored.
-LIVE_STAGE_IDS = ("resume", "behavioral", "qa")
+# "coding" is here because an interviewer who cannot see the failing test cannot ask the
+# one question the round exists for. What it is given is the task and the run's counts --
+# never the candidate's source.
+LIVE_STAGE_IDS = ("resume", "behavioral", "coding", "qa")

@@ -25,7 +25,9 @@ def instructions_for(brief: Brief) -> str:
     Prose rather than JSON: the model is about to speak these sentences, and a schema
     invites it to read the schema aloud.
     """
-    return f"{load_prompt('interviewer_plan_stage.md')}\n\n{describe(brief)}"
+    prompt = f"{load_prompt('interviewer_plan_stage.md')}\n\n{describe(brief)}"
+    context = coding_context(brief)
+    return f"{prompt}\n\n## The round they are in now\n\n{context}" if context else prompt
 
 
 def describe(brief: Brief) -> str:
@@ -89,3 +91,56 @@ def greeting_instruction(brief: Brief) -> str:
         "plan and why each round is there. Finish by inviting questions and telling them "
         "nothing is being assessed until they press Start interview."
     )
+
+
+def coding_context(brief: Brief) -> str:
+    """What the interviewer knows while the candidate writes code.
+
+    Counts and failing case names, never the source. Everything here is phrased as
+    something the candidate can already see on their own screen, because that is exactly
+    what it is -- the interviewer is looking at the same panel, not over their shoulder.
+    """
+    coding = brief.coding
+    if not coding:
+        return ""
+
+    lines = [
+        f"The candidate is on task {coding.get('taskNumber')} of {coding.get('taskTotal')}: "
+        f"{coding.get('title')}.",
+    ]
+    for paragraph in coding.get("brief") or []:
+        lines.append(f"  {paragraph}")
+    if coding.get("language"):
+        lines.append(f"They are writing it in {coding['language']}.")
+
+    if not coding.get("hasRun"):
+        lines.append("They have not run their tests yet. Do not ask about results they have not got.")
+        return "\n".join(lines)
+
+    phase = coding.get("phase")
+    if phase == "compile_failed":
+        lines.append(
+            "Their last run did not compile, so no tests ran and no attempt was used. "
+            "You may not know what the error was; ask rather than guess."
+        )
+    elif phase in ("crashed", "timeout"):
+        lines.append(
+            f"Their last run ended early ({phase}), so some cases never ran. "
+            "Cases with no result are unknown, not failures."
+        )
+    else:
+        passed, total = coding.get("passed", 0), coding.get("total", 0)
+        lines.append(f"Their last run passed {passed} of {total} visible tests.")
+        failing = coding.get("failing") or []
+        if failing:
+            lines.append(f"Failing: {', '.join(failing)}.")
+
+    lines.append(
+        f"They have used {coding.get('attemptsUsed')} of "
+        f"{coding.get('attemptsAllowed')} attempts."
+    )
+    lines.append(
+        "You cannot see their code. Ask about approach and about the failing cases by "
+        "name; do not offer the fix."
+    )
+    return "\n".join(lines)

@@ -51,6 +51,7 @@ function CodingRound({
 }) {
   const round = useCodingRound({
     sessionId,
+    stage: "coding",
     tasks: content.tasks,
     defaultLanguage: content.defaultLanguage,
     onFinish,

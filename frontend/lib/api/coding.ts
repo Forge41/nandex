@@ -30,17 +30,22 @@ export interface PastRuns extends AttemptState {
   runs: (RunResult & { id: string; attempt: number; language: CodeLanguage })[];
 }
 
-export function fetchRuns(sessionId: string, taskIndex: number): Promise<PastRuns> {
+export function fetchRuns(
+  sessionId: string,
+  stage: string,
+  taskIndex: number
+): Promise<PastRuns> {
   return apiFetch<PastRuns>(
-    `/interview/sessions/${sessionId}/rounds/coding/runs?taskIndex=${taskIndex}`
+    `/interview/sessions/${sessionId}/rounds/${stage}/runs?taskIndex=${taskIndex}`
   );
 }
 
 export function saveDraft(
   sessionId: string,
+  stage: string,
   body: { taskIndex: number; language: CodeLanguage; name: string; content: string }
 ): Promise<{ saved: boolean }> {
-  return apiFetch(`/interview/sessions/${sessionId}/rounds/coding/draft`, {
+  return apiFetch(`/interview/sessions/${sessionId}/rounds/${stage}/draft`, {
     method: "PUT",
     body: JSON.stringify(body),
   });
@@ -48,11 +53,12 @@ export function saveDraft(
 
 export function prepareLanguage(
   sessionId: string,
+  stage: string,
   taskIndex: number,
   language: CodeLanguage
 ): Promise<{ files: CodeFile[] }> {
   return apiFetch(
-    `/interview/sessions/${sessionId}/rounds/coding/tasks/${taskIndex}/languages/${language}`,
+    `/interview/sessions/${sessionId}/rounds/${stage}/tasks/${taskIndex}/languages/${language}`,
     { method: "POST" }
   );
 }
@@ -61,6 +67,8 @@ export interface RunHandlers {
   onLine: (line: TerminalLine) => void;
   onTest: (test: TestCase) => void;
   onDone: (result: RunResult) => void;
+  /** The SQL round only: the result grid the query actually returned. */
+  onRows?: (csv: string) => void;
 }
 
 /** Takes an attempt and reports what happens while it happens.
@@ -70,11 +78,12 @@ export interface RunHandlers {
  * the view of the attempt and not the attempt. */
 export async function startRun(
   sessionId: string,
+  stage: string,
   body: { taskIndex: number; language: CodeLanguage },
   handlers: RunHandlers,
   signal?: AbortSignal
 ): Promise<void> {
-  const response = await fetch(`/api/interview/sessions/${sessionId}/rounds/coding/runs`, {
+  const response = await fetch(`/api/interview/sessions/${sessionId}/rounds/${stage}/runs`, {
     method: "POST",
     credentials: "same-origin",
     headers: { "Content-Type": "application/json" },
@@ -130,7 +139,8 @@ function dispatch(frame: string, handlers: RunHandlers): void {
     return;
   }
 
-  if (event === "line") handlers.onLine(data as TerminalLine);
+  if (event === "rows") handlers.onRows?.((data as { csv: string }).csv);
+  else if (event === "line") handlers.onLine(data as TerminalLine);
   else if (event === "test") handlers.onTest(data as TestCase);
   else if (event === "done") handlers.onDone(data as RunResult);
 }

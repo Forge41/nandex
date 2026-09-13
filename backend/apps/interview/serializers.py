@@ -102,6 +102,30 @@ def serialize_session(
         "planError": session.plan_error,
         # Keyed by stage id, matching RoundContent. Rounds with nothing generated are
         # absent, which is what the UI's missing-content state reads.
-        "content": {r.stage_id: r.content for r in rounds if r.content},
+        "content": {r.stage_id: _visible_content(r.content) for r in rounds if r.content},
         "transcript": [serialize_turn(t) for t in turns],
     }
+
+
+def _visible_content(content: dict) -> dict:
+    """Round content with the sandbox-only files taken out.
+
+    A task can carry files the run needs and the candidate must not have -- the expected
+    result of a SQL query is the obvious one. They are marked `hidden` and stripped here,
+    because the alternative is shipping the answer to the browser and trusting nobody to
+    open dev tools.
+    """
+    tasks = content.get("tasks")
+    if not isinstance(tasks, list):
+        return content
+
+    visible = []
+    for task in tasks:
+        languages = {}
+        for language, variant in (task.get("languages") or {}).items():
+            languages[language] = {
+                **variant,
+                "files": [f for f in variant.get("files", []) if not f.get("hidden")],
+            }
+        visible.append({**task, "languages": languages})
+    return {**content, "tasks": visible}

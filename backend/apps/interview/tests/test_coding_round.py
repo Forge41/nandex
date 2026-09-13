@@ -311,3 +311,39 @@ def test_the_run_row_still_records_the_hidden_failure_for_a_reviewer(with_hidden
 
     assert run.outcome == "partial"
     assert {t["name"]: t["outcome"] for t in run.tests}["scale"] == "fail"
+
+
+def test_a_sandbox_only_file_never_reaches_the_browser(client, session):
+    """A SQL task carries the expected result so the run can check it. Shipping that to
+    the browser would hand the candidate the answer and trust them not to look."""
+    InterviewRound.objects.filter(session_id=session["id"], stage_id="sql").update(
+        content={
+            "tasks": [
+                {
+                    "title": "Settlement report",
+                    "tests": [{"name": "result matches", "hidden": False}],
+                    "languages": {
+                        "sql": {
+                            "files": [
+                                {"name": "query.sql", "language": "sql", "content": "SELECT 1"},
+                                {
+                                    "name": "expected.csv",
+                                    "language": "sql",
+                                    "content": "merchant,total\nacme,350",
+                                    "hidden": True,
+                                },
+                            ]
+                        }
+                    },
+                }
+            ],
+            "defaultLanguage": "sql",
+        },
+        content_state=InterviewRound.ContentState.READY,
+    )
+
+    payload = client.get(f"/interview/sessions/{session['id']}").json()
+
+    names = [f["name"] for f in payload["content"]["sql"]["tasks"][0]["languages"]["sql"]["files"]]
+    assert names == ["query.sql"]
+    assert "acme,350" not in json.dumps(payload)
