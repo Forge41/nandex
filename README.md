@@ -134,6 +134,12 @@ containers on this host.
 Run button reports that the runner is unavailable rather than failing at click time, and the
 sandbox tests skip. `make up` builds them for you.
 
+**To see a round without sitting the ones before it**, open `/dev` in the frontend. It
+makes a fresh session, seeds what that round needs — real tasks from the bank for coding
+and SQL — grants consent, and opens it. The endpoint behind it is only routed when the
+backend runs with `DEBUG` on, so it does not exist in a deployment rather than existing
+and refusing. Seeded content says on its face that it was seeded.
+
 **Only the rounds that are real end to end are offered.** `ALL_ROUNDS` in
 `backend/apps/interview/rounds.py` is the interview as designed; `shipped` is what a
 candidate actually sits -- pre-flight, the plan, behavioral, live coding, SQL, and the

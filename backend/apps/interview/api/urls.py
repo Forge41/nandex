@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.urls import path
 
 from apps.interview.api import agent, callbacks, coding_views, views
@@ -33,3 +34,11 @@ urlpatterns = [
     path("interview/agent/sessions/<str:session_id>/brief", agent.session_brief),
     path("interview/agent/sessions/<str:session_id>/transcript", agent.session_transcript),
 ]
+
+# Not mounted at all unless DEBUG. A bypass that exists and refuses is one
+# misconfiguration away from being a way into somebody else's interview; one that is not
+# routed cannot be reached by any configuration.
+if settings.DEBUG:
+    from apps.interview.api import dev
+
+    urlpatterns.append(path("interview/dev/sessions", dev.dev_session))
