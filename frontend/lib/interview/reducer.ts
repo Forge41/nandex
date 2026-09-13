@@ -23,6 +23,9 @@ export function sessionReducer(state: InterviewSession, action: SessionAction): 
 
     case "ADVANCE": {
       const index = state.rounds.findIndex((r) => r.id === state.activeStage);
+      // Nowhere left to go. Deliberately a no-op rather than a wrap: the caller
+      // ends the session, and advancing into a round that does not exist would
+      // leave the candidate on a screen with no way forward.
       if (index < 0 || index >= state.rounds.length - 1) return state;
       const next = state.rounds[index + 1];
       return {

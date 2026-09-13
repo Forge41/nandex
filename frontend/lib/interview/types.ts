@@ -312,23 +312,8 @@ export interface QaMessage {
   routedTo?: { name: string; replyWithin: string };
 }
 
-export interface TimelineStep {
-  label: string;
-  detail: string;
-  state: "done" | "current" | "upcoming";
-}
 
-export interface FeedbackQuestion {
-  id: string;
-  label: string;
-}
 
-export interface WrapUp {
-  headline: string;
-  body: string;
-  timeline: TimelineStep[];
-  feedbackQuestions: FeedbackQuestion[];
-}
 
 /** Round content, keyed by the round it belongs to. Absent entries mean the
  * server has not generated that round yet. */
@@ -341,7 +326,6 @@ export interface RoundContent {
   design?: DesignTask;
   quiz?: QuizQuestion;
   qa?: { suggestions: string[]; messages: QaMessage[] };
-  wrap?: WrapUp;
   /** questionTotal is optional because a generated round does not have one: the
    * interviewer follows up live, so how many questions there will be is not
    * knowable when the opening question is written. */

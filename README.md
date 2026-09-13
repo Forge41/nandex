@@ -134,6 +134,17 @@ containers on this host.
 Run button reports that the runner is unavailable rather than failing at click time, and the
 sandbox tests skip. `make up` builds them for you.
 
+**Only the rounds that are real end to end are offered.** `ALL_ROUNDS` in
+`backend/apps/interview/rounds.py` is the interview as designed; `shipped` is what a
+candidate actually sits -- pre-flight, the plan, behavioral, live coding, SQL, and the
+closing screen. The debug drill, design canvas, knowledge check and candidate-questions
+rounds are built screens with no honest material behind them: their runtime fields would
+be the same fabrications the coding and SQL rounds were rebuilt to remove. Re-enabling one
+is adding `"shipped": True` to its entry, and then making it true.
+
+Existing sessions keep the rounds they were created with, so a session made before a
+round was retired still shows it.
+
 **Coding tasks come from a bank, not from a model call during the interview.**
 `backend/apps/interview/task_bank/` holds them as JSON, imported from
 [Exercism](https://exercism.org) (MIT) with `make import-tasks`. Every one was executed on

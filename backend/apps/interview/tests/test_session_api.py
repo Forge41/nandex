@@ -87,7 +87,7 @@ def test_revisiting_an_earlier_round_does_not_re_lock_the_later_ones(client, ses
     otherwise stepping back would lock everything the candidate already finished."""
     client.patch(
         f"/interview/sessions/{session['id']}",
-        data={"activeStage": "design"},
+        data={"activeStage": "sql"},
         content_type="application/json",
     )
     body = client.patch(
@@ -97,7 +97,7 @@ def test_revisiting_an_earlier_round_does_not_re_lock_the_later_ones(client, ses
     ).json()
 
     assert body["activeStage"] == "behavioral"
-    assert body["progressIndex"] == STAGE_IDS.index("design")
+    assert body["progressIndex"] == STAGE_IDS.index("sql")
 
 
 def test_an_unknown_stage_is_rejected(client, session):
@@ -193,3 +193,33 @@ def test_a_recording_conflict_from_vas_keeps_its_status(client, session, monkeyp
         content_type="application/json",
     )
     assert response.status_code == 409
+
+
+def test_only_rounds_that_are_real_end_to_end_are_offered(session):
+    """A round ships once its content is generated or imported and what the screen says
+    happened is what happened. The rest are built screens whose runtime fields -- test
+    outcomes, terminal output, result rows -- would be exactly the fabrications the coding
+    and SQL rounds were rebuilt to remove."""
+    from apps.interview.rounds import ALL_ROUNDS
+
+    offered = {r["id"] for r in session["rounds"]}
+
+    assert offered == {"preflight", "resume", "behavioral", "coding", "sql", "wrap"}
+    assert {r["stage_id"] for r in ALL_ROUNDS} - offered == {"debug", "design", "quiz", "qa"}
+
+
+def test_a_round_that_is_not_shipped_cannot_be_navigated_to(client, session):
+    """Not merely hidden from the agenda: a stage nobody ships is not a stage."""
+    response = client.patch(
+        f"/interview/sessions/{session['id']}",
+        data={"activeStage": "design"},
+        content_type="application/json",
+    )
+
+    assert response.status_code == 400
+
+
+def test_the_interview_still_has_an_ending(session):
+    """Ending a session moves the candidate to the last round, so hiding the closing
+    screen would drop them back onto the round they just finished."""
+    assert session["rounds"][-1]["id"] == "wrap"
