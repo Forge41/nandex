@@ -37,7 +37,7 @@ function SessionHelp() {
 export function InterviewTopBar() {
   const { session, dispatch } = useInterviewSession();
   const { panelOpen, togglePanel } = useRoomState();
-  const elapsedSeconds = useElapsedSeconds(session.startedAt);
+  const elapsedSeconds = useElapsedSeconds(session.startedAt, session.endedAt);
   // The beacon is armed while the interview is running, so a closed tab still
   // tells the server -- see useSessionEnd for why that is not the only signal.
   const endSession = useSessionEnd(session.id, session.startedAt !== null);
@@ -47,7 +47,11 @@ export function InterviewTopBar() {
 
   return (
     <header className="relative flex h-13 shrink-0 items-center gap-4 border-b border-line bg-surface px-4">
-      <LiveTimerBadge elapsedSeconds={elapsedSeconds} totalMinutes={session.totalDurationMin} />
+      <LiveTimerBadge
+        elapsedSeconds={elapsedSeconds}
+        totalMinutes={session.totalDurationMin}
+        ended={session.status === "ended"}
+      />
 
       <div className="absolute top-1/2 left-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-2 text-xs whitespace-nowrap text-content-muted">
         <span>{header.label}</span>

@@ -43,6 +43,9 @@ export interface Round {
   /** Whether this round's task has been generated. Separate from where the round
    * sits in the interview, which comes from progressIndex. */
   contentState?: ContentState;
+  /** Whether an interviewer joins for this round. The server decides it; a second
+   * list kept in the browser drifted from the server's twice. */
+  live?: boolean;
 }
 
 /** A quoted resume line, referenced by the numbered chips throughout the UI. */
@@ -345,6 +348,8 @@ export interface InterviewSession {
   progressIndex: number;
   consent: ConsentState;
   startedAt: string | null;
+  /** Set once the interview is over, so the timer stops at how long it ran. */
+  endedAt?: string | null;
   content: RoundContent;
   /** How far the server has got turning the resume into a plan. Absent on a
    * draft session, which has no server behind it yet. */

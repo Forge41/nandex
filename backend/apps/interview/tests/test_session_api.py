@@ -223,3 +223,28 @@ def test_the_interview_still_has_an_ending(session):
     """Ending a session moves the candidate to the last round, so hiding the closing
     screen would drop them back onto the round they just finished."""
     assert session["rounds"][-1]["id"] == "wrap"
+
+
+def test_each_round_says_whether_an_interviewer_joins_it(session):
+    """The browser used to keep its own list of which rounds are live, and it drifted from
+    this one twice -- silently both times, because a round that never asks for a token is
+    indistinguishable from a round nobody happened to join. The server says."""
+    from apps.interview.rounds import LIVE_STAGE_IDS
+
+    live = {r["id"] for r in session["rounds"] if r["live"]}
+
+    assert live == set(LIVE_STAGE_IDS) & set(STAGE_IDS)
+    assert "coding" in live
+
+
+def test_an_ended_session_reports_when_it_ended(client, session, fake_room):
+    """The badge stops at the length the interview ran. Without this it keeps counting,
+    which says an interview nobody is in is still going."""
+    body = client.post(f"/interview/sessions/{session['id']}/end").json()
+
+    assert body["status"] == "ended"
+    assert body["endedAt"] is not None
+
+
+def test_a_running_session_has_no_end_time(session):
+    assert session["endedAt"] is None

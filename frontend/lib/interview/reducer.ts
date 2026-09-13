@@ -79,6 +79,9 @@ export function sessionReducer(state: InterviewSession, action: SessionAction): 
         ...state,
         activeStage: state.rounds[last].id,
         progressIndex: last,
+        // Stamped here as well as by the server: the badge stops at the length the
+        // interview ran without waiting for the next fetch to say so.
+        endedAt: state.endedAt ?? new Date().toISOString(),
         status: "ended",
       };
     }

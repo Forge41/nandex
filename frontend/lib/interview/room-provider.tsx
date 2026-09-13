@@ -19,7 +19,7 @@ import { ConnectionQuality, ConnectionState, Track, TokenSource } from "livekit-
 // and importing it directly would pin a version nothing declares.
 import type { TrackReference } from "@livekit/components-react";
 import { ApiError, apiFetch } from "@/lib/api/client";
-import type { StageId } from "./types";
+import type { Round, StageId } from "./types";
 
 /** Rounds that join a real room. A set rather than an inequality so a stage can
  * never drift into it by accident: useSession calls prepareConnection() on
@@ -28,7 +28,19 @@ import type { StageId } from "./types";
  * "resume" is here because the interviewer greets the candidate over the
  * generated plan and can be asked about it before anything is timed. Kept in
  * step with LIVE_STAGE_IDS in backend/apps/interview/rounds.py by hand. */
-export const LIVE_STAGES: ReadonlySet<StageId> = new Set<StageId>(["resume", "behavioral"]);
+/** Fallback for a draft session, which has no server behind it yet.
+ *
+ * The authority is the server: each round carries `live`, and `isLiveStage` reads it.
+ * This list used to be the authority, and drifted from the server's twice -- silently
+ * both times, because a round that never asks for a token is indistinguishable from a
+ * round nobody happened to join. */
+const FALLBACK_LIVE_STAGES: ReadonlySet<StageId> = new Set<StageId>(["resume", "behavioral"]);
+
+/** Whether an interviewer joins for the round the candidate is on. */
+export function isLiveStage(session: { rounds: Round[]; activeStage: StageId }): boolean {
+  const round = session.rounds.find((r) => r.id === session.activeStage);
+  return round?.live ?? FALLBACK_LIVE_STAGES.has(session.activeStage);
+}
 
 export type RoomConnection = "offline" | "connecting" | "live" | "degraded" | "failed" | "ended";
 
@@ -353,12 +365,15 @@ function LiveRoomState({
 
 export function RoomProvider({
   sessionId,
-  activeStage,
+  live,
   ended = false,
   children,
 }: {
   sessionId: string;
-  activeStage: StageId;
+  /** Whether an interviewer joins for this round, as the server says. Passed in
+   * rather than derived here so there is one answer per render and one place that
+   * reads it -- the stage itself is no longer this component's business. */
+  live: boolean;
   /** The server's view, so a room is never opened for an interview that is over.
    * Without it the stage alone decides, and a candidate returning to an ended
    * session mounts a room that can only be refused. */
@@ -373,7 +388,7 @@ export function RoomProvider({
   // Remounting on the switch is deliberate: the live implementation owns a real
   // connection, and leaving it mounted through the coding round would hold a
   // room open for a candidate who is not in it.
-  if (LIVE_STAGES.has(activeStage) && !ended && !refused) {
+  if (live && !ended && !refused) {
     return (
       <LiveRoomState key={`live-${sessionId}`} sessionId={sessionId} onEnded={onEnded}>
         {children}

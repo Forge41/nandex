@@ -259,4 +259,7 @@ async def session_end(request: HttpRequest, session_id: str) -> JsonResponse:
         return error
 
     session = await services.end_session(session)
-    return JsonResponse({"id": session.id, "status": session.status})
+    # The whole session, as every other mutation here returns: a caller that just ended
+    # an interview is the one caller most likely to want its final state, and `endedAt`
+    # in particular is what stops the timer claiming it is still running.
+    return JsonResponse(await _serialized(session))

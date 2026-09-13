@@ -20,6 +20,7 @@ import logging
 
 from asgiref.sync import sync_to_async
 from django.http import HttpRequest, JsonResponse
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
 from apps.core.api.views import _require_user
@@ -91,6 +92,9 @@ def _seed_sync(session_id: str, stage: str, body: dict) -> None:
     session.progress_index = STAGE_IDS.index(stage)
     session.plan_state = InterviewSession.PlanState.READY
     session.status = InterviewSession.Status.ACTIVE
+    # Started too, so the timer reads as a session in progress rather than one that has
+    # been open for zero seconds.
+    session.started_at = timezone.now()
     # Consent, so the rounds that check it behave as they would for a candidate who
     # agreed rather than silently taking the declined path.
     session.consent_recording = True
