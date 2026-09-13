@@ -14,10 +14,11 @@ export function sessionReducer(state: InterviewSession, action: SessionAction): 
   switch (action.type) {
     case "GO_TO_STAGE": {
       const index = state.rounds.findIndex((r) => r.id === action.stage);
-      // Jumping ahead of the furthest unlocked round is the one navigation the
-      // candidate must not be able to do, so it is refused here rather than
-      // only being hidden in the UI.
-      if (index < 0 || index > state.progressIndex) return state;
+      // An interview runs forwards. Jumping ahead is obvious cheating; going back
+      // is subtler and worse -- a candidate who has seen the SQL round can return
+      // to the coding round and keep working on it with everything after it
+      // already known. The round they are on is the round they are on.
+      if (index !== state.progressIndex) return state;
       return { ...state, activeStage: action.stage };
     }
 

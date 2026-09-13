@@ -16,18 +16,21 @@ export function AgendaTick({
   isCurrent: boolean;
   onSelect: () => void;
 }) {
-  const locked = status === "locked";
+  // Complete counts as unreachable too: an interview runs forwards, so a round
+  // already finished is no more selectable than one not yet unlocked.
+  const unreachable = status === "locked" || status === "complete";
 
   return (
     <button
       type="button"
       onClick={onSelect}
-      disabled={locked}
+      disabled={unreachable}
       title={label}
       aria-current={isCurrent ? "step" : undefined}
       className={cn(
         "group/tick flex h-[15px] cursor-pointer items-center justify-end pr-[13px] outline-none",
-        locked && "pointer-events-none opacity-55"
+        unreachable && "pointer-events-none",
+        status === "locked" && "opacity-55"
       )}
     >
       <span

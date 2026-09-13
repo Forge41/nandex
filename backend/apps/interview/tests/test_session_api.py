@@ -82,22 +82,44 @@ def test_advancing_a_stage_moves_progress_forward(client, session):
     assert body["progressIndex"] == STAGE_IDS.index("behavioral")
 
 
-def test_revisiting_an_earlier_round_does_not_re_lock_the_later_ones(client, session):
-    """progress_index marks the furthest round unlocked, so it only ever moves forward --
-    otherwise stepping back would lock everything the candidate already finished."""
+def test_a_finished_round_cannot_be_returned_to(client, session):
+    """An interview runs forwards. A candidate who has seen the SQL round must not be
+    able to go back to the coding round and keep working on it knowing what came next --
+    and the browser is theirs, so the refusal has to be here."""
     client.patch(
         f"/interview/sessions/{session['id']}",
         data={"activeStage": "sql"},
         content_type="application/json",
     )
-    body = client.patch(
+
+    response = client.patch(
         f"/interview/sessions/{session['id']}",
         data={"activeStage": "behavioral"},
         content_type="application/json",
-    ).json()
+    )
 
-    assert body["activeStage"] == "behavioral"
+    assert response.status_code == 400
+    body = client.get(f"/interview/sessions/{session['id']}").json()
+    assert body["activeStage"] == "sql"
     assert body["progressIndex"] == STAGE_IDS.index("sql")
+
+
+def test_staying_on_the_current_round_is_not_a_step_backwards(client, session):
+    """The same stage arrives with every consent patch and every start; refusing it
+    would make those fail once the candidate is past the first round."""
+    client.patch(
+        f"/interview/sessions/{session['id']}",
+        data={"activeStage": "behavioral"},
+        content_type="application/json",
+    )
+
+    response = client.patch(
+        f"/interview/sessions/{session['id']}",
+        data={"activeStage": "behavioral"},
+        content_type="application/json",
+    )
+
+    assert response.status_code == 200
 
 
 def test_an_unknown_stage_is_rejected(client, session):

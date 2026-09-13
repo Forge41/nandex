@@ -103,13 +103,17 @@ async def update_session(session: InterviewSession, body: dict) -> InterviewSess
     if stage is not None:
         if stage not in STAGE_IDS:
             raise InterviewError(f"Unknown stage: {stage}")
+        reached = STAGE_IDS.index(stage)
+        # An interview runs forwards, and this is where that is true rather than
+        # merely observed: a candidate who has seen a later round must not be able to
+        # return to an earlier one and keep working on it knowing what comes next.
+        # Refused here as well as in the browser, because the browser is theirs.
+        if reached < session.progress_index:
+            raise InterviewError(f"Round already finished: {stage}")
         if stage != session.active_stage:
             advanced_to = stage
         session.active_stage = stage
         fields.append("active_stage")
-        # progress_index only ever moves forward: it marks the furthest round unlocked,
-        # so revisiting an earlier round must not re-lock the ones after it.
-        reached = STAGE_IDS.index(stage)
         if reached > session.progress_index:
             session.progress_index = reached
             fields.append("progress_index")
