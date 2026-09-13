@@ -114,7 +114,9 @@ def coding_context(brief: Brief) -> str:
         lines.append(f"They are writing it in {coding['language']}.")
 
     if not coding.get("hasRun"):
-        lines.append("They have not run their tests yet. Do not ask about results they have not got.")
+        lines.append(
+            "They have not run their tests yet. Do not ask about results they have not got."
+        )
         return "\n".join(lines)
 
     phase = coding.get("phase")
@@ -136,8 +138,7 @@ def coding_context(brief: Brief) -> str:
             lines.append(f"Failing: {', '.join(failing)}.")
 
     lines.append(
-        f"They have used {coding.get('attemptsUsed')} of "
-        f"{coding.get('attemptsAllowed')} attempts."
+        f"They have used {coding.get('attemptsUsed')} of {coding.get('attemptsAllowed')} attempts."
     )
     lines.append(
         "You cannot see their code. Ask about approach and about the failing cases by "

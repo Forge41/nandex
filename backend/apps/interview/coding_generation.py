@@ -154,9 +154,9 @@ def _sanitize_task(written: dict) -> dict:
         "difficultyLabel": str(written.get("difficultyLabel") or "Medium").strip(),
         "brief": [str(p).strip() for p in written.get("brief") or [] if str(p).strip()][:4],
         "example": str(written.get("example") or "").strip(),
-        "constraints": [
-            str(c).strip() for c in written.get("constraints") or [] if str(c).strip()
-        ][:6],
+        "constraints": [str(c).strip() for c in written.get("constraints") or [] if str(c).strip()][
+            :6
+        ],
         "complexity": _sanitize_complexity(written.get("complexity")),
         "attemptsAllowed": _attempts(written.get("attemptsAllowed")),
         "tests": tests,

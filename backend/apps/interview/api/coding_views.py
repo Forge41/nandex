@@ -18,9 +18,8 @@ from django.views.decorators.csrf import csrf_exempt
 
 from apps.core.clients import runner_client
 from apps.interview import coding, round_content
-from apps.interview.models import InterviewRound
 from apps.interview.api.views import _parse_body, _session_for
-from apps.interview.models import CodeRun
+from apps.interview.models import CodeRun, InterviewRound
 
 logger = logging.getLogger(__name__)
 
@@ -77,9 +76,7 @@ async def session_runs(request: HttpRequest, session_id: str, stage_id: str) -> 
     if request.method == "GET":
         task_index = int(request.GET.get("taskIndex") or 0)
         return JsonResponse(
-            await sync_to_async(_past_runs, thread_sensitive=True)(
-                session.id, stage_id, task_index
-            )
+            await sync_to_async(_past_runs, thread_sensitive=True)(session.id, stage_id, task_index)
         )
 
     if request.method != "POST":
@@ -109,9 +106,7 @@ async def session_runs(request: HttpRequest, session_id: str, stage_id: str) -> 
         return JsonResponse({"detail": "No attempts left for this task"}, status=409)
 
     events: queue.Queue = queue.Queue()
-    threading.Thread(
-        target=_consume, args=(run.id, language, files, events), daemon=True
-    ).start()
+    threading.Thread(target=_consume, args=(run.id, language, files, events), daemon=True).start()
 
     response = StreamingHttpResponse(_tap(events, run.id), content_type="text/event-stream")
     response["Cache-Control"] = "no-cache"
@@ -200,9 +195,7 @@ async def session_language(
     if request.method != "POST":
         return JsonResponse({"detail": "Method not allowed"}, status=405)
 
-    round_ = await InterviewRound.objects.filter(
-        session_id=session.id, stage_id=stage_id
-    ).afirst()
+    round_ = await InterviewRound.objects.filter(session_id=session.id, stage_id=stage_id).afirst()
     if round_ is None:
         return JsonResponse({"detail": "That round does not exist"}, status=404)
 

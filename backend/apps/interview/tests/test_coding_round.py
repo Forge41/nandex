@@ -48,9 +48,7 @@ def coded(client, session):
 def draft(client, session_id, name, content="x = 1", language="python"):
     return client.put(
         f"/interview/sessions/{session_id}/rounds/coding/draft",
-        data=json.dumps(
-            {"name": name, "content": content, "language": language, "taskIndex": 0}
-        ),
+        data=json.dumps({"name": name, "content": content, "language": language, "taskIndex": 0}),
         content_type="application/json",
     )
 
@@ -263,7 +261,7 @@ def with_hidden(client, session):
 
 
 def test_the_summary_never_counts_a_hidden_case(with_hidden):
-    """"3 of 3 passed" beside a panel reading "2 of 2 passing" is the hidden result,
+    """ "3 of 3 passed" beside a panel reading "2 of 2 passing" is the hidden result,
     spelled out in arithmetic."""
     _run(
         with_hidden,

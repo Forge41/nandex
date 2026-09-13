@@ -74,7 +74,10 @@ export function useCodingRound<T extends RunnableTask>({
   onFinish: () => void;
 }): CodingRound<T> {
   const [taskIndex, setTaskIndex] = useState(0);
-  const [language, setLanguage] = useState<CodeLanguage>(defaultLanguage);
+  // Per task, not per round: a task that fell back to another language during
+  // generation has only that one, and carrying a round-wide choice into it would
+  // start a model call in the middle of a timed interview.
+  const [picked, setPicked] = useState<Record<number, CodeLanguage>>({});
   const [prepared, setPrepared] = useState<Record<string, CodeFile[]>>({});
   const [failed, setFailed] = useState<Record<string, true>>({});
   const [drafts, setDrafts] = useState<Record<string, string>>({});
@@ -86,6 +89,8 @@ export function useCodingRound<T extends RunnableTask>({
   const [rows, setRows] = useState<SqlResult | null>(null);
 
   const task = tasks[taskIndex];
+  const language =
+    picked[taskIndex] ?? (task as { defaultLanguage?: CodeLanguage }).defaultLanguage ?? defaultLanguage;
   const variantKey = `${taskIndex}:${language}`;
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
@@ -218,7 +223,7 @@ export function useCodingRound<T extends RunnableTask>({
     rows,
     contentOf,
     edit,
-    selectLanguage: setLanguage,
+    selectLanguage: (next: CodeLanguage) => setPicked((all) => ({ ...all, [taskIndex]: next })),
     runTests,
     submit,
     canRun:

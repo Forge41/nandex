@@ -16,8 +16,8 @@ from ai.client import complete
 from ai.prompt_loader import load_prompt
 from asgiref.sync import sync_to_async
 
-from apps.interview.config import settings
 from apps.interview import coding_generation, sql_generation
+from apps.interview.config import settings
 from apps.interview.models import InterviewRound, InterviewSession, ResumeFacts
 
 logger = logging.getLogger(__name__)
@@ -78,16 +78,47 @@ async def _generate_coding(session: InterviewSession) -> dict | None:
     if brief is None:
         return None
 
-    language = evidenced_language(brief)
+    wanted = evidenced_language(brief)
     tasks = []
     for index in range(CODING_TASKS):
         task = await coding_generation.generate_task({**brief, "taskNumber": index + 1})
         task["index"] = index + 1
         task["total"] = CODING_TASKS
         task["languages"] = {}
-        await attach_language(task, language)
+        # Each task records the language it was actually produced in, because a fallback
+        # applies to one task and not to the round: a round-level default would point the
+        # second task at a language nobody generated for it, and opening it would start a
+        # model call in the middle of a timed interview.
+        task["defaultLanguage"] = await attach_first_workable(task, wanted)
+        # The next task prefers whatever the last one settled on, so a round stays in one
+        # language unless a task genuinely could not be written in it.
+        wanted = task["defaultLanguage"]
         tasks.append(task)
-    return {"tasks": tasks, "defaultLanguage": language}
+    return {"tasks": tasks, "defaultLanguage": tasks[0]["defaultLanguage"]}
+
+
+async def attach_first_workable(task: dict, wanted: str) -> str:
+    """The evidenced language if it can be produced, otherwise the next one that can.
+
+    A task is only accepted once its own reference solution passes its own tests, and
+    some languages fail that more often than others -- C++ under sanitizers most of all.
+    Failing the round over it would be the wrong trade: the candidate loses the round
+    entirely rather than sitting it in a language they also know, and the switcher will
+    offer the others anyway.
+    """
+    order = [wanted, *(lang for lang in coding_generation.LANGUAGE_IDS if lang != wanted)]
+    last: Exception | None = None
+    for language in order:
+        try:
+            await attach_language(task, language)
+        except coding_generation.TaskUnusable as e:
+            logger.warning("could not produce %s for %s: %s", language, task.get("title"), e)
+            last = e
+            continue
+        if language != wanted:
+            logger.info("fell back to %s for %s", language, task.get("title"))
+        return language
+    raise coding_generation.TaskUnusable(str(last))
 
 
 async def attach_language(task: dict, language: str) -> dict:

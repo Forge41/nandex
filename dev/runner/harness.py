@@ -90,7 +90,21 @@ def shell(args, timeout_ms, cwd=WORK, env=None):
         return TIMED_OUT, timeout_ms
 
 
-def junit_tests(path):
+def canonical(name, language):
+    """The case name as the task declared it, whatever the framework calls it.
+
+    pytest requires a `test_` prefix on every function it collects, so a task whose
+    canonical case is `window_boundary` is reported as `test_window_boundary`. The panel
+    beside the editor lists the canonical names, and a run whose results do not key to
+    them shows every case as "not run" -- so the stripping happens here, once, rather
+    than in each of the three places that consume a result.
+    """
+    if language == "python":
+        return name.removeprefix("test_")
+    return name
+
+
+def junit_tests(path, language="python"):
     """Per-case results from a JUnit XML report -- pytest, JUnit 5 and GoogleTest all
     write this shape, which is why four languages need one parser."""
     if not path.exists():
@@ -108,7 +122,7 @@ def junit_tests(path):
             continue
         # JUnit reports a Java method as "adds()"; the canonical case list this is
         # checked against uses the bare name, and a mismatch there is a hard failure.
-        name = case.get("name", "").strip().removesuffix("()")
+        name = canonical(case.get("name", "").strip().removesuffix("()"), language)
         results.append(
             {
                 "name": name,
@@ -146,7 +160,7 @@ def run_python(compile_ms, run_ms):
         run_ms,
         env={"PYTHONPATH": str(WORK), "PYTHONDONTWRITEBYTECODE": "1"},
     )
-    return classify(code, junit_tests(report))
+    return classify(code, junit_tests(report, "python"))
 
 
 def classify(code, tests):
@@ -170,7 +184,7 @@ def classify(code, tests):
     return {"phase": "ran", "tests": tests}
 
 
-PYTEST_PLUGIN = '''
+PYTEST_PLUGIN = """
 import json, os
 
 _CHANNEL = None
@@ -190,13 +204,13 @@ def pytest_runtest_logreport(report):
     channel.write(json.dumps({
         "event": "test",
         "data": {
-            "name": report.nodeid.rsplit("::", 1)[-1],
+            "name": report.nodeid.rsplit("::", 1)[-1].removeprefix("test_"),
             "outcome": "fail" if report.failed else "pass",
             "durationMs": int(report.duration * 1000),
         },
     }) + "\\n")
     channel.flush()
-'''
+"""
 
 
 # ----------------------------------------------------------------------------- java
@@ -215,7 +229,7 @@ def run_java(compile_ms, run_ms):
         return {"phase": "compile_failed", "tests": []}
 
     reports = WORK / "reports"
-    heap = f"-XX:MaxRAMPercentage=70"
+    heap = "-XX:MaxRAMPercentage=70"
     code, _ = shell(
         [
             "java",
@@ -235,7 +249,7 @@ def run_java(compile_ms, run_ms):
     )
     tests = []
     for report in sorted(reports.glob("*.xml")):
-        tests.extend(junit_tests(report))
+        tests.extend(junit_tests(report, "java"))
     if not tests and code not in (0, 1):
         return {"phase": "crashed", "tests": []}
     for test in tests:
@@ -297,9 +311,7 @@ def run_native(compile_ms, run_ms, language):
         if remaining <= 0:
             break
         started = time.monotonic()
-        code, elapsed = shell(
-            [str(binary), f"--gtest_filter={name}", "--gtest_brief=1"], remaining
-        )
+        code, elapsed = shell([str(binary), f"--gtest_filter={name}", "--gtest_brief=1"], remaining)
         remaining -= int((time.monotonic() - started) * 1000)
         outcome = "pass" if code == 0 else "fail"
         if code < 0 or code > 128:
@@ -384,7 +396,7 @@ def run_sql(compile_ms, run_ms):
             emit("test", result)
             return {"phase": "ran", "tests": [result]}
 
-        rows = (Path("/work/result.csv").read_text() if Path("/work/result.csv").exists() else "")
+        rows = Path("/work/result.csv").read_text() if Path("/work/result.csv").exists() else ""
         emit("line", {"kind": "output", "text": rows.strip()[:4000]})
         emit("rows", {"csv": rows[:64_000]})
         result = {"name": "query runs", "outcome": "pass", "durationMs": elapsed}

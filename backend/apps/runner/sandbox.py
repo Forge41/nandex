@@ -18,6 +18,7 @@ in-image harness, which asks the test framework directly.
 
 from __future__ import annotations
 
+import contextlib
 import io
 import json
 import logging
@@ -90,7 +91,7 @@ def run(spec: RunSpec) -> Iterator[dict]:
         container.start()
         killer.start()
 
-        raw = stdin_socket._sock  # noqa: SLF001 -- docker-py exposes it no other way
+        raw = stdin_socket._sock
         raw.sendall(_tar(spec.files))
         raw.shutdown(socket.SHUT_WR)
         raw.close()
@@ -249,14 +250,11 @@ def _events(chunk: bytes) -> Iterator[dict]:
 
 
 def _kill(container) -> None:
-    try:
+    # Already dead is the common case, and indistinguishable from here.
+    with contextlib.suppress(DockerException):
         container.kill()
-    except DockerException:
-        pass
 
 
 def _remove(container) -> None:
-    try:
+    with contextlib.suppress(DockerException):
         container.remove(force=True)
-    except DockerException:
-        pass

@@ -13,9 +13,14 @@ urlpatterns = [
     path("interview/sessions/<str:session_id>/resume/file", views.session_resume_file),
     path("interview/sessions/<str:session_id>/plan", views.session_plan),
     path("interview/sessions/<str:session_id>/token", views.session_token),
-    path("interview/sessions/<str:session_id>/rounds/<str:stage_id>/draft", coding_views.session_draft),
+    path(
+        "interview/sessions/<str:session_id>/rounds/<str:stage_id>/draft",
+        coding_views.session_draft,
+    ),
     # GET lists past attempts, POST takes one. One path, dispatched by verb inside.
-    path("interview/sessions/<str:session_id>/rounds/<str:stage_id>/runs", coding_views.session_runs),
+    path(
+        "interview/sessions/<str:session_id>/rounds/<str:stage_id>/runs", coding_views.session_runs
+    ),
     path(
         "interview/sessions/<str:session_id>/rounds/<str:stage_id>/tasks/<int:task_index>"
         "/languages/<str:language>",

@@ -110,9 +110,7 @@ def attempts_allowed(task: dict) -> int:
 
 
 def attempts_used(session_id: str, stage_id: str, task_index: int) -> int:
-    runs = CodeRun.objects.filter(
-        session_id=session_id, stage_id=stage_id, task_index=task_index
-    )
+    runs = CodeRun.objects.filter(session_id=session_id, stage_id=stage_id, task_index=task_index)
     return sum(1 for run in runs if run.counts_as_attempt)
 
 
@@ -216,9 +214,9 @@ def attempt_state(session_id: str, stage_id: str, task_index: int) -> dict:
     state = {
         "attemptsAllowed": allowed,
         "attemptsUsed": len(scored),
-        "attemptOutcomes": [
-            run.outcome_over(run.visible_tests(hidden)) for run in scored
-        ][:allowed],
+        "attemptOutcomes": [run.outcome_over(run.visible_tests(hidden)) for run in scored][
+            :allowed
+        ],
     }
     last = runs[-1] if runs else None
     if last is not None and last.phase == CodeRun.Phase.RAN:

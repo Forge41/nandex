@@ -111,6 +111,8 @@ without a valid key.
 | `make interview-worker` | Run the Temporal worker that reads a resume and writes the interview plan |
 | `make interviewer-agent` | Run the LiveKit agent that joins the room and talks to the candidate |
 | `make vas-stack` | Start the containers `vas` needs: LiveKit, Egress, fake-GCS, Redis |
+| `make runner` | Run the code-execution sandbox on :8002 — loopback only, and it needs Docker |
+| `make runner-images` | Build the four sandbox images: Python, Java, C/C++, SQL |
 | `make frontend` | Run the Next.js dev server (proxies `/api/*` to the backend) |
 | `make migrate` | Apply pending database migrations for every app |
 | `make tps-migrate` / `importer-migrate` / `ingest-migrate` | Migrate just that one app |
@@ -120,6 +122,16 @@ containers (LiveKit, Egress, fake-GCS, Redis) and creates the recordings bucket,
 migration, and then hands over to `serve-all`. Run it the first time, after pulling a change that
 adds a migration, or any time the containers are down. Day to day, `make serve-all` is the one you
 want — the prerequisites are already in place and it starts in seconds.
+
+**The runner needs Docker at request time**, unlike everything else here. It is the one process
+that talks to the Docker daemon, and it starts a throwaway container per run — no network, a
+read-only root, an unprivileged uid, capped memory and pids, and a wall-clock budget. It binds
+`127.0.0.1:8002` and is never published: anything that reaches it with its token can start
+containers on this host.
+
+`make runner-images` builds the four images the coding and SQL rounds run in. Without them, the
+Run button reports that the runner is unavailable rather than failing at click time, and the
+sandbox tests skip. `make up` builds them for you.
 
 **Temporal is the one service `serve-all` does not own.** It starts one only when :7233 is free,
 and a server that was already running is reused and therefore outlives Ctrl-C — which is usually

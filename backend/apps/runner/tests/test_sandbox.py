@@ -19,13 +19,9 @@ pytestmark = pytest.mark.docker
 
 
 def execute(files, *, language="python", compile_ms=5_000, run_ms=10_000):
-    events = list(
-        run(RunSpec(LANGUAGES[language], files, compile_ms=compile_ms, run_ms=run_ms))
-    )
+    events = list(run(RunSpec(LANGUAGES[language], files, compile_ms=compile_ms, run_ms=run_ms)))
     done = next(e["data"] for e in events if e["event"] == "done")
-    terminal = "\n".join(
-        e["data"]["text"] for e in events if e["event"] == "line"
-    )
+    terminal = "\n".join(e["data"]["text"] for e in events if e["event"] == "line")
     streamed = [e["data"] for e in events if e["event"] == "test"]
     return done, terminal, streamed
 
@@ -65,9 +61,7 @@ def test_candidate_code_cannot_reach_the_internet():
 
 
 def test_the_root_filesystem_is_read_only():
-    done, _, _ = execute(
-        suite("def test_writes():\n    open('/etc/passwd', 'w').write('x')\n")
-    )
+    done, _, _ = execute(suite("def test_writes():\n    open('/etc/passwd', 'w').write('x')\n"))
 
     assert [t["outcome"] for t in done["tests"]] == ["fail"]
 
@@ -94,9 +88,7 @@ def test_unbounded_output_is_truncated_rather_than_streamed_forever():
 
 
 def test_a_busy_loop_is_stopped_at_the_budget():
-    done, _, _ = execute(
-        suite("def test_spins():\n    while True:\n        pass\n"), run_ms=3_000
-    )
+    done, _, _ = execute(suite("def test_spins():\n    while True:\n        pass\n"), run_ms=3_000)
 
     assert done["phase"] == "timeout"
     assert done["tests"] == []
@@ -106,7 +98,7 @@ def test_a_busy_loop_is_stopped_at_the_budget():
 
 
 def test_a_passing_and_a_failing_case_are_reported_separately():
-    done, terminal, streamed = execute(
+    done, terminal, _ = execute(
         {
             "solution.py": "def add(a, b):\n    return a + b\n",
             "test_solution.py": (
@@ -118,9 +110,11 @@ def test_a_passing_and_a_failing_case_are_reported_separately():
     )
 
     assert done["phase"] == "ran"
+    # Canonical names: pytest needs the `test_` prefix to collect them, the task's case
+    # list does not have it, and the panel is keyed on the task's list.
     assert {t["name"]: t["outcome"] for t in done["tests"]} == {
-        "test_adds": "pass",
-        "test_wrong": "fail",
+        "adds": "pass",
+        "wrong": "fail",
     }
     # The real assertion, not a summary line we parsed out of the output.
     assert "assert 4 == 5" in terminal
@@ -129,11 +123,9 @@ def test_a_passing_and_a_failing_case_are_reported_separately():
 def test_each_case_is_reported_while_the_run_is_still_going():
     """The panel flips a case as it finishes. Arriving only in the final result would
     make that a lie, so the events are streamed as well as reconciled."""
-    _, _, streamed = execute(
-        suite("def test_one(): pass\ndef test_two(): pass\n")
-    )
+    _, _, streamed = execute(suite("def test_one(): pass\ndef test_two(): pass\n"))
 
-    assert [t["name"] for t in streamed] == ["test_one", "test_two"]
+    assert [t["name"] for t in streamed] == ["one", "two"]
 
 
 def test_code_that_does_not_parse_ran_no_tests_at_all():
@@ -160,8 +152,8 @@ def test_a_crash_keeps_the_cases_that_already_reported():
 
     assert done["phase"] == "crashed"
     reported = {t["name"] for t in done["tests"]}
-    assert "test_first" in reported
-    assert "test_never_runs" not in reported
+    assert "first" in reported
+    assert "never_runs" not in reported
 
 
 def test_the_container_is_gone_afterwards():
