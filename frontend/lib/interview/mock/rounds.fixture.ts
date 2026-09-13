@@ -3,57 +3,6 @@ import type { RoundContent } from "../types";
 /** Round content standing in for the generated plan's output. Replaced by
  * GET /api/interview/:id once rounds are produced server-side. */
 
-const APPLIER_PY = `from collections import deque, defaultdict
-
-
-class TransferApplier:
-    def __init__(self, window_s=5):
-        self._bal = defaultdict(int)
-        self._seen = set()
-        self._order = deque()          # (ts, event_id)
-        self._window = window_s
-
-    def apply(self, event):
-        eid, ts = event["id"], event["ts"]
-        self._evict(ts)
-        if eid in self._seen:
-            return False
-        self._seen.add(eid)
-        self._order.append((ts, eid))
-        self._bal[event["from"]] -= event["amount"]
-        self._bal[event["to"]]   += event["amount"]
-        return True
-
-    def _evict(self, now):
-        while self._order and now - self._order[0][0] > self._window:
-            _, old = self._order.popleft()
-            self._seen.discard(old)
-`;
-
-const TEST_APPLIER_PY = `import pytest
-from applier import TransferApplier
-
-
-def test_single_transfer():
-    a = TransferApplier()
-    a.apply({"id": "e1", "ts": 0, "from": "A", "to": "B", "amount": 250})
-    assert a.balances() == {"A": -250, "B": 250}
-
-
-def test_exact_duplicate():
-    a = TransferApplier()
-    for _ in range(2):
-        a.apply({"id": "e1", "ts": 0, "from": "A", "to": "B", "amount": 250})
-    assert a.balances()["A"] == -250
-
-
-def test_out_of_order_replay():
-    a = TransferApplier()
-    a.apply({"id": "e1", "ts": 6, "from": "A", "to": "B", "amount": 250})
-    a.apply({"id": "e1", "ts": 0, "from": "A", "to": "B", "amount": 250})
-    assert a.balances()["A"] == -250
-`;
-
 const CHARGE_PY = `def charge(order_id, cents):
     lock = redis.setnx(f"lock:{order_id}", 1)
     if not lock:
@@ -63,7 +12,6 @@ const CHARGE_PY = `def charge(order_id, cents):
     CACHED[order_id] = receipt
     redis.delete(f"lock:{order_id}")
     return receipt
-
 
 # CACHED is per-process. Three workers.
 `;
@@ -86,58 +34,6 @@ export const MOCK_ROUND_CONTENT: RoundContent = {
       "You moved the ledger from a single Postgres writer to Kafka. Walk me through the moment you knew the old design would not hold — and what you would have needed to see to abandon the migration.",
     derivedFrom: ["resume line 4", "your answer to Q1"],
     citation: 2,
-  },
-
-  coding: {
-    index: 1,
-    total: 2,
-    title: "Retry-safe transfer applier",
-    difficulty: "gold",
-    difficultyLabel: "Medium",
-    brief: [
-      "A payments worker replays a stream of transfer events. The stream is at-least-once: any event may arrive more than once, and out of order within a 5-second window.",
-      "Implement apply(event) so that account balances are correct no matter how often an event is delivered.",
-    ],
-    example: `apply({id:"e1",from:"A",
-       to:"B",amount:250})
-apply({id:"e1", ...})   # dup
-
-balances() ->
-  {"A": -250, "B": 250}`,
-    constraints: ["Up to 2M events per run", "Memory must not grow with total events", "No external datastore"],
-    attemptsUsed: 2,
-    attemptsAllowed: 3,
-    attemptOutcomes: ["fail", "fail", "unused"],
-    lastRunSummary: "Last run: 6 of 8 tests passed",
-    languages: ["python", "go", "typescript"],
-    files: [
-      { name: "applier.py", language: "python", content: APPLIER_PY },
-      { name: "test_applier.py", language: "python", content: TEST_APPLIER_PY, readOnly: true },
-    ],
-    tests: [
-      { name: "single_transfer", outcome: "pass", durationMs: 2 },
-      { name: "exact_duplicate", outcome: "pass", durationMs: 3 },
-      { name: "self_transfer", outcome: "pass", durationMs: 1 },
-      { name: "out_of_order_replay", outcome: "fail" },
-      { name: "window_boundary", outcome: "fail" },
-      { name: "2m_events_memory", outcome: "hidden" },
-    ],
-    terminal: [
-      { kind: "command", text: "$ pytest -q test_applier.py" },
-      { kind: "output", text: "......FF" },
-      { kind: "error", text: "FAILED test_out_of_order_replay" },
-      { kind: "muted", text: '  assert balances()["A"] == -250' },
-      { kind: "muted", text: "  E  assert -500 == -250" },
-      { kind: "error", text: "FAILED test_window_boundary" },
-      { kind: "muted", text: "  eviction dropped id before duplicate arrived" },
-      { kind: "output", text: "6 passed, 2 failed in 0.41s" },
-    ],
-    exitCode: 1,
-    complexity: [
-      { label: "Time", value: "O(1) amortised" },
-      { label: "Memory", value: "O(window)", tone: "warning" },
-    ],
-    complexityNote: "Bounded by the 5s window — matches the constraint.",
   },
 
   sql: {

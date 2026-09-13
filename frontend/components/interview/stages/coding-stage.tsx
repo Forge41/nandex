@@ -94,7 +94,6 @@ export function CodingStage() {
           <Panel defaultSize="38%" minSize="15%" className="flex min-h-0">
             <TerminalPanel
               title="Terminal"
-              subtitle="bash · sandbox-7f2"
               lines={task.terminal}
               exitCode={task.exitCode}
               className="min-w-0 flex-1"

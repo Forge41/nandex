@@ -152,14 +152,24 @@ export interface CodeFile {
   readOnly?: boolean;
 }
 
-export type TestOutcome = "pass" | "fail" | "hidden";
+export type TestOutcome = "pass" | "fail";
 
 export interface TestCase {
   name: string;
-  outcome: TestOutcome;
+  /** Whether the candidate may see this case's result. A property of the case,
+   * decided when it is written -- not a result of running it. */
+  hidden: boolean;
+  /** Absent until a run reports one. Absent is "not run", which is the state
+   * every case starts in and the only honest thing to render before a run. */
+  outcome?: TestOutcome;
   /** Milliseconds, when the case actually ran. */
   durationMs?: number;
 }
+
+/** A run passed every case, some of them, or none. `partial` is the ordinary
+ * outcome once runs are real, and the reason the attempts meter needs a third
+ * fill. `unused` is an attempt not yet taken. */
+export type AttemptOutcome = "pass" | "partial" | "fail" | "unused";
 
 export type TerminalLineKind = "command" | "output" | "error" | "muted";
 
@@ -177,15 +187,18 @@ export interface CodingTask {
   brief: string[];
   example: string;
   constraints: string[];
-  attemptsUsed: number;
   attemptsAllowed: number;
-  attemptOutcomes: ("pass" | "fail" | "unused")[];
+  /** The fields below are produced by a run, so a task nobody has run carries
+   * none of them. A generated value here would be a test result for code that
+   * never executed. */
+  attemptsUsed?: number;
+  attemptOutcomes?: AttemptOutcome[];
   lastRunSummary?: string;
   files: CodeFile[];
   languages: CodeLanguage[];
   tests: TestCase[];
-  terminal: TerminalLine[];
-  exitCode: number;
+  terminal?: TerminalLine[];
+  exitCode?: number;
   complexity: { label: string; value: string; tone?: Tone }[];
   complexityNote?: string;
 }
