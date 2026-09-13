@@ -32,6 +32,9 @@ class Brief:
     probes: list[dict] = field(default_factory=list)
     citations: list[dict] = field(default_factory=list)
     candidate_title: str = ""
+    # Present only while the candidate is in the coding round. Counts and failing case
+    # names, never their source.
+    coding: dict | None = None
 
     @classmethod
     def from_payload(cls, payload: dict) -> "Brief":
@@ -48,6 +51,7 @@ class Brief:
             probes=resume.get("probes") or [],
             citations=resume.get("citations") or [],
             candidate_title=candidate.get("title") or "",
+            coding=payload.get("coding"),
         )
 
     def quote_for(self, citation_id: int | None) -> str:

@@ -22,7 +22,9 @@ export function TerminalPanel({
 }: {
   title: string;
   subtitle?: string;
-  lines: TerminalLine[];
+  /** Absent or empty means nothing has been run. The panel then shows a bare
+   * prompt -- an empty terminal is what an unrun task actually has. */
+  lines?: TerminalLine[];
   exitCode?: number;
   footer?: React.ReactNode;
   className?: string;
@@ -41,7 +43,7 @@ export function TerminalPanel({
       </div>
 
       <div className="scrollbar-thin t-mono min-h-0 flex-1 overflow-y-auto px-3 py-2.5 text-2xs leading-[1.75] text-[hsl(34_11%_88%)]">
-        {lines.map((line, index) => (
+        {(lines ?? []).map((line, index) => (
           <div key={index} className={LINE_COLOR[line.kind]}>
             {line.text}
           </div>

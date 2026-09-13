@@ -4,7 +4,7 @@ The instructions are the whole behaviour of this agent, so they are asserted her
 than inferred from listening to a recording of it.
 """
 
-from interviewer.briefing import describe, greeting_instruction, instructions_for
+from interviewer.briefing import coding_context, describe, greeting_instruction, instructions_for
 from interviewer.core_client import Brief
 
 PAYLOAD = {
@@ -222,3 +222,94 @@ def test_an_item_with_no_timestamp_still_lands_on_the_timeline():
             self.role, self.text_content, self.created_at = "user", "Hello.", None
 
     assert TranscriptRecorder("s1").add(Item()) is None
+
+
+def _coding_brief(coding):
+    return Brief(
+        session_id="s1",
+        candidate_name="Priya",
+        role_title="Senior Backend Engineer",
+        active_stage="coding",
+        plan_ready=True,
+        total_duration_min=94,
+        coding=coding,
+    )
+
+
+def test_the_interviewer_is_told_it_cannot_see_the_code():
+    """The point of having an interviewer in this round is asking about the failing case,
+    not reading along."""
+    context = coding_context(
+        _coding_brief(
+            {
+                "taskNumber": 1,
+                "taskTotal": 2,
+                "title": "Retry-safe applier",
+                "brief": ["Apply events idempotently."],
+                "language": "python",
+                "hasRun": True,
+                "phase": "ran",
+                "passed": 2,
+                "total": 4,
+                "failing": ["out_of_order_replay", "window_boundary"],
+                "attemptsUsed": 1,
+                "attemptsAllowed": 3,
+            }
+        )
+    )
+
+    assert "passed 2 of 4" in context
+    assert "out_of_order_replay, window_boundary" in context
+    assert "cannot see their code" in context
+
+
+def test_nothing_is_claimed_about_a_run_that_has_not_happened():
+    context = coding_context(
+        _coding_brief({"taskNumber": 1, "taskTotal": 2, "title": "T", "brief": [], "hasRun": False})
+    )
+
+    assert "not run their tests yet" in context
+    assert "passed" not in context
+
+
+def test_a_compile_failure_is_not_reported_as_failing_tests():
+    context = coding_context(
+        _coding_brief(
+            {
+                "taskNumber": 1,
+                "taskTotal": 1,
+                "title": "T",
+                "brief": [],
+                "hasRun": True,
+                "phase": "compile_failed",
+                "attemptsUsed": 0,
+                "attemptsAllowed": 3,
+            }
+        )
+    )
+
+    assert "did not compile" in context
+    assert "no attempt was used" in context
+
+
+def test_a_crash_leaves_unrun_cases_unknown_rather_than_failed():
+    context = coding_context(
+        _coding_brief(
+            {
+                "taskNumber": 1,
+                "taskTotal": 1,
+                "title": "T",
+                "brief": [],
+                "hasRun": True,
+                "phase": "crashed",
+                "attemptsUsed": 1,
+                "attemptsAllowed": 3,
+            }
+        )
+    )
+
+    assert "unknown, not failures" in context
+
+
+def test_a_candidate_outside_the_coding_round_gets_no_coding_context():
+    assert coding_context(_coding_brief(None)) == ""

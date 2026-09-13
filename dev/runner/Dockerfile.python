@@ -1,0 +1,7 @@
+FROM python:3.13-slim
+RUN pip install --no-cache-dir pytest==8.3.4
+COPY harness.py /opt/harness.py
+COPY entrypoint.sh /opt/entrypoint.sh
+RUN chmod 0755 /opt/entrypoint.sh /opt/harness.py
+WORKDIR /work
+ENTRYPOINT ["/opt/entrypoint.sh"]

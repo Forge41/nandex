@@ -30,6 +30,12 @@ class Settings(BaseSettings):
     vas_callback_signing_secret: str = ""
     vas_timeout_seconds: float = 10.0
 
+    runner_base_url: str = "http://127.0.0.1:8002"
+    runner_service_bearer_token: str = ""
+    # A whole run, not one request: a C++ compile with sanitizers plus the suite. The
+    # runner enforces its own per-language budget inside this.
+    runner_timeout_seconds: float = 180.0
+
     model_config = {"env_prefix": "CORE_"}
 
 

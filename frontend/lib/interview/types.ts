@@ -142,7 +142,7 @@ export interface DeviceReport {
   detail?: string;
 }
 
-export type CodeLanguage = "python" | "go" | "typescript" | "sql";
+export type CodeLanguage = "python" | "java" | "c" | "cpp" | "sql";
 
 export interface CodeFile {
   name: string;
@@ -152,14 +152,24 @@ export interface CodeFile {
   readOnly?: boolean;
 }
 
-export type TestOutcome = "pass" | "fail" | "hidden";
+export type TestOutcome = "pass" | "fail";
 
 export interface TestCase {
   name: string;
-  outcome: TestOutcome;
+  /** Whether the candidate may see this case's result. A property of the case,
+   * decided when it is written -- not a result of running it. */
+  hidden: boolean;
+  /** Absent until a run reports one. Absent is "not run", which is the state
+   * every case starts in and the only honest thing to render before a run. */
+  outcome?: TestOutcome;
   /** Milliseconds, when the case actually ran. */
   durationMs?: number;
 }
+
+/** A run passed every case, some of them, or none. `partial` is the ordinary
+ * outcome once runs are real, and the reason the attempts meter needs a third
+ * fill. `unused` is an attempt not yet taken. */
+export type AttemptOutcome = "pass" | "partial" | "fail" | "unused";
 
 export type TerminalLineKind = "command" | "output" | "error" | "muted";
 
@@ -168,24 +178,43 @@ export interface TerminalLine {
   text: string;
 }
 
-export interface CodingTask {
+/** One language's files for a task. Absent until that language is generated --
+ * only the evidenced one is prepared up front, because four languages times two
+ * tasks is eight generations for a round almost nobody answers twice. */
+export interface LanguageVariant {
+  files: CodeFile[];
+}
+
+/** What the coding and SQL rounds have in common: a task you attempt, in a
+ * language, whose result comes from a run. */
+export interface RunnableTask {
   index: number;
   total: number;
   title: string;
+  attemptsAllowed: number;
+  citation?: number;
+  /** Keyed by language: the same task is answered in four of them, each with its
+   * own starter and test files. */
+  languages: Partial<Record<CodeLanguage, LanguageVariant>>;
+  /** The canonical case list -- the same names in every language, so the panel
+   * beside the editor means the same thing whichever chip is selected. */
+  tests: TestCase[];
+}
+
+export interface CodingTask extends RunnableTask {
   difficulty: Tone;
   difficultyLabel: string;
   brief: string[];
   example: string;
   constraints: string[];
-  attemptsUsed: number;
-  attemptsAllowed: number;
-  attemptOutcomes: ("pass" | "fail" | "unused")[];
+  /** The fields below are produced by a run, so a task nobody has run carries
+   * none of them. A generated value here would be a test result for code that
+   * never executed. */
+  attemptsUsed?: number;
+  attemptOutcomes?: AttemptOutcome[];
   lastRunSummary?: string;
-  files: CodeFile[];
-  languages: CodeLanguage[];
-  tests: TestCase[];
-  terminal: TerminalLine[];
-  exitCode: number;
+  terminal?: TerminalLine[];
+  exitCode?: number;
   complexity: { label: string; value: string; tone?: Tone }[];
   complexityNote?: string;
 }
@@ -195,16 +224,20 @@ export interface SchemaTable {
   columns: { name: string; type: string }[];
 }
 
-export interface SqlTask {
+/** The starter query is a file like any other; the schema, seed and expected
+ * result are files the sandbox gets and the browser never does. */
+export interface SqlTask extends RunnableTask {
   prompt: string;
   schema: SchemaTable[];
-  query: string;
+}
+
+/** A result grid, as a run produced it. Absent means no query has been run --
+ * which is where the round starts, and nothing to apologise for. */
+export interface SqlResult {
   columns: string[];
-  rows: (string | number)[][];
+  rows: string[][];
   /** Right-aligned like a spreadsheet; indexes into `columns`. */
   numericColumns: number[];
-  timing?: string;
-  caveat?: string;
 }
 
 export interface DebugTask {
@@ -300,8 +333,10 @@ export interface WrapUp {
 /** Round content, keyed by the round it belongs to. Absent entries mean the
  * server has not generated that round yet. */
 export interface RoundContent {
-  coding?: CodingTask;
-  sql?: SqlTask;
+  /** A round holds more than one task -- the header reads "Task 1 of 2" -- so the
+   * generated content is the list and `total` is its length. */
+  coding?: { tasks: CodingTask[]; defaultLanguage: CodeLanguage };
+  sql?: { tasks: SqlTask[]; defaultLanguage: CodeLanguage };
   debug?: DebugTask;
   design?: DesignTask;
   quiz?: QuizQuestion;

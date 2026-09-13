@@ -10,43 +10,66 @@ import { TaskBriefPanel } from "@/components/interview/organisms/task-brief-pane
 import { TestCasePanel } from "@/components/interview/organisms/test-case-panel";
 import { TerminalPanel } from "@/components/interview/organisms/terminal-panel";
 import { useInterviewSession } from "@/lib/interview/session-provider";
+import { useCodingRound } from "@/lib/interview/use-coding-round";
 import type { CodeLanguage } from "@/lib/interview/types";
-import { MissingRoundContent } from "./missing-round-content";
+import { MissingRoundContent, isGenerating } from "./missing-round-content";
 
 const LANGUAGE_LABEL: Record<CodeLanguage, string> = {
   python: "Python",
-  go: "Go",
-  typescript: "TS",
+  java: "Java",
+  c: "C",
+  cpp: "C++",
   sql: "SQL",
 };
 
 const LANGUAGE_CHIP: Record<CodeLanguage, string> = {
   python: "py",
-  go: "go",
-  typescript: "ts",
+  java: "java",
+  c: "c",
+  cpp: "cpp",
   sql: "sql",
 };
 
+const OFFERED: CodeLanguage[] = ["python", "java", "c", "cpp"];
+
 export function CodingStage() {
   const { session, dispatch } = useInterviewSession();
-  const task = session.content.coding;
+  const content = session.content.coding;
 
+  if (!content || content.tasks.length === 0) {
+    return <MissingRoundContent generating={isGenerating(session, "coding")} />;
+  }
+  return <CodingRound sessionId={session.id} content={content} onFinish={() => dispatch({ type: "ADVANCE" })} />;
+}
+
+function CodingRound({
+  sessionId,
+  content,
+  onFinish,
+}: {
+  sessionId: string;
+  content: NonNullable<ReturnType<typeof useInterviewSession>["session"]["content"]["coding"]>;
+  onFinish: () => void;
+}) {
+  const round = useCodingRound({
+    sessionId,
+    stage: "coding",
+    tasks: content.tasks,
+    defaultLanguage: content.defaultLanguage,
+    onFinish,
+  });
   const [activeFile, setActiveFile] = useState(0);
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const [language, setLanguage] = useState<CodeLanguage>(task?.languages[0] ?? "python");
 
-  if (!task) return <MissingRoundContent />;
-
-  const file = task.files[activeFile];
-  const value = drafts[file.name] ?? file.content;
+  const file = round.files[Math.min(activeFile, Math.max(round.files.length - 1, 0))];
+  const preparing = round.languageState === "preparing";
 
   return (
     <div className="flex min-h-0 flex-1">
-      <TaskBriefPanel task={task} />
+      <TaskBriefPanel task={round.task} attempts={round.attempts} />
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <div className="flex h-9 shrink-0 items-stretch border-b border-line bg-surface">
-          {task.files.map((candidate, index) => (
+          {round.files.map((candidate, index) => (
             <button
               key={candidate.name}
               type="button"
@@ -62,31 +85,53 @@ export function CodingStage() {
           <div className="flex-1" />
 
           <div className="flex items-center gap-2 px-3">
-            <Segmented value={language} onValueChange={(next) => next && setLanguage(next as CodeLanguage)}>
-              {task.languages.map((option) => (
-                <SegmentedItem key={option} value={option}>
+            <Segmented
+              value={round.language}
+              onValueChange={(next) => next && round.selectLanguage(next as CodeLanguage)}
+            >
+              {OFFERED.map((option) => (
+                <SegmentedItem key={option} value={option} disabled={round.running}>
                   {LANGUAGE_LABEL[option]}
+                  {preparing && option === round.language ? " …" : ""}
                 </SegmentedItem>
               ))}
             </Segmented>
-            <Button variant="secondary" size="sm" disabled title="Needs the execution sandbox">
-              Run tests
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={!round.canRun}
+              onClick={round.runTests}
+              title={runTitle(round.running, preparing, round.attempts)}
+            >
+              {round.running ? "Running…" : "Run tests"}
             </Button>
-            <Button variant="primary" size="sm" onClick={() => dispatch({ type: "ADVANCE" })}>
-              Submit
+            {/* Disabled during a run: advancing past an attempt that is still being
+                written records it against a task the candidate has already left. */}
+            <Button variant="primary" size="sm" disabled={round.running} onClick={round.submit}>
+              {round.isLastTask ? "Submit" : "Next task"}
             </Button>
           </div>
         </div>
 
         <Group orientation="vertical" className="min-h-0 flex-1">
           <Panel defaultSize="62%" minSize="25%" className="flex min-h-0 flex-col">
-            <CodeSurface
-              key={file.name}
-              value={value}
-              language={file.language}
-              readOnly={file.readOnly}
-              onChange={(next) => setDrafts((current) => ({ ...current, [file.name]: next }))}
-            />
+            {preparing ? (
+              <Placeholder>Preparing {LANGUAGE_LABEL[round.language]}…</Placeholder>
+            ) : round.languageState === "failed" ? (
+              <Placeholder>
+                We couldn&rsquo;t prepare {LANGUAGE_LABEL[round.language]}. Pick another language.
+              </Placeholder>
+            ) : file ? (
+              <CodeSurface
+                key={`${round.taskIndex}:${round.language}:${file.name}`}
+                value={round.contentOf(file.name)}
+                language={file.language}
+                readOnly={file.readOnly}
+                onChange={(next) => round.edit(file.name, next)}
+              />
+            ) : (
+              <Placeholder>No files for this task yet.</Placeholder>
+            )}
           </Panel>
 
           <Separator className="h-px shrink-0 bg-line transition-colors hover:bg-line-interactive" />
@@ -94,15 +139,57 @@ export function CodingStage() {
           <Panel defaultSize="38%" minSize="15%" className="flex min-h-0">
             <TerminalPanel
               title="Terminal"
-              subtitle="bash · sandbox-7f2"
-              lines={task.terminal}
-              exitCode={task.exitCode}
+              subtitle={round.running ? "running" : undefined}
+              lines={round.terminal}
+              exitCode={round.exitCode}
               className="min-w-0 flex-1"
+              footer={round.result ? <RunNote result={round.result} /> : undefined}
             />
-            <TestCasePanel task={task} />
+            <TestCasePanel task={round.task} tests={round.tests} />
           </Panel>
         </Group>
       </div>
     </div>
   );
+}
+
+function Placeholder({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex min-h-0 flex-1 items-center justify-center p-8 text-xs text-content-muted">
+      {children}
+    </div>
+  );
+}
+
+/** What happened, when what happened was not "the tests ran".
+ *
+ * A compile failure is not a set of failing tests, and a run that never reached the
+ * sandbox is not a verdict on the candidate at all. */
+function RunNote({ result }: { result: { phase: string; detail?: string; timedOut: boolean; truncated: boolean } }) {
+  const note = NOTE[result.phase];
+  if (!note && !result.truncated) return null;
+  return (
+    <div className="border-t border-[hsl(0_0%_100%/0.1)] px-3 py-2 text-2xs text-[hsl(38_5%_71%)]">
+      {result.detail ?? note}
+      {result.truncated && " Output was truncated."}
+    </div>
+  );
+}
+
+const NOTE: Record<string, string> = {
+  compile_failed: "That didn't build, so no tests ran — and this attempt wasn't counted.",
+  crashed: "The test process stopped early. Cases after that point never ran.",
+  timeout: "This run hit its time limit and was stopped.",
+  unavailable: "The code runner is unavailable, so this attempt wasn't counted.",
+};
+
+function runTitle(
+  running: boolean,
+  preparing: boolean,
+  attempts: { attemptsUsed: number; attemptsAllowed: number }
+): string | undefined {
+  if (running) return "A run is already going";
+  if (preparing) return "Still preparing this language";
+  if (attempts.attemptsUsed >= attempts.attemptsAllowed) return "No attempts left for this task";
+  return undefined;
 }

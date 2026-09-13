@@ -206,10 +206,12 @@ async def test_a_model_failure_reaches_the_workflow_rather_than_being_swallowed(
 async def test_only_rounds_with_a_generator_are_offered_for_preparing(session):
     """A stage nothing can write yet must not be queued as work: it would show the
     candidate a step that ticks off having produced nothing."""
-    wanted = await rounds_needing_content_activity(session["id"], ["behavioral", "coding"])
+    wanted = await rounds_needing_content_activity(
+        session["id"], ["behavioral", "coding", "design", "quiz"]
+    )
 
-    assert [r["stageId"] for r in wanted] == ["behavioral"]
-    assert wanted[0]["label"]
+    assert [r["stageId"] for r in wanted] == ["behavioral", "coding"]
+    assert all(r["label"] for r in wanted)
 
 
 async def test_a_round_already_prepared_is_not_offered_again(session):

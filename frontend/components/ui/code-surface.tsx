@@ -8,16 +8,19 @@ import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags } from "@lezer/highlight";
 import { python } from "@codemirror/lang-python";
 import { sql } from "@codemirror/lang-sql";
-import { go } from "@codemirror/lang-go";
-import { javascript } from "@codemirror/lang-javascript";
+import { java } from "@codemirror/lang-java";
+import { cpp } from "@codemirror/lang-cpp";
 import { cn } from "@/lib/utils";
 import type { CodeLanguage } from "@/lib/interview/types";
 
 const LANGUAGE = {
   python: () => python(),
   sql: () => sql(),
-  go: () => go(),
-  typescript: () => javascript({ typescript: true }),
+  java: () => java(),
+  // The C++ grammar serves C too; the differences it misses are not ones a
+  // syntax highlighter needs to get right.
+  c: () => cpp(),
+  cpp: () => cpp(),
 } as const;
 
 /** Token colours reference CSS variables, so a theme switch repaints the editor
