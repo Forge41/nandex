@@ -104,7 +104,25 @@ def sandbox_says_the_task_is_solvable(monkeypatch):
     async def verified(task, language, generated):
         return None
 
+    async def canned_sql(brief):
+        return {
+            "title": "Settlement report",
+            "prompt": "Report settled totals by merchant.",
+            "schema": [{"name": "transfers", "columns": [{"name": "id", "type": "int"}]}],
+            "attemptsAllowed": 3,
+            "tests": [{"name": "query runs", "hidden": False}],
+            "languages": {
+                "sql": {"files": [{"name": "query.sql", "language": "sql", "content": ""}]}
+            },
+        }
+
     monkeypatch.setattr("apps.interview.coding_generation.verify", verified)
+    # The SQL round runs its reference query in the sandbox to learn the expected result,
+    # which needs Docker and a model. Neither is what these tests are about.
+    monkeypatch.setattr("apps.interview.sql_generation.generate", canned_sql)
+    # These tests are about generation, so the bank is emptied for them -- otherwise the
+    # coding round is served instantly and the lookahead never exercises the model at all.
+    monkeypatch.setattr("apps.interview.task_bank.pick", lambda *a, **k: [])
 
 
 class FakeModel:

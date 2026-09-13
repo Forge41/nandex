@@ -12,7 +12,6 @@ should not depend on a migration having been run to have something to set.
 
 import asyncio
 import json
-from pathlib import Path
 
 from django.core.management.base import BaseCommand
 
