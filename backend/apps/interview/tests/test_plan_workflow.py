@@ -74,6 +74,39 @@ QUESTION = {
 }
 
 
+CODING_TASK = {
+    "title": "Retry-safe transfer applier",
+    "difficulty": "gold",
+    "difficultyLabel": "Medium",
+    "brief": ["Apply transfer events idempotently."],
+    "example": "apply({...})",
+    "constraints": ["No external datastore"],
+    "complexity": [{"label": "Time", "value": "O(1)"}],
+    "attemptsAllowed": 3,
+    "citation": 1,
+    "tests": [{"name": "single_transfer", "hidden": False}, {"name": "duplicate", "hidden": True}],
+}
+
+CODING_FILES = {
+    "files": [
+        {"name": "solution.py", "language": "python", "content": "def apply(e):\n    ..."},
+        {"name": "test_solution.py", "language": "python", "content": "def test_x(): pass"},
+    ],
+    "reference": "def apply(e):\n    return True",
+}
+
+
+@pytest.fixture(autouse=True)
+def sandbox_says_the_task_is_solvable(monkeypatch):
+    """Generation verifies its reference solution in the real sandbox, which these tests
+    have no Docker for. What is exercised here is the workflow's shape, not the task's."""
+
+    async def verified(task, language, generated):
+        return None
+
+    monkeypatch.setattr("apps.interview.coding_generation.verify", verified)
+
+
 class FakeModel:
     """One stub for both prompts, told apart by the system prompt they were given.
 
@@ -92,6 +125,14 @@ class FakeModel:
         if "behavioral round" in system_prompt:
             await self.round_gate.wait()
             return json.dumps(QUESTION)
+        # Order matters: the files prompt also says "live-coding task", so the more
+        # specific phrase has to be tested first.
+        if "starter files" in system_prompt:
+            await self.round_gate.wait()
+            return json.dumps(CODING_FILES)
+        if "live-coding task" in system_prompt:
+            await self.round_gate.wait()
+            return json.dumps(CODING_TASK)
         return json.dumps(PLAN)
 
 
@@ -100,6 +141,9 @@ def fake_model(monkeypatch):
     model = FakeModel()
     monkeypatch.setattr("apps.interview.resume.complete", model.complete)
     monkeypatch.setattr("apps.interview.round_content.complete", model.complete)
+    # Its own binding: coding_generation imports `complete` into its namespace, so
+    # patching round_content's name leaves the coding prompts hitting the real model.
+    monkeypatch.setattr("apps.interview.coding_generation.complete", model.complete)
     return model
 
 
@@ -157,11 +201,11 @@ async def _start(env, session_id: str, document_id: str):
     return worker, handle
 
 
-async def _wait_for(predicate, *, timeout: float = 20.0):
+async def _wait_for(predicate, *, timeout: float = 20.0, expected=None):
     deadline = asyncio.get_event_loop().time() + timeout
     while asyncio.get_event_loop().time() < deadline:
         result = await predicate()
-        if result:
+        if result == expected if expected is not None else result:
             return result
         await asyncio.sleep(0.1)
     raise AssertionError("condition never held")
@@ -211,10 +255,15 @@ async def test_the_steps_describe_this_resume_and_not_a_template(
 ):
     worker, handle = await _start(temporal_env, session["id"], uploaded_resume)
     async with worker:
+        # Both lookahead rounds, not just the first: the step list is only settled once
+        # everything it lists has finished, and asserting on it earlier races the second.
         await _wait_for(
             lambda: InterviewRound.objects.filter(
-                session_id=session["id"], stage_id="behavioral", content_state="ready"
-            ).acount()
+                session_id=session["id"],
+                stage_id__in=["behavioral", "coding"],
+                content_state="ready",
+            ).acount(),
+            expected=2,
         )
         progress = await handle.query("progress")
         await handle.signal(InterviewSessionWorkflow.session_ended)
@@ -228,11 +277,11 @@ async def test_the_steps_describe_this_resume_and_not_a_template(
     assert steps["plan"]["detail"] == "2 probes across 2 rounds"
     assert all(step["state"] == "done" for step in progress["steps"])
 
-    # Only rounds something can write are listed -- coding has no generator yet, so a
-    # step for it would tick off having produced nothing.
+    # Only rounds something can write are listed: behavioral and coding have generators,
+    # and a step for a stage with none would tick off having produced nothing.
     round_steps = [s for s in progress["steps"] if s["id"].startswith("round:")]
-    assert [s["id"] for s in round_steps] == ["round:behavioral"]
-    assert round_steps[0]["label"].startswith("Preparing ")
+    assert [s["id"] for s in round_steps] == ["round:behavioral", "round:coding"]
+    assert all(s["label"].startswith("Preparing ") for s in round_steps)
 
 
 async def test_the_generated_question_is_written_from_the_resume(

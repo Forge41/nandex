@@ -60,6 +60,9 @@ INSTALLED_APPS = [
     "apps.interview",
     # A second leaf beside apps.tps: no app imports these, and they import nothing above
     # them. Deployed as their own process (config.settings_vas) but sharing this database.
+    # A third leaf: the only process that may talk to the Docker daemon. No app imports
+    # it, it imports nothing above itself, and the way in is apps.core.clients.runner_client.
+    "apps.runner",
     "apps.vas_recordings",
     "apps.vas_webhooks",
     "apps.vas_compliance",

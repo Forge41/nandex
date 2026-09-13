@@ -17,11 +17,20 @@ from ai.prompt_loader import load_prompt
 from asgiref.sync import sync_to_async
 
 from apps.interview.config import settings
+from apps.interview import coding_generation
 from apps.interview.models import InterviewRound, InterviewSession, ResumeFacts
 
 logger = logging.getLogger(__name__)
 
-GENERATABLE_STAGE_IDS = frozenset({"behavioral"})
+# A generated test file either matches the canonical case list and is passable, or it is
+# regenerated. Capped, because an uncapped retry is an unbounded wait in a timed round.
+GENERATION_ATTEMPTS = 3
+
+GENERATABLE_STAGE_IDS = frozenset({"behavioral", "coding"})
+
+# How many tasks one coding round holds. Fixed here rather than left to whatever the model
+# emits, so two candidates sitting the same round get the same shape of interview.
+CODING_TASKS = 2
 
 
 class RoundContentUnusable(Exception):
@@ -31,7 +40,73 @@ class RoundContentUnusable(Exception):
 async def generate(session: InterviewSession, stage_id: str) -> dict | None:
     if stage_id not in GENERATABLE_STAGE_IDS:
         return None
+    if stage_id == "coding":
+        return await _generate_coding(session)
     return await _generate_behavioral(session)
+
+
+async def _generate_coding(session: InterviewSession) -> dict | None:
+    """Two tasks, each with the evidenced language ready and the rest generated on demand.
+
+    Only one language is prepared up front: four languages times two tasks is eight file
+    generations for a round almost nobody answers in more than one language, and the other
+    three are a request away when a candidate actually switches.
+    """
+    brief = await sync_to_async(_brief_sync, thread_sensitive=True)(session.id, "coding")
+    if brief is None:
+        return None
+
+    language = evidenced_language(brief)
+    tasks = []
+    for index in range(CODING_TASKS):
+        task = await coding_generation.generate_task({**brief, "taskNumber": index + 1})
+        task["index"] = index + 1
+        task["total"] = CODING_TASKS
+        task["languages"] = {}
+        await attach_language(task, language)
+        tasks.append(task)
+    return {"tasks": tasks, "defaultLanguage": language}
+
+
+async def attach_language(task: dict, language: str) -> dict:
+    """Generates one language's files for a task and proves they can be passed.
+
+    Regenerates on a verification failure rather than shipping the task: a test file no
+    correct solution satisfies produces real failures and a false verdict.
+    """
+    last: Exception | None = None
+    for _ in range(GENERATION_ATTEMPTS):
+        try:
+            written = await coding_generation.generate_files(task, language)
+            await coding_generation.verify(task, language, written)
+        except coding_generation.TaskUnusable as e:
+            logger.warning("regenerating %s for %s: %s", language, task.get("title"), e)
+            last = e
+            continue
+        task.setdefault("languages", {})[language] = {"files": written["files"]}
+        return task
+    raise coding_generation.TaskUnusable(str(last))
+
+
+# Evidence, not preference: a resume full of Java gets Java, and the interviewer can say
+# why. A candidate whose language is not one of the four gets Python and is told so
+# rather than silently handed a language they do not work in.
+LANGUAGE_EVIDENCE = {
+    "cpp": ("c++", "cpp"),
+    "java": ("java", "kotlin", "spring", "jvm"),
+    "c": ("embedded", " c ", "kernel", "firmware"),
+    "python": ("python", "django", "flask", "pandas"),
+}
+
+
+def evidenced_language(brief: dict) -> str:
+    haystack = json.dumps(brief).lower()
+    best, best_count = "python", 0
+    for language, markers in LANGUAGE_EVIDENCE.items():
+        count = sum(haystack.count(marker) for marker in markers)
+        if count > best_count:
+            best, best_count = language, count
+    return best
 
 
 async def _generate_behavioral(session: InterviewSession) -> dict | None:

@@ -259,3 +259,124 @@ class SessionRecording(models.Model):
 
     def __str__(self) -> str:
         return f"{self.session_id}:{self.vas_recording_id}"
+
+
+class CodeDraft(models.Model):
+    """The editor buffer, saved as the candidate types.
+
+    Keyed by language as well as task: switching to Java and back must return the Python
+    buffer exactly as it was left, and the two are different answers to the same task.
+
+    Which of these may be sent to the runner is decided by the stored task, not by this
+    row -- see services.runner_payload. A draft whose name is not an editable file of the
+    task is refused before it is written, because a draft named after the test file would
+    otherwise let a candidate grade themselves.
+    """
+
+    id = models.CharField(primary_key=True, max_length=24, default=generate_id, editable=False)
+    session = models.ForeignKey(
+        InterviewSession, on_delete=models.CASCADE, related_name="drafts", db_index=True
+    )
+    stage_id = models.CharField(max_length=32)
+    task_index = models.IntegerField(default=0)
+    language = models.CharField(max_length=16)
+    file_name = models.CharField(max_length=255)
+    content = models.TextField(blank=True, default="")
+    # Candidate data, so it answers to the same deletion request their recording does.
+    retain_until = models.DateTimeField(null=True, blank=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "interview_code_draft"
+        constraints = (
+            models.UniqueConstraint(
+                fields=["session", "stage_id", "task_index", "language", "file_name"],
+                name="uniq_draft_per_file",
+            ),
+        )
+
+    def __str__(self) -> str:
+        return f"{self.session_id}:{self.stage_id}:{self.language}:{self.file_name}"
+
+
+class CodeRun(models.Model):
+    """One attempt: what was submitted, and what really happened to it.
+
+    The record of what the candidate did. `attemptsUsed` and the attempts meter are
+    derived from these rows rather than stored anywhere, so there is one answer to how
+    many attempts were taken.
+
+    The row is created *before* the run starts, inside a locked transaction, so the
+    attempt limit is decided against committed rows. Writing it at the end would let N
+    simultaneous requests all read zero used attempts and all pass.
+    """
+
+    class Phase(models.TextChoices):
+        # Created, not yet finished. A row in this state still counts against the limit.
+        RUNNING = "running", "running"
+        RAN = "ran", "ran"
+        # Nothing ran because nothing built. Deliberately not an attempt -- see
+        # counts_as_attempt.
+        COMPILE_FAILED = "compile_failed", "compile_failed"
+        CRASHED = "crashed", "crashed"
+        TIMEOUT = "timeout", "timeout"
+        UNAVAILABLE = "unavailable", "unavailable"
+
+    id = models.CharField(primary_key=True, max_length=24, default=generate_id, editable=False)
+    session = models.ForeignKey(
+        InterviewSession, on_delete=models.CASCADE, related_name="code_runs", db_index=True
+    )
+    stage_id = models.CharField(max_length=32)
+    task_index = models.IntegerField(default=0)
+    language = models.CharField(max_length=16)
+    attempt = models.IntegerField()
+    # Exactly what was sent to the sandbox, candidate files and task files together.
+    files = models.JSONField(default=dict, blank=True)
+    phase = models.CharField(max_length=16, choices=Phase.choices, default=Phase.RUNNING)
+    # Per-case results as the runner reported them. A case that never ran is absent
+    # rather than failed.
+    tests = models.JSONField(default=list, blank=True)
+    terminal = models.JSONField(default=list, blank=True)
+    exit_code = models.IntegerField(null=True, blank=True)
+    duration_ms = models.IntegerField(default=0)
+    truncated = models.BooleanField(default=False)
+    timed_out = models.BooleanField(default=False)
+    retain_until = models.DateTimeField(null=True, blank=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "interview_code_run"
+        ordering = ("created_at",)
+
+    def __str__(self) -> str:
+        return f"{self.session_id}:{self.stage_id}#{self.attempt}:{self.phase}"
+
+    @property
+    def counts_as_attempt(self) -> bool:
+        """A run that never produced a binary does not cost the candidate an attempt.
+
+        Otherwise `attemptsAllowed: 3` means three real tries in Python and possibly one
+        in C++, where a missing semicolon is a scored attempt. The same applies when the
+        runner itself was unreachable: that is our failure, not theirs.
+        """
+        return self.phase not in (
+            self.Phase.COMPILE_FAILED,
+            self.Phase.UNAVAILABLE,
+        )
+
+    @property
+    def outcome(self) -> str:
+        """pass, partial or fail -- what the attempts meter fills with.
+
+        `partial` is the ordinary result once runs are real, and the reason the meter
+        needs a third colour.
+        """
+        reported = [t for t in self.tests if t.get("outcome")]
+        if not reported:
+            return "fail"
+        passed = sum(1 for t in reported if t["outcome"] == "pass")
+        if passed == len(reported):
+            return "pass"
+        return "fail" if passed == 0 else "partial"

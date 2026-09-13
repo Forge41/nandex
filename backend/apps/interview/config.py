@@ -23,6 +23,11 @@ class Settings(BaseSettings):
     # every agent request rather than accepting any.
     agent_bearer_token: str = ""
 
+    # Candidate source and terminal output are candidate data, retained on the same
+    # clock as their recording so "delete this candidate" has one answer.
+    code_retention_days: int = 90
+    run_terminal_lines: int = 400
+
     temporal_address: str = "localhost:7233"
     # Mirrors nothing else -- this app owns its own queue. No worker ships yet; the
     # trigger is fire-and-forget so a missing worker is a logged gap, not a failure.
