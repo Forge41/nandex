@@ -1,6 +1,6 @@
 "use client";
 
-import { LIVE_STAGES, RoomProvider } from "@/lib/interview/room-provider";
+import { RoomProvider, isLiveStage } from "@/lib/interview/room-provider";
 import { LiveTranscriptProvider } from "@/lib/interview/live-transcript-provider";
 import { TranscriptProvider } from "@/lib/interview/transcript-provider";
 import { useInterviewSession } from "@/lib/interview/session-provider";
@@ -23,10 +23,14 @@ export function RoomShell({
 }) {
   const { session } = useInterviewSession();
   const ended = session.status === "ended";
-  const live = LIVE_STAGES.has(session.activeStage) && !ended;
+  const live = isLiveStage(session) && !ended;
 
   return (
-    <RoomProvider sessionId={session.id} activeStage={session.activeStage} ended={ended}>
+    <RoomProvider
+      sessionId={session.id}
+      live={isLiveStage(session)}
+      ended={ended}
+    >
       {live ? (
         <LiveTranscriptProvider startedAt={session.startedAt} persisted={transcript}>
           {children}

@@ -76,9 +76,11 @@ altered fragment shows up as corrupted resume text on screen.
 `citation` on a fragment, probe or round refers to a `citations[].id`. Omit the key
 entirely when there is nothing to cite; do not use null or 0.
 
-`probes[].round` and `rounds[].id` must each be one of: `behavioral`, `coding`, `sql`,
-`debug`, `design`, `quiz`, `qa`. Do not invent a round, and do not plan for `preflight`,
-`resume` or `wrap` — those are fixed.
+`probes[].round` and `rounds[].id` must each be one of: `behavioral`, `coding`, `sql`.
+Do not invent a round, and do not plan for `preflight` or `resume` — those are fixed.
+Other rounds you may have seen in interviews of this shape — a debug drill, a design
+canvas, a knowledge check — are not part of this interview, and planning one would
+promise the candidate a round that does not exist.
 
 `entityCount` is how many distinct concrete entities you found in the resume: named
 employers, technologies, and figures. It is shown to the candidate as a count of what was

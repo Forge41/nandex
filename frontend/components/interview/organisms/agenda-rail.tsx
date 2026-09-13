@@ -51,6 +51,9 @@ function AgendaFlyout({
 export function AgendaRail({ connectionLabel }: { connectionLabel?: string }) {
   const { session, dispatch } = useInterviewSession();
   const agenda = deriveAgenda(session);
+  // Only the round in progress is selectable. The reducer refuses the rest, so
+  // this is about not offering a click that does nothing rather than about
+  // enforcement -- the enforcement is there and on the server.
   const goTo = (stage: (typeof agenda)[number]["id"]) => dispatch({ type: "GO_TO_STAGE", stage });
 
   return (

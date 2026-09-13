@@ -10,6 +10,7 @@ from apps.interview.models import (
     SessionRecording,
     TranscriptTurn,
 )
+from apps.interview.rounds import LIVE_STAGE_IDS
 
 
 def serialize_round(round_: InterviewRound) -> dict:
@@ -21,6 +22,11 @@ def serialize_round(round_: InterviewRound) -> dict:
         # Whether this round's task has been generated. Distinct from where the round
         # sits in the interview, which the client derives from progressIndex.
         "contentState": round_.content_state,
+        # Whether an interviewer joins for this round. Sent rather than duplicated in the
+        # browser: the server decides who is in the room, and a second list kept by hand
+        # has now drifted from this one twice -- each time silently, because a round that
+        # never asks for a token looks exactly like a round nobody joined.
+        "live": round_.stage_id in LIVE_STAGE_IDS,
     }
     # Omitted rather than null when absent: the frontend's Round type marks both
     # optional, and a null citation would render an empty chip.
@@ -96,6 +102,9 @@ def serialize_session(
             "integrityMonitoring": session.consent_integrity_monitoring,
         },
         "startedAt": session.started_at.isoformat() if session.started_at else None,
+        # So a finished interview's timer stops at the length it ran rather than
+        # counting on past the end.
+        "endedAt": session.ended_at.isoformat() if session.ended_at else None,
         "status": session.status,
         "recordingState": session.recording_state,
         "planState": session.plan_state,

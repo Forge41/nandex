@@ -14,15 +14,19 @@ export function sessionReducer(state: InterviewSession, action: SessionAction): 
   switch (action.type) {
     case "GO_TO_STAGE": {
       const index = state.rounds.findIndex((r) => r.id === action.stage);
-      // Jumping ahead of the furthest unlocked round is the one navigation the
-      // candidate must not be able to do, so it is refused here rather than
-      // only being hidden in the UI.
-      if (index < 0 || index > state.progressIndex) return state;
+      // An interview runs forwards. Jumping ahead is obvious cheating; going back
+      // is subtler and worse -- a candidate who has seen the SQL round can return
+      // to the coding round and keep working on it with everything after it
+      // already known. The round they are on is the round they are on.
+      if (index !== state.progressIndex) return state;
       return { ...state, activeStage: action.stage };
     }
 
     case "ADVANCE": {
       const index = state.rounds.findIndex((r) => r.id === state.activeStage);
+      // Nowhere left to go. Deliberately a no-op rather than a wrap: the caller
+      // ends the session, and advancing into a round that does not exist would
+      // leave the candidate on a screen with no way forward.
       if (index < 0 || index >= state.rounds.length - 1) return state;
       const next = state.rounds[index + 1];
       return {
@@ -76,6 +80,9 @@ export function sessionReducer(state: InterviewSession, action: SessionAction): 
         ...state,
         activeStage: state.rounds[last].id,
         progressIndex: last,
+        // Stamped here as well as by the server: the badge stops at the length the
+        // interview ran without waiting for the next fetch to say so.
+        endedAt: state.endedAt ?? new Date().toISOString(),
         status: "ended",
       };
     }

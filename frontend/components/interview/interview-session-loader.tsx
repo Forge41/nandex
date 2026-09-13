@@ -25,6 +25,9 @@ import type { InterviewSession } from "@/lib/interview/types";
  * is left alone. Six stages still have no generator, and six empty rounds read
  * as broken rather than unfinished. This comes out one stage at a time as their
  * prompts land, and disappears with the last of them. */
+// Long enough to read the sentence, short enough not to feel stuck.
+const LEFT_ROOM_MS = 4000;
+
 function withFixtureContent(payload: SessionPayload): InterviewSession {
   return {
     ...payload,
@@ -34,6 +37,32 @@ function withFixtureContent(payload: SessionPayload): InterviewSession {
     // offers to open the source -- an offer it can only make with a real link.
     resume: payload.resume && { ...payload.resume, previewUrl: resumeFileUrl(payload.id) },
   };
+}
+
+/** Sends the candidate back to the start, and says why first.
+ *
+ * A redirect on its own reads as the app losing their interview. One sentence is the
+ * difference between "this is over" and "something went wrong". */
+function LeftTheRoom() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const timer = setTimeout(() => router.replace("/"), LEFT_ROOM_MS);
+    return () => clearTimeout(timer);
+  }, [router]);
+
+  return (
+    <Centred>
+      <p className="t-body text-content">That interview is over.</p>
+      <p className="t-small max-w-[46ch] text-center text-content-muted">
+        Leaving the room ends a session, and an ended one cannot be rejoined. Taking you
+        back to the start.
+      </p>
+      <Button variant="secondary" size="sm" onClick={() => router.replace("/")}>
+        Start again
+      </Button>
+    </Centred>
+  );
 }
 
 function Centred({ children }: { children: React.ReactNode }) {
@@ -119,6 +148,18 @@ export function InterviewSessionLoader({ sessionId }: { sessionId: string }) {
         </Button>
       </Centred>
     );
+  }
+
+  // An interview that is over is not re-enterable. Clicking End keeps the candidate on
+  // the closing screen for as long as that page lives -- that is client state and this
+  // never runs -- but coming back to the URL afterwards starts again from the top.
+  //
+  // Leaving the room ends it: the pagehide beacon fires on a reload as much as on a
+  // close, so a refresh mid-interview is a candidate leaving. That is the rule this
+  // makes visible rather than a rule it adds; before, the same refresh left them sitting
+  // in a room that was already over.
+  if (session?.status === "ended") {
+    return <LeftTheRoom />;
   }
 
   if (!session) {

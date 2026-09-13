@@ -1,131 +1,69 @@
 "use client";
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Banner } from "@/components/ui/banner";
 import { Card } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Eyebrow } from "@/components/ui/typography";
 import { useInterviewSession } from "@/lib/interview/session-provider";
-import { MissingRoundContent } from "./missing-round-content";
-import type { TimelineStep } from "@/lib/interview/types";
+import { formatClock } from "@/lib/interview/format";
 
-const SCALE = [1, 2, 3, 4, 5];
+/** The closing screen.
+ *
+ * Everything here comes from the session. The version this replaces named the two
+ * people who would review the candidate, gave a date they would hear by, and
+ * promised written feedback either way -- none of which this system knows. A
+ * fabricated test result is bad; a fabricated promise about someone's job
+ * application is worse, and it is the one a candidate would actually act on.
+ *
+ * So this says what is true: the interview is over, and here is what was kept. */
+export function WrapStage() {
+  const { session } = useInterviewSession();
+  const elapsed = elapsedSeconds(session.startedAt, session.endedAt);
 
-function TimelineRow({ step, isLast }: { step: TimelineStep; isLast: boolean }) {
   return (
-    <div className="flex gap-3.5">
-      <div className="flex flex-col items-center">
-        <span
-          className={
-            step.state === "done"
-              ? "mt-[5px] size-2.5 rounded-full bg-content"
-              : step.state === "current"
-                ? "mt-[5px] size-2.5 rounded-full border-[1.5px] border-content"
-                : "mt-[5px] size-2.5 rounded-full border-[1.5px] border-line-strong"
-          }
-        />
-        {!isLast && <span className="w-[1.5px] flex-1 bg-line-strong" />}
-      </div>
-      <div className={isLast ? "" : "pb-4.5"}>
-        <div className={`text-sm font-medium ${step.state === "upcoming" ? "text-content-subtle" : ""}`}>
-          {step.label}
-        </div>
-        <div className="t-xs mt-0.5 text-content-muted">{step.detail}</div>
+    <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto">
+      <div className="mx-auto max-w-[64ch] px-6 py-10">
+        <Eyebrow>Interview complete</Eyebrow>
+        <h2 className="t-h2 mt-2">That&rsquo;s everything. Thank you.</h2>
+        <p className="t-body mt-3 leading-[1.7] text-content-subtle">
+          Nothing else is asked of you here. You can close this tab.
+        </p>
+
+        <Card className="mt-6 p-4">
+          <Eyebrow>What was saved with this session</Eyebrow>
+          <ul className="t-small mt-3 flex flex-col gap-2 text-content-subtle">
+            <li>The transcript of everything said.</li>
+            <li>The code you wrote, every run of it, and what those runs reported.</li>
+            {session.consent.recording && <li>The recording you agreed to at the start.</li>}
+          </ul>
+          {elapsed !== null && (
+            <p className="t-xs mt-3 text-content-muted">
+              Session length: {formatClock(elapsed)}.
+            </p>
+          )}
+        </Card>
+
+        {/* Deliberately no review timeline and no named reviewers: this system does
+            not know who reads an interview or when, and a date invented here is a
+            date a candidate would plan around. */}
+        <Banner tone="info" className="mt-5">
+          <span>
+            What happens next is with the team who invited you &mdash; this system
+            does not decide it, and will not guess at it.
+          </span>
+        </Banner>
       </div>
     </div>
   );
 }
 
-export function WrapStage() {
-  const { session } = useInterviewSession();
-  const wrap = session.content.wrap;
-  const roundNumber = session.rounds.findIndex((r) => r.id === "wrap") + 1;
-  const [ratings, setRatings] = useState<Record<string, number>>({});
-  const [notes, setNotes] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-
-  if (!wrap) return <MissingRoundContent />;
-
-  return (
-    <div className="scrollbar-thin flex min-h-0 flex-1 justify-center overflow-y-auto px-8 py-9">
-      <div className="w-full max-w-[640px]">
-        <Eyebrow>Round {roundNumber} · Wrap-up</Eyebrow>
-        <h2 className="t-title mt-2.5 text-3xl">{wrap.headline}</h2>
-        <p className="t-body mt-2.5 max-w-[58ch] text-content-subtle">{wrap.body}</p>
-
-        <div className="mt-6 flex flex-col">
-          {wrap.timeline.map((step, index) => (
-            <TimelineRow key={step.label} step={step} isLast={index === wrap.timeline.length - 1} />
-          ))}
-        </div>
-
-        <Card className="mt-6.5 p-5">
-          <h3 className="t-h3">How was the interviewer?</h3>
-          <p className="t-small mt-1.5 text-content-subtle">
-            Not scored. Shown to the team without your name attached.
-          </p>
-
-          <div className="mt-4.5 flex flex-col gap-3.5">
-            {wrap.feedbackQuestions.map((question) => (
-              <div key={question.id}>
-                <div className="text-sm">{question.label}</div>
-                <div className="mt-2 flex gap-1.5" role="radiogroup" aria-label={question.label}>
-                  {SCALE.map((score) => {
-                    const active = ratings[question.id] === score;
-                    return (
-                      <button
-                        key={score}
-                        type="button"
-                        role="radio"
-                        aria-checked={active}
-                        aria-label={`${score} out of 5`}
-                        onClick={() => setRatings((current) => ({ ...current, [question.id]: score }))}
-                        className={`flex h-7 flex-1 items-center justify-center rounded-sm text-xs transition-colors ${
-                          active
-                            ? "bg-surface-interactive text-content-on-interactive"
-                            : "border border-line text-content-muted hover:bg-surface-hover"
-                        }`}
-                      >
-                        {score}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-
-            <div>
-              <Label htmlFor="wrap-notes" className="mb-1.5 block text-xs font-medium text-content-subtle">
-                Anything the agent got wrong?
-              </Label>
-              <Textarea
-                id="wrap-notes"
-                placeholder="Optional"
-                className="h-[76px] resize-none"
-                value={notes}
-                onChange={(event) => setNotes(event.target.value)}
-              />
-            </div>
-          </div>
-
-          {submitted ? (
-            <Banner tone="success" className="mt-4.5">
-              <span>Thanks — your feedback is recorded against the session, without your name.</span>
-            </Banner>
-          ) : (
-            <Button
-              variant="primary"
-              className="mt-4.5"
-              disabled={Object.keys(ratings).length === 0}
-              onClick={() => setSubmitted(true)}
-            >
-              Submit feedback
-            </Button>
-          )}
-        </Card>
-      </div>
-    </div>
-  );
+/** How long the interview ran.
+ *
+ * Measured to the end rather than to now, and to the same end the badge in the top bar
+ * uses -- this screen said "Session length: 00:30" beside a badge reading "Ended 00:02",
+ * which is two answers to one question on one screen. */
+function elapsedSeconds(startedAt: string | null, endedAt?: string | null): number | null {
+  if (!startedAt) return null;
+  const until = endedAt ? new Date(endedAt).getTime() : Date.now();
+  const seconds = Math.floor((until - new Date(startedAt).getTime()) / 1000);
+  return seconds > 0 ? seconds : null;
 }

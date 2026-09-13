@@ -82,22 +82,44 @@ def test_advancing_a_stage_moves_progress_forward(client, session):
     assert body["progressIndex"] == STAGE_IDS.index("behavioral")
 
 
-def test_revisiting_an_earlier_round_does_not_re_lock_the_later_ones(client, session):
-    """progress_index marks the furthest round unlocked, so it only ever moves forward --
-    otherwise stepping back would lock everything the candidate already finished."""
+def test_a_finished_round_cannot_be_returned_to(client, session):
+    """An interview runs forwards. A candidate who has seen the SQL round must not be
+    able to go back to the coding round and keep working on it knowing what came next --
+    and the browser is theirs, so the refusal has to be here."""
     client.patch(
         f"/interview/sessions/{session['id']}",
-        data={"activeStage": "design"},
+        data={"activeStage": "sql"},
         content_type="application/json",
     )
-    body = client.patch(
+
+    response = client.patch(
         f"/interview/sessions/{session['id']}",
         data={"activeStage": "behavioral"},
         content_type="application/json",
-    ).json()
+    )
 
-    assert body["activeStage"] == "behavioral"
-    assert body["progressIndex"] == STAGE_IDS.index("design")
+    assert response.status_code == 400
+    body = client.get(f"/interview/sessions/{session['id']}").json()
+    assert body["activeStage"] == "sql"
+    assert body["progressIndex"] == STAGE_IDS.index("sql")
+
+
+def test_staying_on_the_current_round_is_not_a_step_backwards(client, session):
+    """The same stage arrives with every consent patch and every start; refusing it
+    would make those fail once the candidate is past the first round."""
+    client.patch(
+        f"/interview/sessions/{session['id']}",
+        data={"activeStage": "behavioral"},
+        content_type="application/json",
+    )
+
+    response = client.patch(
+        f"/interview/sessions/{session['id']}",
+        data={"activeStage": "behavioral"},
+        content_type="application/json",
+    )
+
+    assert response.status_code == 200
 
 
 def test_an_unknown_stage_is_rejected(client, session):
@@ -193,3 +215,58 @@ def test_a_recording_conflict_from_vas_keeps_its_status(client, session, monkeyp
         content_type="application/json",
     )
     assert response.status_code == 409
+
+
+def test_only_rounds_that_are_real_end_to_end_are_offered(session):
+    """A round ships once its content is generated or imported and what the screen says
+    happened is what happened. The rest are built screens whose runtime fields -- test
+    outcomes, terminal output, result rows -- would be exactly the fabrications the coding
+    and SQL rounds were rebuilt to remove."""
+    from apps.interview.rounds import ALL_ROUNDS
+
+    offered = {r["id"] for r in session["rounds"]}
+
+    assert offered == {"preflight", "resume", "behavioral", "coding", "sql", "wrap"}
+    assert {r["stage_id"] for r in ALL_ROUNDS} - offered == {"debug", "design", "quiz", "qa"}
+
+
+def test_a_round_that_is_not_shipped_cannot_be_navigated_to(client, session):
+    """Not merely hidden from the agenda: a stage nobody ships is not a stage."""
+    response = client.patch(
+        f"/interview/sessions/{session['id']}",
+        data={"activeStage": "design"},
+        content_type="application/json",
+    )
+
+    assert response.status_code == 400
+
+
+def test_the_interview_still_has_an_ending(session):
+    """Ending a session moves the candidate to the last round, so hiding the closing
+    screen would drop them back onto the round they just finished."""
+    assert session["rounds"][-1]["id"] == "wrap"
+
+
+def test_each_round_says_whether_an_interviewer_joins_it(session):
+    """The browser used to keep its own list of which rounds are live, and it drifted from
+    this one twice -- silently both times, because a round that never asks for a token is
+    indistinguishable from a round nobody happened to join. The server says."""
+    from apps.interview.rounds import LIVE_STAGE_IDS
+
+    live = {r["id"] for r in session["rounds"] if r["live"]}
+
+    assert live == set(LIVE_STAGE_IDS) & set(STAGE_IDS)
+    assert "coding" in live
+
+
+def test_an_ended_session_reports_when_it_ended(client, session, fake_room):
+    """The badge stops at the length the interview ran. Without this it keeps counting,
+    which says an interview nobody is in is still going."""
+    body = client.post(f"/interview/sessions/{session['id']}/end").json()
+
+    assert body["status"] == "ended"
+    assert body["endedAt"] is not None
+
+
+def test_a_running_session_has_no_end_time(session):
+    assert session["endedAt"] is None

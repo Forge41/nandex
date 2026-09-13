@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { deriveDeviceGate, derivePreflightCta } from "./selectors";
+import { deriveDeviceGate, derivePreflightCta, stageChrome } from "./selectors";
+import { sessionReducer } from "./reducer";
 import type { ConsentState, InterviewSession, ResumeDoc } from "./types";
 
 const NO_CONSENT: ConsentState = {
@@ -171,5 +172,58 @@ describe("deriveDeviceGate", () => {
     const gate = deriveDeviceGate({ mic: false, camera: true, screen: false }, supported);
 
     expect(gate.untested).toEqual(["mic", "screen"]);
+  });
+});
+
+describe("stageChrome once the interview is over", () => {
+  const consent = { recording: true, aiInterviewer: true, integrityMonitoring: true };
+
+  it("keeps the controls and the panel while the session is running", () => {
+    const chrome = stageChrome("coding", consent, false);
+
+    expect(chrome).toMatchObject({ controlBar: true, sidePanel: true, proctor: true });
+  });
+
+  it("takes away everything that implies a call once it has ended", () => {
+    // A microphone button, a camera tile and a live transcript heading around a screen
+    // that says "that's everything" all say the opposite of what the screen says.
+    const chrome = stageChrome("wrap", consent, true);
+
+    expect(chrome).toMatchObject({ controlBar: false, sidePanel: false, proctor: false });
+  });
+
+  it("keeps the top bar, which is what says the interview ended", () => {
+    expect(stageChrome("wrap", consent, true).topBar).toBe(true);
+  });
+});
+
+describe("an interview runs forwards", () => {
+  const rounds = [
+    { id: "preflight" as const, label: "Pre-flight", kind: "setup" as const, durationMin: 4 },
+    { id: "behavioral" as const, label: "Behavioral", kind: "conversation" as const, durationMin: 10 },
+    { id: "coding" as const, label: "Coding", kind: "task" as const, durationMin: 25 },
+  ];
+
+  const at = (index: number): InterviewSession =>
+    session({ rounds, activeStage: rounds[index].id, progressIndex: index });
+
+  it("refuses a round the candidate has already finished", () => {
+    // The subtler half of cheating: a candidate who has seen the coding round going
+    // back to behavioral knows what is coming, and can answer it accordingly.
+    const after = sessionReducer(at(2), { type: "GO_TO_STAGE", stage: "behavioral" });
+
+    expect(after.activeStage).toBe("coding");
+  });
+
+  it("refuses a round that has not been reached", () => {
+    const after = sessionReducer(at(1), { type: "GO_TO_STAGE", stage: "coding" });
+
+    expect(after.activeStage).toBe("behavioral");
+  });
+
+  it("leaves the current round alone", () => {
+    const after = sessionReducer(at(1), { type: "GO_TO_STAGE", stage: "behavioral" });
+
+    expect(after.activeStage).toBe("behavioral");
   });
 });
