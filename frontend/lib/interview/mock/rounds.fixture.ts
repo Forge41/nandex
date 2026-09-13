@@ -132,22 +132,4 @@ export const MOCK_ROUND_CONTENT: RoundContent = {
       },
     ],
   },
-
-  wrap: {
-    headline: "That's everything. Thank you.",
-    body: "Your session is with the hiring team. Two humans review the transcript, your code, and the agent's notes before anything is decided.",
-    timeline: [
-      { label: "Session complete", detail: "Today, 14:52 · 71 minutes", state: "done" },
-      { label: "Human review", detail: "By Fri 12 Sep · Maya Okonjo, Devansh Rao", state: "current" },
-      {
-        label: "Decision & written feedback",
-        detail: "Either way, you get the scorecard you were graded against",
-        state: "upcoming",
-      },
-    ],
-    feedbackQuestions: [
-      { id: "relevant", label: "The questions were relevant to my experience" },
-      { id: "showed", label: "I could show what I'm actually good at" },
-    ],
-  },
 };
