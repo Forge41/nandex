@@ -13,7 +13,7 @@ import { deriveConnectionLabel, stageChrome } from "@/lib/interview/selectors";
 export function InterviewRoom() {
   const { session } = useInterviewSession();
   const room = useRoomState();
-  const chrome = stageChrome(session.activeStage, session.consent);
+  const chrome = stageChrome(session.activeStage, session.consent, session.status === "ended");
   const connectionLabel = deriveConnectionLabel(room.connection, room.quality, room.agentState);
   const Stage = STAGE_COMPONENTS[session.activeStage] ?? StagePlaceholder;
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { deriveDeviceGate, derivePreflightCta } from "./selectors";
+import { deriveDeviceGate, derivePreflightCta, stageChrome } from "./selectors";
 import type { ConsentState, InterviewSession, ResumeDoc } from "./types";
 
 const NO_CONSENT: ConsentState = {
@@ -171,5 +171,27 @@ describe("deriveDeviceGate", () => {
     const gate = deriveDeviceGate({ mic: false, camera: true, screen: false }, supported);
 
     expect(gate.untested).toEqual(["mic", "screen"]);
+  });
+});
+
+describe("stageChrome once the interview is over", () => {
+  const consent = { recording: true, aiInterviewer: true, integrityMonitoring: true };
+
+  it("keeps the controls and the panel while the session is running", () => {
+    const chrome = stageChrome("coding", consent, false);
+
+    expect(chrome).toMatchObject({ controlBar: true, sidePanel: true, proctor: true });
+  });
+
+  it("takes away everything that implies a call once it has ended", () => {
+    // A microphone button, a camera tile and a live transcript heading around a screen
+    // that says "that's everything" all say the opposite of what the screen says.
+    const chrome = stageChrome("wrap", consent, true);
+
+    expect(chrome).toMatchObject({ controlBar: false, sidePanel: false, proctor: false });
+  });
+
+  it("keeps the top bar, which is what says the interview ended", () => {
+    expect(stageChrome("wrap", consent, true).topBar).toBe(true);
   });
 });

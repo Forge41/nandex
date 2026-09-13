@@ -13,14 +13,22 @@ export interface StageChrome {
 /** Which chrome a stage shows. Computed rather than tabulated per stage: the
  * only distinction the design draws is set-up versus in-session, and a ten-row
  * table would imply variation that doesn't exist. */
-export function stageChrome(stage: StageId, consent: ConsentState): StageChrome {
+export function stageChrome(
+  stage: StageId,
+  consent: ConsentState,
+  ended = false
+): StageChrome {
   const inSession = stage !== "preflight";
 
+  // Nothing that implies a call once the interview is over. The controls have
+  // nothing left to control, and a microphone button, a camera tile and a live
+  // transcript heading around a screen that says "that's everything" all say the
+  // opposite of what the screen says. The closing screen states what was kept.
   return {
     topBar: inSession,
-    controlBar: inSession,
-    sidePanel: inSession,
-    proctor: inSession && consent.integrityMonitoring,
+    controlBar: inSession && !ended,
+    sidePanel: inSession && !ended,
+    proctor: inSession && !ended && consent.integrityMonitoring,
   };
 }
 

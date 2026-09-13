@@ -44,6 +44,7 @@ export function InterviewTopBar() {
 
   const header = deriveRoundHeader(session);
   const panel = derivePanelCopy(session.activeStage, panelOpen);
+  const ended = session.status === "ended";
 
   return (
     <header className="relative flex h-13 shrink-0 items-center gap-4 border-b border-line bg-surface px-4">
@@ -63,23 +64,32 @@ export function InterviewTopBar() {
       </div>
 
       <div className="ml-auto flex items-center justify-end gap-2 whitespace-nowrap">
-        <Button variant="secondary" size="sm" className="gap-1.5" onClick={togglePanel} title={panel.title}>
-          <PanelIcon width={14} height={14} />
-          {panel.buttonLabel}
-        </Button>
-        <SessionHelp />
-        <Button
-          variant="danger"
-          size="sm"
-          onClick={() => {
-            // The UI moves to wrap-up immediately: the candidate should not
-            // wait on a network round-trip to be told what happens next.
-            dispatch({ type: "END_SESSION" });
-            void endSession();
-          }}
-        >
-          End session
-        </Button>
+        {/* Both of these act on a session that is still running. Once it is over the
+            panel is gone, so the toggle has nothing to toggle, and offering to end an
+            interview that has ended invites a click that does nothing. */}
+        {!ended && (
+          <Button variant="secondary" size="sm" className="gap-1.5" onClick={togglePanel} title={panel.title}>
+            <PanelIcon width={14} height={14} />
+            {panel.buttonLabel}
+          </Button>
+        )}
+        {/* Its copy is all present tense -- what the interview is, that a human can be
+            asked for at any point. None of it is true of one that is over. */}
+        {!ended && <SessionHelp />}
+        {!ended && (
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={() => {
+              // The UI moves to wrap-up immediately: the candidate should not
+              // wait on a network round-trip to be told what happens next.
+              dispatch({ type: "END_SESSION" });
+              void endSession();
+            }}
+          >
+            End session
+          </Button>
+        )}
       </div>
     </header>
   );

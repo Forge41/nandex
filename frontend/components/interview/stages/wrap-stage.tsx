@@ -17,7 +17,7 @@ import { formatClock } from "@/lib/interview/format";
  * So this says what is true: the interview is over, and here is what was kept. */
 export function WrapStage() {
   const { session } = useInterviewSession();
-  const elapsed = elapsedSeconds(session.startedAt);
+  const elapsed = elapsedSeconds(session.startedAt, session.endedAt);
 
   return (
     <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto">
@@ -56,8 +56,14 @@ export function WrapStage() {
   );
 }
 
-function elapsedSeconds(startedAt: string | null): number | null {
+/** How long the interview ran.
+ *
+ * Measured to the end rather than to now, and to the same end the badge in the top bar
+ * uses -- this screen said "Session length: 00:30" beside a badge reading "Ended 00:02",
+ * which is two answers to one question on one screen. */
+function elapsedSeconds(startedAt: string | null, endedAt?: string | null): number | null {
   if (!startedAt) return null;
-  const seconds = Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000);
+  const until = endedAt ? new Date(endedAt).getTime() : Date.now();
+  const seconds = Math.floor((until - new Date(startedAt).getTime()) / 1000);
   return seconds > 0 ? seconds : null;
 }
