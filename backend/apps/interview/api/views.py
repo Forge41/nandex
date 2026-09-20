@@ -17,6 +17,7 @@ from django.http import FileResponse, HttpRequest, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from apps.core.api.views import _require_user
+from apps.core.auth.service import ensure_workspace_and_project
 from apps.core.models import Project
 from apps.core.services.workspace_service import current_workspace_for
 from apps.importer.models import RawDocument
@@ -41,9 +42,17 @@ def _not_found() -> JsonResponse:
 
 
 def _default_project_sync(user) -> Project | None:
-    workspace = current_workspace_for(user)
-    if workspace is None:
-        return None
+    """The project an interview belongs to, created if this user has none.
+
+    Every visitor normally gets a workspace and a project from the anonymous
+    auto-provisioning middleware, which only runs for a request that is *not* already
+    authenticated. A user who arrived any other way -- a magic-link sign-in, a
+    `createsuperuser`, anyone logged into the Django admin, since a session cookie is
+    shared across ports -- has none, and every interview endpoint answered 409 at them.
+    Provisioning here rather than in the middleware keeps it off the path of every
+    request that does not need a project.
+    """
+    workspace = current_workspace_for(user) or ensure_workspace_and_project(user)
     return Project.objects.filter(workspace=workspace).first()
 
 

@@ -1,7 +1,9 @@
 """Session creation, the GET the frontend replaces its fixture with, and stage progress."""
 
 import pytest
+from django.contrib.auth import get_user_model
 
+from apps.core.models import Workspace
 from apps.interview.models import InterviewRound, InterviewSession
 from apps.interview.rounds import DEFAULT_ROUNDS, STAGE_IDS, TOTAL_DURATION_MIN
 
@@ -270,3 +272,24 @@ def test_an_ended_session_reports_when_it_ended(client, session, fake_room):
 
 def test_a_running_session_has_no_end_time(session):
     assert session["endedAt"] is None
+
+
+def test_a_signed_in_user_with_no_workspace_still_gets_an_interview(client):
+    """Auto-provisioning only runs for a request that is not already authenticated.
+
+    Anyone who arrived another way -- a magic-link sign-in, `createsuperuser`, or just
+    being logged into the Django admin, whose session cookie is shared across ports --
+    had no workspace, and every interview endpoint answered 409 at them.
+    """
+    user = get_user_model().objects.create(email="nobody@example.com")
+    client.force_login(user)
+    assert not Workspace.objects.filter(members__user=user).exists()
+
+    response = client.post(
+        "/interview/sessions",
+        data={"roleTitle": "Senior Backend Engineer"},
+        content_type="application/json",
+    )
+
+    assert response.status_code == 201, response.content
+    assert Workspace.objects.filter(members__user=user).exists()
