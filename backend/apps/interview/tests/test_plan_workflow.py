@@ -87,32 +87,31 @@ CODING_FILES = {
 
 
 @pytest.fixture(autouse=True)
-def sandbox_says_the_task_is_solvable(monkeypatch):
-    """Generation verifies its reference solution in the real sandbox, which these tests
-    have no Docker for. What is exercised here is the workflow's shape, not the task's."""
+def banked_tasks(monkeypatch):
+    """Both task rounds come from their banks. Stubbed to a known task each rather than
+    read off disk, so an edit to the bank cannot quietly change what these assert."""
+    monkeypatch.setattr("apps.interview.task_bank.pick", lambda *a, **k: [BANKED_CODING])
+    monkeypatch.setattr("apps.interview.sql_bank.pick", lambda **k: BANKED_SQL)
 
-    async def verified(task, language, generated):
-        return None
 
-    async def canned_sql(brief):
-        return {
-            "title": "Settlement report",
-            "prompt": "Report settled totals by merchant.",
-            "schema": [{"name": "transfers", "columns": [{"name": "id", "type": "int"}]}],
-            "attemptsAllowed": 3,
-            "tests": [{"name": "query runs", "hidden": False}],
-            "languages": {
-                "sql": {"files": [{"name": "query.sql", "language": "sql", "content": ""}]}
-            },
-        }
+BANKED_CODING = {
+    "title": "Acronym",
+    "brief": ["Convert a phrase to its acronym."],
+    "attemptsAllowed": 3,
+    "tests": [{"name": "basic", "hidden": False}],
+    "languages": {
+        "python": {"files": [{"name": "acronym.py", "language": "python", "content": ""}]}
+    },
+}
 
-    monkeypatch.setattr("apps.interview.coding_generation.verify", verified)
-    # The SQL round runs its reference query in the sandbox to learn the expected result,
-    # which needs Docker and a model. Neither is what these tests are about.
-    monkeypatch.setattr("apps.interview.sql_generation.generate", canned_sql)
-    # These tests are about generation, so the bank is emptied for them -- otherwise the
-    # coding round is served instantly and the lookahead never exercises the model at all.
-    monkeypatch.setattr("apps.interview.task_bank.pick", lambda *a, **k: [])
+BANKED_SQL = {
+    "title": "Settled total per merchant",
+    "prompt": "Report settled totals by merchant.",
+    "schema": [{"name": "transfers", "columns": [{"name": "id", "type": "int"}]}],
+    "attemptsAllowed": 3,
+    "tests": [{"name": "query runs", "hidden": False}],
+    "languages": {"sql": {"files": [{"name": "query.sql", "language": "sql", "content": ""}]}},
+}
 
 
 class FakeModel:
@@ -149,9 +148,6 @@ def fake_model(monkeypatch):
     model = FakeModel()
     monkeypatch.setattr("apps.interview.resume.complete", model.complete)
     monkeypatch.setattr("apps.interview.round_content.complete", model.complete)
-    # Its own binding: coding_generation imports `complete` into its namespace, so
-    # patching round_content's name leaves the coding prompts hitting the real model.
-    monkeypatch.setattr("apps.interview.coding_generation.complete", model.complete)
     return model
 
 

@@ -1,0 +1,79 @@
+{
+  "slug": "revenue-by-merchant",
+  "title": "Settled total per merchant",
+  "prompt": "For each merchant, return the total of its **settled** transfers as `merchant` and `total_cents`, ordered by merchant. Merchants with no settled transfer should not appear.",
+  "schema": [
+    {
+      "name": "transfers",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int"
+        },
+        {
+          "name": "merchant",
+          "type": "text"
+        },
+        {
+          "name": "status",
+          "type": "text"
+        },
+        {
+          "name": "cents",
+          "type": "int"
+        }
+      ]
+    }
+  ],
+  "attemptsAllowed": 3,
+  "tests": [
+    {
+      "name": "query runs",
+      "hidden": false
+    },
+    {
+      "name": "result matches",
+      "hidden": false
+    }
+  ],
+  "defaultLanguage": "sql",
+  "languages": {
+    "sql": {
+      "tests": [
+        {
+          "name": "query runs",
+          "hidden": false
+        },
+        {
+          "name": "result matches",
+          "hidden": false
+        }
+      ],
+      "files": [
+        {
+          "name": "query.sql",
+          "language": "sql",
+          "content": "-- Settled totals per merchant.\nSELECT\nFROM transfers\n"
+        },
+        {
+          "name": "schema.sql",
+          "language": "sql",
+          "content": "CREATE TABLE transfers (\n  id        int PRIMARY KEY,\n  merchant  text NOT NULL,\n  status    text NOT NULL,\n  cents     int NOT NULL\n);\n",
+          "hidden": true
+        },
+        {
+          "name": "seed.sql",
+          "language": "sql",
+          "content": "INSERT INTO transfers (id, merchant, status, cents) VALUES\n  (1, 'acme',   'settled', 100),\n  (2, 'acme',   'settled', 250),\n  (3, 'acme',   'pending', 999),\n  (4, 'globex', 'settled',  80),\n  (5, 'initech','pending', 400),\n  (6, 'globex', 'failed',   70);\n",
+          "hidden": true
+        },
+        {
+          "name": "expected.csv",
+          "language": "sql",
+          "content": "merchant,total_cents\nacme,350\nglobex,80\n",
+          "hidden": true
+        }
+      ]
+    }
+  }
+}

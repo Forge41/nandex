@@ -1,0 +1,75 @@
+{
+  "slug": "orders-per-customer",
+  "title": "How many orders each customer placed",
+  "prompt": "Return `customer_id` and how many orders they placed as `orders`, busiest first. Break ties by `customer_id` ascending.",
+  "schema": [
+    {
+      "name": "orders",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int"
+        },
+        {
+          "name": "customer_id",
+          "type": "int"
+        },
+        {
+          "name": "placed_on",
+          "type": "date"
+        }
+      ]
+    }
+  ],
+  "attemptsAllowed": 3,
+  "tests": [
+    {
+      "name": "query runs",
+      "hidden": false
+    },
+    {
+      "name": "result matches",
+      "hidden": false
+    }
+  ],
+  "defaultLanguage": "sql",
+  "languages": {
+    "sql": {
+      "tests": [
+        {
+          "name": "query runs",
+          "hidden": false
+        },
+        {
+          "name": "result matches",
+          "hidden": false
+        }
+      ],
+      "files": [
+        {
+          "name": "query.sql",
+          "language": "sql",
+          "content": "-- Orders per customer, busiest first.\nSELECT\nFROM orders\n"
+        },
+        {
+          "name": "schema.sql",
+          "language": "sql",
+          "content": "CREATE TABLE orders (\n  id           int PRIMARY KEY,\n  customer_id  int NOT NULL,\n  placed_on    date NOT NULL\n);\n",
+          "hidden": true
+        },
+        {
+          "name": "seed.sql",
+          "language": "sql",
+          "content": "INSERT INTO orders (id, customer_id, placed_on) VALUES\n  (1, 1, '2024-01-02'),\n  (2, 2, '2024-01-03'),\n  (3, 1, '2024-01-09'),\n  (4, 3, '2024-02-01'),\n  (5, 1, '2024-02-14'),\n  (6, 2, '2024-03-07');\n",
+          "hidden": true
+        },
+        {
+          "name": "expected.csv",
+          "language": "sql",
+          "content": "customer_id,orders\n1,3\n2,2\n3,1\n",
+          "hidden": true
+        }
+      ]
+    }
+  }
+}

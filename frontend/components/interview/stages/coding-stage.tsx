@@ -30,7 +30,15 @@ const LANGUAGE_CHIP: Record<CodeLanguage, string> = {
   sql: "sql",
 };
 
-const OFFERED: CodeLanguage[] = ["python", "java", "c", "cpp"];
+/** Interview order, so the chips do not reshuffle between tasks. A task is offered
+ * only in the languages it actually has: the bank's exercises do not all cover every
+ * track, and a chip for a language with no files behind it is an offer nothing can
+ * keep. */
+const LANGUAGE_ORDER: CodeLanguage[] = ["python", "java", "c", "cpp"];
+
+function offered(task: { languages: Partial<Record<CodeLanguage, unknown>> }): CodeLanguage[] {
+  return LANGUAGE_ORDER.filter((language) => task.languages[language]);
+}
 
 export function CodingStage() {
   const { session, dispatch } = useInterviewSession();
@@ -89,7 +97,7 @@ function CodingRound({
               value={round.language}
               onValueChange={(next) => next && round.selectLanguage(next as CodeLanguage)}
             >
-              {OFFERED.map((option) => (
+              {offered(round.task).map((option) => (
                 <SegmentedItem key={option} value={option} disabled={round.running}>
                   {LANGUAGE_LABEL[option]}
                   {preparing && option === round.language ? " …" : ""}

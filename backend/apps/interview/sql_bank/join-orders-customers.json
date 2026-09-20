@@ -1,0 +1,84 @@
+{
+  "slug": "join-orders-customers",
+  "title": "Orders with the customer who placed them",
+  "prompt": "Return every order alongside the customer who placed it, as `name` and `amount_cents`, ordered by `amount_cents` descending.",
+  "schema": [
+    {
+      "name": "customers",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int"
+        },
+        {
+          "name": "name",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "name": "orders",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int"
+        },
+        {
+          "name": "customer_id",
+          "type": "int"
+        }
+      ]
+    }
+  ],
+  "attemptsAllowed": 3,
+  "tests": [
+    {
+      "name": "query runs",
+      "hidden": false
+    },
+    {
+      "name": "result matches",
+      "hidden": false
+    }
+  ],
+  "defaultLanguage": "sql",
+  "languages": {
+    "sql": {
+      "tests": [
+        {
+          "name": "query runs",
+          "hidden": false
+        },
+        {
+          "name": "result matches",
+          "hidden": false
+        }
+      ],
+      "files": [
+        {
+          "name": "query.sql",
+          "language": "sql",
+          "content": "-- Each order with the customer who placed it.\nSELECT\nFROM orders\n"
+        },
+        {
+          "name": "schema.sql",
+          "language": "sql",
+          "content": "CREATE TABLE customers (\n  id    int PRIMARY KEY,\n  name  text NOT NULL\n);\n\nCREATE TABLE orders (\n  id            int PRIMARY KEY,\n  customer_id   int NOT NULL REFERENCES customers(id),\n  amount_cents  int NOT NULL\n);\n",
+          "hidden": true
+        },
+        {
+          "name": "seed.sql",
+          "language": "sql",
+          "content": "INSERT INTO customers (id, name) VALUES\n  (1, 'Asha Rao'), (2, 'Vikram Shah'), (3, 'Leela Menon');\n\nINSERT INTO orders (id, customer_id, amount_cents) VALUES\n  (1, 1, 4500),\n  (2, 2, 12000),\n  (3, 1,  900),\n  (4, 3, 8300);\n",
+          "hidden": true
+        },
+        {
+          "name": "expected.csv",
+          "language": "sql",
+          "content": "name,amount_cents\nVikram Shah,12000\nLeela Menon,8300\nAsha Rao,4500\nAsha Rao,900\n",
+          "hidden": true
+        }
+      ]
+    }
+  }
+}

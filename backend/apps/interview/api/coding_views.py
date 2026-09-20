@@ -17,7 +17,7 @@ from django.http import HttpRequest, HttpResponse, JsonResponse, StreamingHttpRe
 from django.views.decorators.csrf import csrf_exempt
 
 from apps.core.clients import runner_client
-from apps.interview import coding, round_content
+from apps.interview import coding
 from apps.interview.api.views import _parse_body, _session_for
 from apps.interview.models import CodeRun, InterviewRound
 
@@ -208,17 +208,8 @@ async def session_language(
         return JsonResponse({"detail": "That round does not run code"}, status=404)
     if language in (task.get("languages") or {}):
         return JsonResponse({"files": task["languages"][language]["files"]})
-    if language not in round_content.coding_generation.LANGUAGE_IDS:
-        return JsonResponse({"detail": "Unsupported language"}, status=400)
 
-    try:
-        await round_content.attach_language(task, language)
-    except round_content.coding_generation.TaskUnusable as e:
-        logger.warning("could not prepare %s for %s: %s", language, session.id, e)
-        return JsonResponse(
-            {"detail": "We could not prepare that language. Try another."}, status=503
-        )
-
-    round_.content = {**round_.content, "tasks": tasks}
-    await round_.asave(update_fields=["content"])
-    return JsonResponse({"files": task["languages"][language]["files"]})
+    # Nothing writes a language a task does not already have. Tasks come from the bank
+    # with the tracks their exercise was imported for, and the editor only offers those
+    # -- so this is reachable by a hand-made request and not by a candidate.
+    return JsonResponse({"detail": "That task is not set in this language"}, status=404)
