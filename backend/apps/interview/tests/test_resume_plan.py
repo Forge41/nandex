@@ -1,7 +1,9 @@
 """sanitize_plan is the boundary between a model's output and what the UI renders.
 
-A round the interview does not have silently never appears, and an empty section renders
-as a heading with nothing under it. Both are better dropped here than shown.
+The plan points at the resume with line ranges rather than reproducing it, so this is
+also where the pointing is checked: a range outside the document points at nothing, a
+round the interview does not have silently never appears, and an empty section renders
+as a heading with nothing under it. All three are better dropped here than shown.
 """
 
 import pytest
@@ -10,9 +12,24 @@ from apps.ingest.pipeline.parsed_document import ParsedDocument, Segment
 from apps.interview.resume import (
     ResumeUnreadable,
     _decode_plan,
+    number_lines,
     page_count_of,
     resume_text_of,
     sanitize_plan,
+)
+
+RESUME_TEXT = "\n".join(
+    [
+        "Priya R",
+        "Senior Backend Engineer",
+        "",
+        "Experience",
+        "Owned the ledger handling 1.4M transactions a day.",
+        "Led the migration to a Kafka-backed pipeline.",
+        "",
+        "Skills",
+        "Go, Python, Postgres",
+    ]
 )
 
 PLAN = {
@@ -21,7 +38,7 @@ PLAN = {
         {
             "id": "experience",
             "label": "Experience",
-            "paragraphs": ["Owned the ledger handling 1.4M transactions a day."],
+            "lines": [[4, 6]],
         }
     ],
     "probes": [
@@ -32,11 +49,13 @@ PLAN = {
 }
 
 
-def test_a_well_formed_plan_survives_intact():
-    clean = sanitize_plan(PLAN)
+def test_a_range_is_sliced_out_of_the_resume_rather_than_rewritten():
+    """The model never writes the prose, so it cannot alter it. This is the contract."""
+    clean = sanitize_plan(PLAN, RESUME_TEXT)
 
     assert clean["sections"][0]["paragraphs"] == [
-        "Owned the ledger handling 1.4M transactions a day."
+        "Experience\nOwned the ledger handling 1.4M transactions a day.\n"
+        "Led the migration to a Kafka-backed pipeline."
     ]
     assert clean["probes"][0]["round"] == "coding"
     assert clean["rounds"]["sql"] == {"summary": "Tests the SQL claim."}
@@ -52,29 +71,58 @@ def test_a_plan_cannot_speak_about_a_round_it_does_not_own(stage):
         "rounds": [{"id": stage, "summary": "s"}],
     }
 
-    clean = sanitize_plan(plan)
+    clean = sanitize_plan(plan, RESUME_TEXT)
 
     assert clean["probes"] == []
     assert clean["rounds"] == {}
 
 
-def test_a_paragraph_that_is_not_prose_is_dropped_rather_than_rendered():
-    """The model is asked for strings. Anything else on screen is not the resume."""
+def test_a_range_outside_the_document_is_dropped_rather_than_clamped():
+    """Asked for ranges against a PDF it could not count lines in, the model invented a
+    tidy contiguous partition of a document that did not exist. Clamping such a range
+    would put one part of a resume under another part's heading; dropping it leaves a
+    gap, which is visible."""
     plan = {
         **PLAN,
-        "sections": [{"id": "x", "label": "X", "paragraphs": [None, "real", "   ", 7]}],
+        "sections": [
+            {"id": "x", "label": "X", "lines": [[4, 6], [200, 400], [6, 4], ["a", "b"], [1]]}
+        ],
     }
 
-    assert sanitize_plan(plan)["sections"][0]["paragraphs"] == ["real"]
+    assert len(sanitize_plan(plan, RESUME_TEXT)["sections"][0]["paragraphs"]) == 1
 
 
 def test_an_empty_section_is_dropped_rather_than_rendered_as_a_heading():
-    plan = {**PLAN, "sections": [{"id": "x", "label": "Empty", "paragraphs": []}]}
-    assert sanitize_plan(plan)["sections"] == []
+    plan = {**PLAN, "sections": [{"id": "x", "label": "Empty", "lines": []}]}
+    assert sanitize_plan(plan, RESUME_TEXT)["sections"] == []
+
+
+def test_a_range_over_blank_lines_yields_nothing_rather_than_whitespace():
+    plan = {**PLAN, "sections": [{"id": "x", "label": "Gap", "lines": [[3, 3]]}]}
+    assert sanitize_plan(plan, RESUME_TEXT)["sections"] == []
+
+
+def test_more_probes_than_an_interview_can_run_are_cut():
+    """One real resume produced twenty-one. The rounds are not long enough for six."""
+    plan = {
+        **PLAN,
+        "probes": [
+            {"id": f"p{i}", "title": f"t{i}", "note": "n", "round": "coding"} for i in range(21)
+        ],
+    }
+
+    assert len(sanitize_plan(plan, RESUME_TEXT)["probes"]) == 6
+
+
+def test_the_resume_reaches_the_model_with_its_lines_numbered():
+    """The ranges are answers to these numbers, so they have to be in the question."""
+    numbered = number_lines("alpha\nbeta")
+
+    assert numbered == "1\talpha\n2\tbeta"
 
 
 def test_a_plan_missing_every_optional_key_does_not_raise():
-    clean = sanitize_plan({})
+    clean = sanitize_plan({}, RESUME_TEXT)
 
     assert clean["sections"] == []
     assert clean["probes"] == []
@@ -83,7 +131,7 @@ def test_a_plan_missing_every_optional_key_does_not_raise():
 
 
 def test_a_non_integer_entity_count_falls_back_to_zero():
-    assert sanitize_plan({**PLAN, "entityCount": "eighteen"})["entity_count"] == 0
+    assert sanitize_plan({**PLAN, "entityCount": "eighteen"}, RESUME_TEXT)["entity_count"] == 0
 
 
 def test_a_fenced_response_is_decoded():

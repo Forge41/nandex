@@ -41,9 +41,8 @@ PLAN = {
         {
             "id": "experience",
             "label": "Experience",
-            "paragraphs": [
-                "Owned the double-entry ledger handling 1.4M transactions a day at Northwind."
-            ],
+            # Line 4 of RESUME_TEXT, which is what the model is given to point at.
+            "lines": [[4, 4]],
         }
     ],
     "probes": [
@@ -61,7 +60,7 @@ PLAN = {
 
 @pytest.fixture
 def fake_plan(monkeypatch):
-    async def complete(*, system_prompt, messages, model):
+    async def complete(*, system_prompt, messages, model, **kwargs):
         # The prompt must be the file's contents, not an f-string assembled here.
         assert "Return only JSON" in system_prompt
         assert messages[0]["content"].strip()

@@ -35,7 +35,7 @@ PLAN = {
         {
             "id": "experience",
             "label": "Experience",
-            "paragraphs": ["Owned the ledger handling 1.4M transactions a day."],
+            "lines": [[2, 2]],
         }
     ],
     "probes": [
@@ -128,7 +128,7 @@ class FakeModel:
         self.round_gate = asyncio.Event()
         self.round_gate.set()
 
-    async def complete(self, *, system_prompt, messages, model):
+    async def complete(self, *, system_prompt, messages, model, **kwargs):
         self.prompts.append(system_prompt)
         if "behavioral round" in system_prompt:
             await self.round_gate.wait()
