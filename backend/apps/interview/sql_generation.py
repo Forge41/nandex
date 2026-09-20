@@ -33,6 +33,7 @@ async def generate(brief: dict) -> dict:
         system_prompt=load_prompt(PROMPT),
         messages=[{"role": "user", "content": json.dumps(brief)}],
         model=settings.plan_model,
+        fast=True,
     )
     written = _decode(raw)
     task = _sanitize(written)
