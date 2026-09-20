@@ -55,6 +55,12 @@ async def vas_callback(request: HttpRequest) -> JsonResponse:
 
     if event == "recording.complete":
         await _handle_recording_complete(session, payload.get("recording") or {})
+    elif event == "session.room_finished":
+        # The provider's own word that nobody is in the room, after its empty timeout.
+        # More reliable than the browser's beacon, which is unacknowledged and does not
+        # fire for every way of leaving -- and late enough that a reconnect has had its
+        # chance.
+        await services.end_session(session)
     elif event == "artifacts.deleted":
         logger.info("vas deleted the artifacts for session %s", session.id)
     else:
@@ -75,5 +81,11 @@ async def _handle_recording_complete(session: InterviewSession, recording: dict)
         session.recording_state = state
         await session.asave(update_fields=["recording_state", "updated_at"])
 
-    # Deterministic workflow id, so this and /end can both trigger without double-running.
-    await services.trigger_post_session_processing(session.id)
+    # Only a recording that finished says anything about the interview being over. A
+    # failed one says egress broke -- and telling the workflow to wind up on that would
+    # stop preparing the rounds the candidate has not reached yet, so they arrive at a
+    # round that says it could not be prepared and nothing says why.
+    if state != InterviewSession.RecordingState.FAILED:
+        # Deterministic workflow id, so this and /end can both trigger without
+        # double-running.
+        await services.trigger_post_session_processing(session.id)

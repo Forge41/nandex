@@ -72,7 +72,7 @@ def _callback_payload_sync(recording_id: str) -> dict | None:
     }
 
 
-async def _post_callback(payload: dict) -> None:
+async def post_event_to_main_backend(payload: dict) -> None:
     if not settings.main_backend_callback_url:
         logger.warning("VAS_MAIN_BACKEND_CALLBACK_URL is unset -- not notifying")
         return
@@ -99,7 +99,7 @@ async def post_recording_to_main_backend(recording_id: str) -> None:
     payload = await sync_to_async(_callback_payload_sync)(recording_id)
     if payload is None:
         return
-    await _post_callback(payload)
+    await post_event_to_main_backend(payload)
 
 
 @activity.defn
@@ -134,4 +134,6 @@ async def finish_artifact_deletion(deletion_id: str) -> None:
     deletion = await ArtifactDeletion.objects.filter(id=deletion_id).afirst()
     if deletion is None:
         return
-    await _post_callback({"event": "artifacts.deleted", "vas_session_id": deletion.session_id})
+    await post_event_to_main_backend(
+        {"event": "artifacts.deleted", "vas_session_id": deletion.session_id}
+    )

@@ -35,6 +35,27 @@ prompts as `.md` files) that `chat` calls into — not one of the four pipeline 
 A Next.js frontend (`frontend/`) covers the chat UI and an integrations marketplace for
 connecting apps — see [Running the frontend](#running-the-frontend) below.
 
+## The interview room
+
+Built on the same backend, and now the larger half of it: a candidate uploads a resume, the
+system reads it and writes an interview plan, and an AI interviewer joins a live room to run it.
+
+- **`interview`** — sessions, rounds, the plan, and the code a candidate writes. The plan is
+  produced by one model call and the rounds come from task banks; the whole thing is
+  orchestrated by a Temporal workflow that owns a session's lifecycle.
+- **`runner`** — a code-execution sandbox, the third leaf beside `tps` and `vas_*`. One
+  throwaway Docker container per run: no network, read-only root, unprivileged uid, capped
+  memory and pids, and a wall-clock budget. Reached only through
+  `apps.core.clients.runner_client`.
+- **`vas_*`** — the video artifact service: recording, storage, playback, retention. Its own
+  process, its own boundary, reached only over HTTP through `apps.core.clients.vas_client`.
+- **`agent/`** — a separate LiveKit agent process that joins the room, speaks, and listens.
+
+**The plan is generated in about five seconds.** The model is not asked to reproduce the
+resume: the text is line-numbered on the way in and the model answers with line ranges, which
+the server slices out of the original. It cannot alter the candidate's document because it
+never writes it, and the call emits a fraction of the tokens it used to.
+
 ## Layout
 
 ```
@@ -48,6 +69,12 @@ backend/
     ingest/         parse -> chunk -> embed -> index pipeline, Temporal-orchestrated
     retrieval/      hybrid search (pgvector + Postgres FTS) -> RRF fusion -> rerank
     chat/           Conversation/Message models; streams an ai/-generated, cited answer
+    core/           users, workspaces, projects; the clients to every leaf service
+    interview/      sessions, rounds, the resume plan, the task banks, code runs
+    runner/         the code-execution sandbox; its own ASGI app on :8002
+    vas_*/          recording, storage, playback, retention; its own ASGI app on :8001
+agent/             the LiveKit interviewer: joins the room, speaks, listens
+dev/runner/        the four sandbox images and the harness they run
 ```
 
 ## Setup
@@ -65,6 +92,9 @@ cp backend/.env.example backend/.env
 uv run --project backend python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 
 make migrate
+
+# once: load the coding and SQL task banks into the database
+make load-tasks
 
 # once: frontend dependencies + env (defaults are enough for local dev)
 cd frontend && pnpm install && cp .env.example .env && cd ..
@@ -91,7 +121,12 @@ there).
 
 `chat` needs a real `AI_ANTHROPIC_API_KEY` in your `.env` to generate answers — everything else
 (retrieval, citations, persistence) works without one, but `ai.client.stream_answer` will fail
-without a valid key.
+without a valid key. The interview's plan and its behavioral question need the same key; the
+coding and SQL rounds do not, because they come from the banks.
+
+`make check-speech` asks Deepgram and Cartesia whether the keys in `.env` actually work — the
+interviewer joins the room either way, so a key that is set but out of credit looks like an
+agent that never speaks.
 
 ## Running
 
@@ -113,14 +148,16 @@ without a valid key.
 | `make vas-stack` | Start the containers `vas` needs: LiveKit, Egress, fake-GCS, Redis |
 | `make runner` | Run the code-execution sandbox on :8002 — loopback only, and it needs Docker |
 | `make runner-images` | Build the four sandbox images: Python, Java, C/C++, SQL |
-| `make import-tasks SLUGS=acronym,luhn` | Add Exercism exercises to the coding task bank |
+| `make import-tasks SLUGS=acronym,luhn` | Add Exercism exercises to the coding bank's JSON |
+| `make build-sql-bank` | Rebuild the SQL bank's JSON, running every reference query |
+| `make load-tasks` | Load both banks from their JSON into the database (safe to re-run) |
 | `make frontend` | Run the Next.js dev server (proxies `/api/*` to the backend) |
 | `make migrate` | Apply pending database migrations for every app |
 | `make tps-migrate` / `importer-migrate` / `ingest-migrate` | Migrate just that one app |
 
 `make up` is the cold-start command: it reports what your `.env` is missing, brings up the
 containers (LiveKit, Egress, fake-GCS, Redis) and creates the recordings bucket, applies every
-migration, and then hands over to `serve-all`. Run it the first time, after pulling a change that
+migration, loads the task banks, and then hands over to `serve-all`. Run it the first time, after pulling a change that
 adds a migration, or any time the containers are down. Day to day, `make serve-all` is the one you
 want — the prerequisites are already in place and it starts in seconds.
 
@@ -134,11 +171,21 @@ containers on this host.
 Run button reports that the runner is unavailable rather than failing at click time, and the
 sandbox tests skip. `make up` builds them for you.
 
-**To see a round without sitting the ones before it**, open `/dev` in the frontend. It
-makes a fresh session, seeds what that round needs — real tasks from the bank for coding
-and SQL — grants consent, and opens it. The endpoint behind it is only routed when the
-backend runs with `DEBUG` on, so it does not exist in a deployment rather than existing
-and refusing. Seeded content says on its face that it was seeded.
+**Two dev harnesses, for two different questions.** Open `/dev` in the frontend; it says
+which answers which, and neither exists in a production build.
+
+- `/dev/screens` — *what does this screen look like?* Every screen, including the rounds
+  that do not ship, in every state worth looking at, rendered from fixtures with the
+  network cut. Nothing needs to be running. A state is a URL, so "the coding round after a
+  compile error" is a link that fits in a bug report.
+- `/dev/session` — *does the pipeline work?* Makes a real session, seeds what a round needs
+  — real tasks from the banks for coding and SQL — grants consent, and opens it. Needs the
+  backend, and behaves like one. The endpoint behind it is routed only when the backend
+  runs with `DEBUG` on, so it does not exist in a deployment rather than existing and
+  refusing.
+
+Neither proves the other: a screen rendered from fixtures says nothing about generation,
+the workflow, the runner or the agent. Seeded content says on its face that it was seeded.
 
 **Only the rounds that are real end to end are offered.** `ALL_ROUNDS` in
 `backend/apps/interview/rounds.py` is the interview as designed; `shipped` is what a
@@ -151,16 +198,35 @@ is adding `"shipped": True` to its entry, and then making it true.
 Existing sessions keep the rounds they were created with, so a session made before a
 round was retired still shows it.
 
-**Coding tasks come from a bank, not from a model call during the interview.**
-`backend/apps/interview/task_bank/` holds them as JSON, imported from
-[Exercism](https://exercism.org) (MIT) with `make import-tasks`. Every one was executed on
-import -- its own reference solution had to pass its own tests in the real sandbox -- so a
-task that cannot be passed never reaches a candidate, and setting one costs nothing.
-Generation is the fallback for a bank with nothing suitable in it; it costs minutes and can
-fail mid-interview, which is why it is not the default.
+**Coding and SQL tasks come from banks. Nothing is generated during an interview.**
+A generated task costs minutes of an interview, can fail in the middle of one, and is no
+better a question than an exercise somebody already wrote.
+
+Both banks are authored as JSON in the repository and read from the database at interview
+time:
+
+| bank | authored in | built by |
+| --- | --- | --- |
+| coding | `backend/apps/interview/task_bank/` | `make import-tasks SLUGS=...`, from [Exercism](https://exercism.org) (MIT) |
+| SQL | `backend/apps/interview/sql_bank/` | `make build-sql-bank` |
+
+`make load-tasks` loads both into `InterviewTask`, upserting by slug and retiring anything
+that has left the files. It is safe to re-run and `make up` does it for you — **but a
+database that has never had it run has empty banks and no task rounds.**
+
+Every task was **proved runnable before it was written**. A coding exercise's own reference
+solution had to pass its own tests in the real sandbox on import; a SQL task's reference
+query was run against its own schema and seed, and the rows Postgres returned are the
+expected result a candidate is graded against. Nothing in either bank is a prediction about
+what a run would do.
+
+A task is never deleted, only retired: one that has been set appears in some candidate's
+finished interview forever, and a bank that cannot say what it used to contain cannot
+explain a past one.
 
 The licence travels with each task rather than living in a note elsewhere, because the
-attribution obligation belongs to the content.
+attribution obligation belongs to the content. The SQL tasks were written for this
+repository — the ready-made exercise sets are licensed in ways an MIT project cannot take.
 
 **Temporal is the one service `serve-all` does not own.** It starts one only when :7233 is free,
 and a server that was already running is reused and therefore outlives Ctrl-C — which is usually

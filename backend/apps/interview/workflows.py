@@ -16,6 +16,7 @@ from temporalio.exceptions import ActivityError, ApplicationError
 
 with workflow.unsafe.imports_passed_through():
     from apps.interview.activities import (
+        end_session_activity,
         generate_plan_activity,
         generate_round_content_activity,
         parse_resume_activity,
@@ -107,6 +108,10 @@ class InterviewSessionWorkflow:
                     lambda: bool(self._reached) or self._ended, timeout=IDLE_LIMIT
                 )
             except TimeoutError:
+                # A workflow that gives up must not leave a row claiming to be live: the
+                # top bar reads `status` and would show a ticking timer on an interview
+                # nobody is in, forever.
+                await self._end_session(session_id)
                 return
             while self._reached:
                 await self._prepare(session_id, lookahead_from(self._reached.pop(0)))
@@ -196,6 +201,14 @@ class InterviewSessionWorkflow:
         )
         self._step(step_id).state = DONE
         return result
+
+    async def _end_session(self, session_id: str) -> None:
+        await workflow.execute_activity(
+            end_session_activity,
+            session_id,
+            start_to_close_timeout=timedelta(seconds=30),
+            retry_policy=_PARSE_RETRY,
+        )
 
     async def _set_state(self, session_id: str, state: str, error: str = "") -> None:
         await workflow.execute_activity(

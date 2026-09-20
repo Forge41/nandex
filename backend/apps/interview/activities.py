@@ -11,7 +11,7 @@ from asgiref.sync import sync_to_async
 from temporalio import activity
 
 from apps.interview import resume as resume_service
-from apps.interview import round_content
+from apps.interview import round_content, services
 from apps.interview.models import InterviewRound, InterviewSession
 
 logger = logging.getLogger(__name__)
@@ -129,3 +129,16 @@ def _rounds_needing_content_sync(session_id: str, stage_ids: list[str]) -> list[
             continue
         wanted.append({"stageId": stage, "label": round_.label})
     return wanted
+
+
+@activity.defn
+async def end_session_activity(session_id: str) -> None:
+    """Ends a session nobody ended.
+
+    The last line of defence, and the only one that does not depend on a browser or a
+    provider saying anything. Idempotent through `end_session`, so an interview that was
+    already ended properly is untouched.
+    """
+    session = await InterviewSession.objects.filter(id=session_id).afirst()
+    if session is not None:
+        await services.end_session(session)

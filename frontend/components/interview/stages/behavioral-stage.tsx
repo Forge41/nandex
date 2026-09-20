@@ -10,7 +10,7 @@ import { ConnectionBanner } from "@/components/interview/organisms/connection-ba
 import { useInterviewSession } from "@/lib/interview/session-provider";
 import { useTranscript } from "@/lib/interview/transcript-provider";
 import { initialsOf } from "@/lib/interview/format";
-import { MissingRoundContent, isGenerating } from "./missing-round-content";
+import { MissingRoundContent, contentStateOf } from "./missing-round-content";
 
 export function BehavioralStage() {
   const { session } = useInterviewSession();
@@ -23,7 +23,7 @@ export function BehavioralStage() {
     return (
       <div className="relative flex min-h-0 flex-1 flex-col">
         <ConnectionBanner />
-        <MissingRoundContent generating={isGenerating(session, "behavioral")} />
+        <MissingRoundContent state={contentStateOf(session, "behavioral")} />
       </div>
     );
   }

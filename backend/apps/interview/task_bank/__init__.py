@@ -8,9 +8,9 @@ Imported exercises carry their source and licence. Exercism's tracks are MIT; th
 travels with the task rather than living in a note somewhere else, because the attribution
 obligation belongs to the content.
 
-Generation stays as the fallback for a resume the bank has nothing suitable for -- and the
-bank is where a task should come from when it does, because generating one costs minutes
-of an interview and can fail in the middle of it.
+Nothing generates a coding task any more. These files are where the bank is authored --
+a diff is reviewable and the history is in git -- and `manage.py load_task_banks` is what
+makes them readable at interview time. `load()` reads the files; `pick()` reads the rows.
 """
 
 import json
@@ -35,18 +35,24 @@ def load() -> list[dict]:
 
 
 def pick(count: int, *, seed: str, language: str = "") -> list[dict]:
-    """`count` distinct tasks, preferring ones available in the candidate's language.
+    """`count` live tasks, preferring ones available in the candidate's language.
 
-    Seeded by the session, so a retried generation sets the same interview rather than a
-    different one -- and so two candidates in the same seat do not silently get the same
-    tasks because the bank happened to be ordered that way.
+    Seeded by the session, so a retried preparation sets the same interview rather than
+    a different one -- and so two candidates in the same seat do not silently get the
+    same tasks because the bank happened to be ordered that way. Shuffled in Python
+    rather than by `ORDER BY random()`, which is not reproducible from a seed.
     """
-    tasks = load()
-    if not tasks:
-        return []
+    from apps.interview.models import InterviewTask
 
-    preferred = [t for t in tasks if language in (t.get("languages") or {})]
-    rest = [t for t in tasks if t not in preferred]
+    rows = InterviewTask.objects.filter(
+        kind=InterviewTask.Kind.CODING, retired_at__isnull=True
+    ).order_by("slug")
+
+    preferred, rest = [], []
+    for row in rows:
+        (preferred if language and language in row.languages else rest).append(row.payload)
+    if not preferred and not rest:
+        return []
 
     rng = random.Random(seed)
     rng.shuffle(preferred)

@@ -1,0 +1,75 @@
+{
+  "slug": "top-orders",
+  "title": "The three largest orders",
+  "prompt": "Return the three largest orders by amount, largest first, as `id` and `amount_cents`.",
+  "schema": [
+    {
+      "name": "orders",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int"
+        },
+        {
+          "name": "customer_id",
+          "type": "int"
+        },
+        {
+          "name": "amount_cents",
+          "type": "int"
+        }
+      ]
+    }
+  ],
+  "attemptsAllowed": 3,
+  "tests": [
+    {
+      "name": "query runs",
+      "hidden": false
+    },
+    {
+      "name": "result matches",
+      "hidden": false
+    }
+  ],
+  "defaultLanguage": "sql",
+  "languages": {
+    "sql": {
+      "tests": [
+        {
+          "name": "query runs",
+          "hidden": false
+        },
+        {
+          "name": "result matches",
+          "hidden": false
+        }
+      ],
+      "files": [
+        {
+          "name": "query.sql",
+          "language": "sql",
+          "content": "-- The three largest orders.\nSELECT\nFROM orders\n"
+        },
+        {
+          "name": "schema.sql",
+          "language": "sql",
+          "content": "CREATE TABLE orders (\n  id            int PRIMARY KEY,\n  customer_id   int NOT NULL,\n  amount_cents  int NOT NULL\n);\n",
+          "hidden": true
+        },
+        {
+          "name": "seed.sql",
+          "language": "sql",
+          "content": "INSERT INTO orders (id, customer_id, amount_cents) VALUES\n  (1, 1,  4500),\n  (2, 2, 12000),\n  (3, 1,   900),\n  (4, 3,  8300),\n  (5, 2, 15750),\n  (6, 4,  2200);\n",
+          "hidden": true
+        },
+        {
+          "name": "expected.csv",
+          "language": "sql",
+          "content": "id,amount_cents\n5,15750\n2,12000\n4,8300\n",
+          "hidden": true
+        }
+      ]
+    }
+  }
+}

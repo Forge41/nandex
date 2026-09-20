@@ -316,9 +316,15 @@ function contentStates(stage: StageId, readyNote: string): ScreenState[] {
       session: withoutContent(harnessSession(stage), stage, "generating"),
     },
     {
+      id: "failed",
+      label: "Preparation failed",
+      note: "The server tried and gave up. Saying it is still coming would be a promise nothing will keep.",
+      session: withoutContent(harnessSession(stage), stage, "failed"),
+    },
+    {
       id: "absent",
       label: "No content, none coming",
-      note: "Nothing is being written. A different sentence, deliberately.",
+      note: "Nothing was ever attempted. A different sentence again.",
       session: withoutContent(harnessSession(stage), stage, undefined),
     },
   ];

@@ -8,7 +8,7 @@ import { useInterviewSession } from "@/lib/interview/session-provider";
 import { useCodingRound } from "@/lib/interview/use-coding-round";
 import { testLabel, testSummary } from "@/lib/interview/coding";
 import type { SqlResult, SqlTask } from "@/lib/interview/types";
-import { MissingRoundContent, isGenerating } from "./missing-round-content";
+import { MissingRoundContent, contentStateOf } from "./missing-round-content";
 
 const QUERY_FILE = "query.sql";
 
@@ -18,7 +18,7 @@ export function SqlStage() {
   const roundNumber = session.rounds.findIndex((r) => r.id === "sql") + 1;
 
   if (!content || content.tasks.length === 0) {
-    return <MissingRoundContent generating={isGenerating(session, "sql")} checkedByRunning />;
+    return <MissingRoundContent state={contentStateOf(session, "sql")} checkedByRunning />;
   }
   return (
     <SqlRound
@@ -55,18 +55,28 @@ function SqlRound({
     <div className="flex min-h-0 flex-1">
       <div className="scrollbar-thin w-[236px] shrink-0 overflow-y-auto border-r border-line bg-surface-subtle px-3.5 py-4">
         <Eyebrow>Schema</Eyebrow>
-        <div className="mt-3 flex flex-col gap-3.5">
+        {/* A table, because that is what it is: names in one column and types in
+            another line up, so a schema can be read down rather than parsed per row.
+            The dot-separated list this replaces left every type at a different x. */}
+        <div className="mt-3 flex flex-col gap-4">
           {task.schema.map((table) => (
-            <div key={table.name}>
-              <Mono className="text-xs font-semibold">{table.name}</Mono>
-              <div className="mt-1 flex flex-col">
+            <table key={table.name} className="w-full border-collapse">
+              <caption className="mb-1 text-left">
+                <Mono className="text-xs font-semibold">{table.name}</Mono>
+              </caption>
+              <tbody>
                 {table.columns.map((column) => (
-                  <Mono key={column.name} className="text-2xs leading-[1.9] text-content-subtle">
-                    {column.name} · {column.type}
-                  </Mono>
+                  <tr key={column.name} className="align-baseline">
+                    <td className="py-[1px] pr-2">
+                      <Mono className="text-2xs text-content-subtle">{column.name}</Mono>
+                    </td>
+                    <td className="w-px py-[1px] text-right whitespace-nowrap">
+                      <Mono className="text-2xs text-content-muted">{column.type}</Mono>
+                    </td>
+                  </tr>
                 ))}
-              </div>
-            </div>
+              </tbody>
+            </table>
           ))}
         </div>
 

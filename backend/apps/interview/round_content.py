@@ -16,15 +16,13 @@ from ai.client import complete
 from ai.prompt_loader import load_prompt
 from asgiref.sync import sync_to_async
 
-from apps.interview import coding_generation, sql_generation, task_bank
+from apps.interview import sql_bank, task_bank
 from apps.interview.config import settings
 from apps.interview.models import InterviewRound, InterviewSession, ResumeFacts
 
 logger = logging.getLogger(__name__)
 
 # A generated test file either matches the canonical case list and is passable, or it is
-# regenerated. Capped, because an uncapped retry is an unbounded wait in a timed round.
-GENERATION_ATTEMPTS = 3
 
 GENERATABLE_STAGE_IDS = frozenset({"behavioral", "coding", "sql"})
 
@@ -48,62 +46,36 @@ async def generate(session: InterviewSession, stage_id: str) -> dict | None:
 
 
 async def _generate_sql(session: InterviewSession) -> dict | None:
-    brief = await sync_to_async(_brief_sync, thread_sensitive=True)(session.id, "sql")
-    if brief is None:
+    """One task from the bank.
+
+    Not generated: a SQL task is only usable once its reference query has been run
+    against its own schema, and doing that inside an interview costs ten seconds and can
+    fail outright. The bank's tasks were run when they were built, so setting one is a
+    dictionary lookup.
+    """
+    task = await sync_to_async(sql_bank.pick, thread_sensitive=True)(seed=session.id)
+    if task is None:
         return None
-    last: Exception | None = None
-    for _ in range(GENERATION_ATTEMPTS):
-        try:
-            task = await sql_generation.generate(brief)
-        except coding_generation.TaskUnusable as e:
-            logger.warning("regenerating the SQL task: %s", e)
-            last = e
-            continue
-        # Internals the generator needed and nothing else should keep.
-        for key in [k for k in task if k.startswith("_")]:
-            task.pop(key)
-        task["index"], task["total"] = 1, 1
-        return {"tasks": [task], "defaultLanguage": "sql"}
-    raise coding_generation.TaskUnusable(str(last))
+    return {"tasks": [{**task, "index": 1, "total": 1}], "defaultLanguage": "sql"}
 
 
 async def _generate_coding(session: InterviewSession) -> dict | None:
-    """Two tasks, each with the evidenced language ready and the rest generated on demand.
-
-    Only one language is prepared up front: four languages times two tasks is eight file
-    generations for a round almost nobody answers in more than one language, and the other
-    three are a request away when a candidate actually switches.
-    """
+    """Two tasks from the bank, in the language the resume evidences where it has one."""
     brief = await sync_to_async(_brief_sync, thread_sensitive=True)(session.id, "coding")
     if brief is None:
         return None
 
     wanted = evidenced_language(brief)
 
-    # The bank first. Its tasks were proved runnable when they were imported, so setting
-    # one costs nothing and cannot fail in the middle of an interview -- where generating
-    # costs minutes and sometimes fails outright. Generation stays as the fallback for a
-    # bank that has nothing, which is the only case worth paying for it.
-    banked = task_bank.pick(CODING_TASKS, seed=session.id, language=wanted)
-    if len(banked) == CODING_TASKS:
-        return _from_bank(banked, wanted)
-
-    tasks = []
-    for index in range(CODING_TASKS):
-        task = await coding_generation.generate_task({**brief, "taskNumber": index + 1})
-        task["index"] = index + 1
-        task["total"] = CODING_TASKS
-        task["languages"] = {}
-        # Each task records the language it was actually produced in, because a fallback
-        # applies to one task and not to the round: a round-level default would point the
-        # second task at a language nobody generated for it, and opening it would start a
-        # model call in the middle of a timed interview.
-        task["defaultLanguage"] = await attach_first_workable(task, wanted)
-        # The next task prefers whatever the last one settled on, so a round stays in one
-        # language unless a task genuinely could not be written in it.
-        wanted = task["defaultLanguage"]
-        tasks.append(task)
-    return {"tasks": tasks, "defaultLanguage": tasks[0]["defaultLanguage"]}
+    # The bank, and only the bank. Its tasks were proved runnable when they were
+    # imported; a generated one costs minutes of an interview, can fail in the middle of
+    # one, and is no better a question than an exercise somebody already wrote.
+    banked = await sync_to_async(task_bank.pick, thread_sensitive=True)(
+        CODING_TASKS, seed=session.id, language=wanted
+    )
+    if not banked:
+        return None
+    return _from_bank(banked, wanted)
 
 
 def _from_bank(banked: list[dict], wanted: str) -> dict:
@@ -124,53 +96,8 @@ def _from_bank(banked: list[dict], wanted: str) -> dict:
     return {"tasks": tasks, "defaultLanguage": tasks[0]["defaultLanguage"]}
 
 
-async def attach_first_workable(task: dict, wanted: str) -> str:
-    """The evidenced language if it can be produced, otherwise the next one that can.
-
-    A task is only accepted once its own reference solution passes its own tests, and
-    some languages fail that more often than others -- C++ under sanitizers most of all.
-    Failing the round over it would be the wrong trade: the candidate loses the round
-    entirely rather than sitting it in a language they also know, and the switcher will
-    offer the others anyway.
-    """
-    order = [wanted, *(lang for lang in coding_generation.LANGUAGE_IDS if lang != wanted)]
-    last: Exception | None = None
-    for language in order:
-        try:
-            await attach_language(task, language)
-        except coding_generation.TaskUnusable as e:
-            logger.warning("could not produce %s for %s: %s", language, task.get("title"), e)
-            last = e
-            continue
-        if language != wanted:
-            logger.info("fell back to %s for %s", language, task.get("title"))
-        return language
-    raise coding_generation.TaskUnusable(str(last))
-
-
-async def attach_language(task: dict, language: str) -> dict:
-    """Generates one language's files for a task and proves they can be passed.
-
-    Regenerates on a verification failure rather than shipping the task: a test file no
-    correct solution satisfies produces real failures and a false verdict.
-    """
-    last: Exception | None = None
-    for _ in range(GENERATION_ATTEMPTS):
-        try:
-            written = await coding_generation.generate_files(task, language)
-            await coding_generation.verify(task, language, written)
-        except coding_generation.TaskUnusable as e:
-            logger.warning("regenerating %s for %s: %s", language, task.get("title"), e)
-            last = e
-            continue
-        task.setdefault("languages", {})[language] = {"files": written["files"]}
-        return task
-    raise coding_generation.TaskUnusable(str(last))
-
-
-# Evidence, not preference: a resume full of Java gets Java, and the interviewer can say
-# why. A candidate whose language is not one of the four gets Python and is told so
-# rather than silently handed a language they do not work in.
+# Which language a resume gives us reason to set. Markers rather than a model call: the
+# question is only "which of four", and the evidence is the words the candidate used.
 LANGUAGE_EVIDENCE = {
     "cpp": ("c++", "cpp"),
     "java": ("java", "kotlin", "spring", "jvm"),

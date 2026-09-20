@@ -1,0 +1,75 @@
+{
+  "slug": "distinct-cities",
+  "title": "Every city a customer signed up from",
+  "prompt": "Return each distinct `city`, alphabetically, with no repeats.",
+  "schema": [
+    {
+      "name": "customers",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int"
+        },
+        {
+          "name": "name",
+          "type": "text"
+        },
+        {
+          "name": "city",
+          "type": "text"
+        }
+      ]
+    }
+  ],
+  "attemptsAllowed": 3,
+  "tests": [
+    {
+      "name": "query runs",
+      "hidden": false
+    },
+    {
+      "name": "result matches",
+      "hidden": false
+    }
+  ],
+  "defaultLanguage": "sql",
+  "languages": {
+    "sql": {
+      "tests": [
+        {
+          "name": "query runs",
+          "hidden": false
+        },
+        {
+          "name": "result matches",
+          "hidden": false
+        }
+      ],
+      "files": [
+        {
+          "name": "query.sql",
+          "language": "sql",
+          "content": "-- Each city, once.\nSELECT\nFROM customers\n"
+        },
+        {
+          "name": "schema.sql",
+          "language": "sql",
+          "content": "CREATE TABLE customers (\n  id    int PRIMARY KEY,\n  name  text NOT NULL,\n  city  text NOT NULL\n);\n",
+          "hidden": true
+        },
+        {
+          "name": "seed.sql",
+          "language": "sql",
+          "content": "INSERT INTO customers (id, name, city) VALUES\n  (1, 'Asha Rao',     'Bengaluru'),\n  (2, 'Vikram Shah',  'Mumbai'),\n  (3, 'Leela Menon',  'Bengaluru'),\n  (4, 'Tarun Gupta',  'Delhi'),\n  (5, 'Nisha Pillai', 'Mumbai');\n",
+          "hidden": true
+        },
+        {
+          "name": "expected.csv",
+          "language": "sql",
+          "content": "city\nBengaluru\nDelhi\nMumbai\n",
+          "hidden": true
+        }
+      ]
+    }
+  }
+}
