@@ -24,7 +24,7 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
 from apps.core.api.views import _require_user
-from apps.interview import services, task_bank
+from apps.interview import services, sql_bank, task_bank
 from apps.interview.api.views import _default_project_sync, _parse_body, _serialized
 from apps.interview.models import InterviewRound, InterviewSession, ResumeFacts
 from apps.interview.rounds import STAGE_IDS
@@ -107,9 +107,7 @@ def _content_for(stage_id: str, language: str) -> dict | None:
     if stage_id == "coding":
         return _bank_content(2, language)
     if stage_id == "sql":
-        # Not from the bank: it holds Exercism exercises, none of which have a SQL
-        # variant, so asking it for one would put a Python task in the SQL round.
-        return _SQL_TASK
+        return _sql_content()
     if stage_id == "behavioral":
         return {
             "questionNumber": 1,
@@ -119,67 +117,12 @@ def _content_for(stage_id: str, language: str) -> dict | None:
     return None
 
 
-_SQL_TASK = {
-    "tasks": [
-        {
-            "index": 1,
-            "total": 1,
-            "title": "Settled totals by merchant",
-            "prompt": (
-                "For each merchant, return the total settled amount in cents, ordered by "
-                "merchant. " + SEEDED_BY
-            ),
-            "schema": [
-                {
-                    "name": "transfers",
-                    "columns": [
-                        {"name": "id", "type": "int"},
-                        {"name": "merchant", "type": "text"},
-                        {"name": "cents", "type": "int"},
-                    ],
-                }
-            ],
-            "attemptsAllowed": 3,
-            "defaultLanguage": "sql",
-            "tests": [
-                {"name": "query runs", "hidden": False},
-                {"name": "result matches", "hidden": False},
-            ],
-            "languages": {
-                "sql": {
-                    "tests": [
-                        {"name": "query runs", "hidden": False},
-                        {"name": "result matches", "hidden": False},
-                    ],
-                    "files": [
-                        {
-                            "name": "query.sql",
-                            "language": "sql",
-                            "content": "SELECT merchant\nFROM transfers\n-- your answer here\n",
-                        },
-                        {
-                            "name": "schema.sql",
-                            "language": "sql",
-                            "content": (
-                                "CREATE TABLE transfers(id int, merchant text, cents int);\n"
-                                "INSERT INTO transfers VALUES "
-                                "(1,'acme',100),(2,'acme',250),(3,'globex',80);\n"
-                            ),
-                            "hidden": True,
-                        },
-                        {
-                            "name": "expected.csv",
-                            "language": "sql",
-                            "content": "merchant,total\nacme,350\nglobex,80\n",
-                            "hidden": True,
-                        },
-                    ],
-                }
-            },
-        }
-    ],
-    "defaultLanguage": "sql",
-}
+def _sql_content() -> dict | None:
+    """The real SQL bank, so the bypass sets what a candidate would actually sit."""
+    task = sql_bank.pick(seed="dev-bypass")
+    if task is None:
+        return None
+    return {"tasks": [{**task, "index": 1, "total": 1}], "defaultLanguage": "sql"}
 
 
 def _bank_content(count: int, language: str) -> dict | None:

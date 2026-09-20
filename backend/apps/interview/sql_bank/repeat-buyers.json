@@ -1,0 +1,71 @@
+{
+  "slug": "repeat-buyers",
+  "title": "Customers who ordered more than once",
+  "prompt": "Return `customer_id` and their order count as `orders`, for customers with more than one order. Order by `customer_id`.",
+  "schema": [
+    {
+      "name": "orders",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int"
+        },
+        {
+          "name": "customer_id",
+          "type": "int"
+        }
+      ]
+    }
+  ],
+  "attemptsAllowed": 3,
+  "tests": [
+    {
+      "name": "query runs",
+      "hidden": false
+    },
+    {
+      "name": "result matches",
+      "hidden": false
+    }
+  ],
+  "defaultLanguage": "sql",
+  "languages": {
+    "sql": {
+      "tests": [
+        {
+          "name": "query runs",
+          "hidden": false
+        },
+        {
+          "name": "result matches",
+          "hidden": false
+        }
+      ],
+      "files": [
+        {
+          "name": "query.sql",
+          "language": "sql",
+          "content": "-- Customers with more than one order.\nSELECT\nFROM orders\n"
+        },
+        {
+          "name": "schema.sql",
+          "language": "sql",
+          "content": "CREATE TABLE orders (\n  id           int PRIMARY KEY,\n  customer_id  int NOT NULL\n);\n",
+          "hidden": true
+        },
+        {
+          "name": "seed.sql",
+          "language": "sql",
+          "content": "INSERT INTO orders (id, customer_id) VALUES\n  (1, 1), (2, 2), (3, 1), (4, 3), (5, 1), (6, 2);\n",
+          "hidden": true
+        },
+        {
+          "name": "expected.csv",
+          "language": "sql",
+          "content": "customer_id,orders\n1,3\n2,2\n",
+          "hidden": true
+        }
+      ]
+    }
+  }
+}

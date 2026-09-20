@@ -1,0 +1,79 @@
+{
+  "slug": "active-customers",
+  "title": "Customers in one city",
+  "prompt": "Return the name and signup date of every customer in Bengaluru, newest first. Name the columns `name` and `signed_up`.",
+  "schema": [
+    {
+      "name": "customers",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int"
+        },
+        {
+          "name": "name",
+          "type": "text"
+        },
+        {
+          "name": "city",
+          "type": "text"
+        },
+        {
+          "name": "signed_up",
+          "type": "date"
+        }
+      ]
+    }
+  ],
+  "attemptsAllowed": 3,
+  "tests": [
+    {
+      "name": "query runs",
+      "hidden": false
+    },
+    {
+      "name": "result matches",
+      "hidden": false
+    }
+  ],
+  "defaultLanguage": "sql",
+  "languages": {
+    "sql": {
+      "tests": [
+        {
+          "name": "query runs",
+          "hidden": false
+        },
+        {
+          "name": "result matches",
+          "hidden": false
+        }
+      ],
+      "files": [
+        {
+          "name": "query.sql",
+          "language": "sql",
+          "content": "-- Customers in Bengaluru, newest first.\nSELECT\nFROM customers\n"
+        },
+        {
+          "name": "schema.sql",
+          "language": "sql",
+          "content": "CREATE TABLE customers (\n  id         int PRIMARY KEY,\n  name       text NOT NULL,\n  city       text NOT NULL,\n  signed_up  date NOT NULL\n);\n",
+          "hidden": true
+        },
+        {
+          "name": "seed.sql",
+          "language": "sql",
+          "content": "INSERT INTO customers (id, name, city, signed_up) VALUES\n  (1, 'Asha Rao',      'Bengaluru', '2024-01-14'),\n  (2, 'Vikram Shah',   'Mumbai',    '2024-02-02'),\n  (3, 'Leela Menon',   'Bengaluru', '2024-03-30'),\n  (4, 'Tarun Gupta',   'Delhi',     '2024-04-11'),\n  (5, 'Nisha Pillai',  'Bengaluru', '2023-11-05');\n",
+          "hidden": true
+        },
+        {
+          "name": "expected.csv",
+          "language": "sql",
+          "content": "name,signed_up\nLeela Menon,2024-03-30\nAsha Rao,2024-01-14\nNisha Pillai,2023-11-05\n",
+          "hidden": true
+        }
+      ]
+    }
+  }
+}

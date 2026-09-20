@@ -1,0 +1,84 @@
+{
+  "slug": "customers-without-orders",
+  "title": "Customers who never ordered",
+  "prompt": "Return the `name` of every customer who has never placed an order, alphabetically.",
+  "schema": [
+    {
+      "name": "customers",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int"
+        },
+        {
+          "name": "name",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "name": "orders",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int"
+        },
+        {
+          "name": "customer_id",
+          "type": "int"
+        }
+      ]
+    }
+  ],
+  "attemptsAllowed": 3,
+  "tests": [
+    {
+      "name": "query runs",
+      "hidden": false
+    },
+    {
+      "name": "result matches",
+      "hidden": false
+    }
+  ],
+  "defaultLanguage": "sql",
+  "languages": {
+    "sql": {
+      "tests": [
+        {
+          "name": "query runs",
+          "hidden": false
+        },
+        {
+          "name": "result matches",
+          "hidden": false
+        }
+      ],
+      "files": [
+        {
+          "name": "query.sql",
+          "language": "sql",
+          "content": "-- Customers with no orders at all.\nSELECT\nFROM customers\n"
+        },
+        {
+          "name": "schema.sql",
+          "language": "sql",
+          "content": "CREATE TABLE customers (\n  id    int PRIMARY KEY,\n  name  text NOT NULL\n);\n\nCREATE TABLE orders (\n  id           int PRIMARY KEY,\n  customer_id  int NOT NULL REFERENCES customers(id)\n);\n",
+          "hidden": true
+        },
+        {
+          "name": "seed.sql",
+          "language": "sql",
+          "content": "INSERT INTO customers (id, name) VALUES\n  (1, 'Asha Rao'), (2, 'Vikram Shah'), (3, 'Leela Menon'), (4, 'Tarun Gupta');\n\nINSERT INTO orders (id, customer_id) VALUES\n  (1, 1), (2, 1), (3, 3);\n",
+          "hidden": true
+        },
+        {
+          "name": "expected.csv",
+          "language": "sql",
+          "content": "name\nTarun Gupta\nVikram Shah\n",
+          "hidden": true
+        }
+      ]
+    }
+  }
+}
