@@ -28,10 +28,6 @@ def serialize_round(round_: InterviewRound) -> dict:
         # never asks for a token looks exactly like a round nobody joined.
         "live": round_.stage_id in LIVE_STAGE_IDS,
     }
-    # Omitted rather than null when absent: the frontend's Round type marks both
-    # optional, and a null citation would render an empty chip.
-    if round_.citation is not None:
-        payload["citation"] = round_.citation
     if round_.summary:
         payload["summary"] = round_.summary
     return payload
@@ -51,7 +47,6 @@ def serialize_resume(facts: ResumeFacts) -> dict:
         },
         "sections": facts.sections,
         "probes": facts.probes,
-        "citations": facts.citations,
     }
     # Only present once the document was actually parsed. Asserting "2 pages" beside a
     # visibly one-page document is the fabrication this field's optionality exists for.

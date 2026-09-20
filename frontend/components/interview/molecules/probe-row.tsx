@@ -1,5 +1,4 @@
 import { Mono } from "@/components/ui/typography";
-import { CitationChip } from "./citation-chip";
 import type { Probe, Round } from "@/lib/interview/types";
 
 export function ProbeRow({
@@ -19,7 +18,6 @@ export function ProbeRow({
       <span className="w-[190px] shrink-0 text-sm font-medium">{probe.title}</span>
       <span className="t-small flex-1 text-content-subtle">
         {probe.note}
-        {probe.citation !== undefined && <CitationChip n={probe.citation} />}
       </span>
       {roundNumber !== null && (
         <Mono className="shrink-0 text-2xs text-content-muted">round {roundNumber}</Mono>

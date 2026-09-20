@@ -4,7 +4,6 @@ import { Banner } from "@/components/ui/banner";
 import { ResumeReviewPanel } from "@/components/interview/organisms/resume-review-panel";
 import { GeneratedPlanPanel } from "@/components/interview/organisms/generated-plan-panel";
 import { useInterviewSession } from "@/lib/interview/session-provider";
-import { CitationProvider } from "@/lib/interview/citation-context";
 
 export function ResumePlanStage() {
   const { session } = useInterviewSession();
@@ -22,11 +21,9 @@ export function ResumePlanStage() {
   }
 
   return (
-    <CitationProvider>
-      <div className="flex min-h-0 flex-1">
-        <ResumeReviewPanel resume={session.resume} rounds={session.rounds} />
-        <GeneratedPlanPanel />
-      </div>
-    </CitationProvider>
+    <div className="flex min-h-0 flex-1">
+      <ResumeReviewPanel resume={session.resume} rounds={session.rounds} />
+      <GeneratedPlanPanel />
+    </div>
   );
 }

@@ -79,42 +79,21 @@ def _decode_plan(raw: str) -> dict:
     return plan
 
 
-def _citation_ids(plan: dict) -> set[int]:
-    return {
-        c["id"]
-        for c in plan.get("citations") or []
-        if isinstance(c, dict) and isinstance(c.get("id"), int)
-    }
-
-
 def sanitize_plan(plan: dict) -> dict:
     """Drops anything the plan asserts that we cannot honour.
 
-    A citation id that does not exist would render as a chip pointing at nothing, and a
-    round the interview does not have would silently never appear -- both are better
-    dropped here than rendered as a broken reference.
+    A round the interview does not have would silently never appear, so it is better
+    dropped here than persisted against a stage nothing renders.
     """
-    valid_ids = _citation_ids(plan)
-
-    def keep_citation(value) -> bool:
-        return isinstance(value, int) and value in valid_ids
-
     sections = []
     for section in plan.get("sections") or []:
         if not isinstance(section, dict):
             continue
-        paragraphs = []
-        for paragraph in section.get("paragraphs") or []:
-            fragments = []
-            for fragment in paragraph or []:
-                if not isinstance(fragment, dict) or not isinstance(fragment.get("text"), str):
-                    continue
-                kept = {"text": fragment["text"]}
-                if keep_citation(fragment.get("citation")):
-                    kept["citation"] = fragment["citation"]
-                fragments.append(kept)
-            if fragments:
-                paragraphs.append(fragments)
+        paragraphs = [
+            paragraph
+            for paragraph in section.get("paragraphs") or []
+            if isinstance(paragraph, str) and paragraph.strip()
+        ]
         if paragraphs:
             sections.append(
                 {
@@ -131,21 +110,14 @@ def sanitize_plan(plan: dict) -> dict:
         stage = probe.get("round")
         if stage not in PLANNABLE_STAGE_IDS:
             continue
-        kept = {
-            "id": str(probe.get("id") or f"p{len(probes) + 1}"),
-            "title": str(probe.get("title") or ""),
-            "note": str(probe.get("note") or ""),
-            "round": stage,
-        }
-        if keep_citation(probe.get("citation")):
-            kept["citation"] = probe["citation"]
-        probes.append(kept)
-
-    citations = [
-        {"id": c["id"], "quote": str(c.get("quote") or ""), "source": str(c.get("source") or "")}
-        for c in plan.get("citations") or []
-        if isinstance(c, dict) and isinstance(c.get("id"), int)
-    ]
+        probes.append(
+            {
+                "id": str(probe.get("id") or f"p{len(probes) + 1}"),
+                "title": str(probe.get("title") or ""),
+                "note": str(probe.get("note") or ""),
+                "round": stage,
+            }
+        )
 
     rounds = {}
     for round_ in plan.get("rounds") or []:
@@ -154,15 +126,11 @@ def sanitize_plan(plan: dict) -> dict:
         stage = round_.get("id")
         if stage not in PLANNABLE_STAGE_IDS:
             continue
-        rounds[stage] = {
-            "summary": str(round_.get("summary") or ""),
-            "citation": round_["citation"] if keep_citation(round_.get("citation")) else None,
-        }
+        rounds[stage] = {"summary": str(round_.get("summary") or "")}
 
     candidate = plan.get("candidate") if isinstance(plan.get("candidate"), dict) else {}
     return {
         "candidate": candidate,
-        "citations": citations,
         "sections": sections,
         "probes": probes,
         "rounds": rounds,
@@ -191,13 +159,12 @@ def _persist_sync(
             "candidate_years_experience": years if isinstance(years, int) else None,
             "sections": plan["sections"],
             "probes": plan["probes"],
-            "citations": plan["citations"],
         },
     )
 
     for stage, values in plan["rounds"].items():
         InterviewRound.objects.filter(session=session, stage_id=stage).update(
-            summary=values["summary"], citation=values["citation"]
+            summary=values["summary"]
         )
 
     updates = ["resume_document_id", "updated_at"]

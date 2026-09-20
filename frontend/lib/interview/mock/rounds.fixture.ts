@@ -23,7 +23,6 @@ export const MOCK_ROUND_CONTENT: RoundContent = {
     question:
       "You moved the ledger from a single Postgres writer to Kafka. Walk me through the moment you knew the old design would not hold — and what you would have needed to see to abandon the migration.",
     derivedFrom: ["resume line 4", "your answer to Q1"],
-    citation: 2,
   },
 
   debug: {
@@ -120,7 +119,6 @@ export const MOCK_ROUND_CONTENT: RoundContent = {
         id: "qa2",
         role: "agent",
         text: "Roughly 60/40 toward existing systems this year. The team's stated goal is to retire the legacy settlement job by Q3, and the two open headcount are both attached to that programme. Greenfield work sits mostly in the new payout rails project.",
-        citations: [1, 2, 3],
         sources: [{ label: "Role brief · §2" }, { label: "Eng blog, Jun 2026" }],
       },
       { id: "qa3", role: "candidate", text: "Why did the last person in this role leave?" },

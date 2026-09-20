@@ -43,7 +43,7 @@ def describe(brief: Brief) -> str:
 
     lines += ["", "## The rounds you planned, and what each came from", ""]
     for round_ in featured:
-        lines.append(_round_line(brief, round_))
+        lines.append(_round_line(round_))
     if shorter:
         names = ", ".join(str(r.get("label") or r.get("id")) for r in shorter)
         total = sum(r.get("durationMin") or 0 for r in shorter)
@@ -55,15 +55,12 @@ def describe(brief: Brief) -> str:
     if brief.probes:
         lines += ["", "## What you intend to probe, if they ask", ""]
         for probe in brief.probes:
-            quote = brief.quote_for(probe.get("citation"))
-            source = f' — from their line "{quote}"' if quote else ""
-            lines.append(f"- {probe.get('title')}: {probe.get('note')}{source}")
+            lines.append(f"- {probe.get('title')}: {probe.get('note')}")
 
     return "\n".join(lines)
 
 
-def _round_line(brief: Brief, round_: dict) -> str:
-    quote = brief.quote_for(round_.get("citation"))
+def _round_line(round_: dict) -> str:
     label = round_.get("label") or round_.get("id")
     minutes = round_.get("durationMin") or 0
     summary = (round_.get("summary") or "").strip()
@@ -73,9 +70,6 @@ def _round_line(brief: Brief, round_: dict) -> str:
         # The plan's summaries are written as fragments, so a full stop is added here
         # rather than expected of them -- two sentences running together read as one.
         line += f": {summary.rstrip('.')}."
-    if quote:
-        # The verbatim line, so the interviewer can quote it rather than paraphrase.
-        line += f' Chosen because they wrote "{quote}".'
     return line
 
 

@@ -37,17 +37,12 @@ PLAN = {
         "email": "priya@example.com",
         "yearsExperience": 6,
     },
-    "citations": [{"id": 1, "quote": "1.4M transactions a day", "source": "Experience"}],
     "sections": [
         {
             "id": "experience",
             "label": "Experience",
             "paragraphs": [
-                [
-                    {"text": "Owned the double-entry ledger handling "},
-                    {"text": "1.4M transactions a day", "citation": 1},
-                    {"text": " at Northwind."},
-                ]
+                "Owned the double-entry ledger handling 1.4M transactions a day at Northwind."
             ],
         }
     ],
@@ -56,11 +51,10 @@ PLAN = {
             "id": "p1",
             "title": "Ledger at 1.4M/day",
             "note": "Scale claim worth grounding",
-            "citation": 1,
             "round": "coding",
         }
     ],
-    "rounds": [{"id": "coding", "citation": 1, "summary": "Retry-safe transfer applier."}],
+    "rounds": [{"id": "coding", "summary": "Retry-safe transfer applier."}],
     "entityCount": 4,
 }
 
@@ -124,7 +118,6 @@ async def test_planning_writes_the_facts_and_the_round_summaries(
 
     coding = await InterviewRound.objects.aget(session_id=session["id"], stage_id="coding")
     assert coding.summary == "Retry-safe transfer applier."
-    assert coding.citation == 1
 
     # What the workflow needs to describe itself, and nothing more.
     assert result["probe_count"] == 1

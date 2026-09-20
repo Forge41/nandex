@@ -431,11 +431,11 @@ export const SCREENS: Screen[] = [
   {
     id: "resume",
     label: "Resume review & plan",
-    note: "The generated plan, with citations underlined in the candidate's own prose.",
+    note: "The candidate's own prose beside the plan written from it.",
     shipped: true,
     stage: "resume",
     states: [
-      { id: "full", label: "Plan with citations", note: "Five probes, each tied to a quote." },
+      { id: "full", label: "Plan and probes", note: "Five probes across three rounds." },
       {
         id: "no-probes",
         label: "No probes returned",
@@ -452,7 +452,7 @@ export const SCREENS: Screen[] = [
     note: "One generated question and what it was derived from.",
     shipped: true,
     stage: "behavioral",
-    states: contentStates("behavioral", "A question generated from a cited resume line."),
+    states: contentStates("behavioral", "A question generated from what the resume says."),
   },
   {
     id: "coding",

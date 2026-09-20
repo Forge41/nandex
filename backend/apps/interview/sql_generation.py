@@ -116,7 +116,6 @@ def _sanitize(written: dict) -> dict:
             {"name": "query runs", "hidden": False},
             {"name": "result matches", "hidden": False},
         ],
-        **({"citation": written["citation"]} if isinstance(written.get("citation"), int) else {}),
         "_starter": str(written.get("starter") or "SELECT\n"),
         "_schema_sql": schema_sql,
         "_seed_sql": str(written.get("seedSql") or ""),

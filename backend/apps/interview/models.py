@@ -125,8 +125,6 @@ class InterviewRound(models.Model):
     kind = models.CharField(max_length=16, choices=Kind.choices)
     duration_min = models.IntegerField(default=0)
     order = models.IntegerField()
-    # The resume citation this round was generated from, when it came from one.
-    citation = models.IntegerField(null=True, blank=True)
     summary = models.TextField(blank=True, default="")
     # The round's task payload, shaped by stage_id (a CodingTask, a SqlTask, ...). Empty
     # until something generates it; the UI already renders a missing-content state, which
@@ -174,12 +172,11 @@ class ResumeFacts(models.Model):
     candidate_email = models.CharField(max_length=320, blank=True, default="")
     candidate_years_experience = models.IntegerField(null=True, blank=True)
 
-    # Shapes match ResumeSection[], Probe[] and Citation[] in
+    # Shapes match ResumeSection[] and Probe[] in
     # frontend/lib/interview/types.ts. Kept as JSON because the frontend renders them
     # whole and nothing queries inside them.
     sections = models.JSONField(default=list, blank=True)
     probes = models.JSONField(default=list, blank=True)
-    citations = models.JSONField(default=list, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

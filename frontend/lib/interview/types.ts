@@ -36,8 +36,6 @@ export interface Round {
   label: string;
   kind: RoundKind;
   durationMin: number;
-  /** Resume citation this round was generated from, when it came from one. */
-  citation?: number;
   /** Shown on the plan card, revealed on hover. */
   summary?: string;
   /** Whether this round's task has been generated. Separate from where the round
@@ -48,34 +46,18 @@ export interface Round {
   live?: boolean;
 }
 
-/** A quoted resume line, referenced by the numbered chips throughout the UI. */
-export interface Citation {
-  id: number;
-  quote: string;
-  source: string;
-}
-
 export interface Probe {
   id: string;
   title: string;
   note: string;
-  citation?: number;
   round: StageId;
-}
-
-/** A run of resume prose. A fragment carrying a `citation` is the phrase a
- * round was generated from, and renders underlined with its numbered chip --
- * modelled as data rather than a markup string so there is no parser to keep
- * in step with the renderer. */
-export interface ResumeFragment {
-  text: string;
-  citation?: number;
 }
 
 export interface ResumeSection {
   id: string;
   label: string;
-  paragraphs: ResumeFragment[][];
+  /** The candidate's own paragraphs, verbatim. */
+  paragraphs: string[];
 }
 
 export interface ResumeCandidate {
@@ -108,7 +90,6 @@ export interface ResumeDoc extends ResumeFile {
   candidate: ResumeCandidate;
   sections: ResumeSection[];
   probes: Probe[];
-  citations: Citation[];
 }
 
 export type Speaker = "interviewer" | "candidate";
@@ -195,7 +176,6 @@ export interface RunnableTask {
   total: number;
   title: string;
   attemptsAllowed: number;
-  citation?: number;
   /** Keyed by language: the same task is answered in four of them, each with its
    * own starter and test files. */
   languages: Partial<Record<CodeLanguage, LanguageVariant>>;
@@ -309,7 +289,6 @@ export interface QaMessage {
   id: string;
   role: "candidate" | "agent";
   text: string;
-  citations?: number[];
   sources?: QaSource[];
   /** The agent declined to answer and handed it to a person. */
   routedTo?: { name: string; replyWithin: string };
@@ -332,7 +311,7 @@ export interface RoundContent {
   /** questionTotal is optional because a generated round does not have one: the
    * interviewer follows up live, so how many questions there will be is not
    * knowable when the opening question is written. */
-  behavioral?: { questionNumber: number; questionTotal?: number; question: string; derivedFrom: string[]; citation?: number };
+  behavioral?: { questionNumber: number; questionTotal?: number; question: string; derivedFrom: string[] };
 }
 
 export interface InterviewSession {

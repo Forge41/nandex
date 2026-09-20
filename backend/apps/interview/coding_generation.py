@@ -181,9 +181,6 @@ def _sanitize_task(written: dict) -> dict:
     note = str(written.get("complexityNote") or "").strip()
     if note:
         task["complexityNote"] = note
-    citation = written.get("citation")
-    if isinstance(citation, int):
-        task["citation"] = citation
     if not task["brief"]:
         raise TaskUnusable("the task had no brief")
     return task

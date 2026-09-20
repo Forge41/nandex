@@ -18,8 +18,7 @@ from apps.interview.api.dev import _SQL_TASK, _bank_content
 from apps.interview.serializers import _visible_content
 
 DESTINATION = (
-    Path(__file__).resolve().parents[4].parent
-    / "frontend/lib/interview/mock/tasks.fixture.json"
+    Path(__file__).resolve().parents[4].parent / "frontend/lib/interview/mock/tasks.fixture.json"
 )
 
 # The coding round's header reads "Task 1 of 2", so one task would leave the task

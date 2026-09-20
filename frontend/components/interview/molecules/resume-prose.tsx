@@ -1,46 +1,25 @@
-"use client";
-
 import { cn } from "@/lib/utils";
-import { CitationChip } from "./citation-chip";
-import { useCitationSelection } from "@/lib/interview/citation-context";
-import type { ResumeFragment } from "@/lib/interview/types";
 
-/** Resume body copy. A fragment carrying a citation is a phrase a round was
- * generated from: it is underlined always, and highlighted while its citation
- * is selected, so "which line did this come from" has a visible answer. */
+/** Resume body copy, as the candidate wrote it.
+ *
+ * Paragraphs of their own text and nothing layered on top: the runs, the underlines and
+ * the numbered chips are gone, so there is no annotation here to keep faithful to a
+ * document this only ever quotes. */
 export function ResumeProse({
   paragraphs,
   className,
 }: {
-  paragraphs: ResumeFragment[][];
+  paragraphs: string[];
   className?: string;
 }) {
-  const { selected } = useCitationSelection();
-
   return (
     <>
-      {paragraphs.map((fragments, paragraphIndex) => (
+      {paragraphs.map((paragraph, index) => (
         <p
-          key={paragraphIndex}
-          className={cn("max-w-[70ch] leading-[1.75]", paragraphIndex > 0 && "mt-3.5", className)}
+          key={index}
+          className={cn("max-w-[70ch] leading-[1.75]", index > 0 && "mt-3.5", className)}
         >
-          {fragments.map((fragment, fragmentIndex) =>
-            fragment.citation === undefined ? (
-              <span key={fragmentIndex}>{fragment.text}</span>
-            ) : (
-              <span key={fragmentIndex}>
-                <span
-                  className={cn(
-                    "border-b border-dashed border-content-muted transition-colors duration-150",
-                    selected === fragment.citation && "rounded-xs bg-tag-gold px-0.5 text-gold"
-                  )}
-                >
-                  {fragment.text}
-                </span>
-                <CitationChip n={fragment.citation} />
-              </span>
-            )
-          )}
+          {paragraph}
         </p>
       ))}
     </>

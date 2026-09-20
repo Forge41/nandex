@@ -75,7 +75,6 @@ def _brief_sync(session: InterviewSession) -> dict:
                 "label": r.label,
                 "durationMin": r.duration_min,
                 "summary": r.summary,
-                "citation": r.citation,
             }
             for r in rounds
             if r.stage_id not in ("preflight", "resume")
@@ -90,7 +89,6 @@ def _brief_sync(session: InterviewSession) -> dict:
                 "yearsExperience": facts.candidate_years_experience,
             },
             "probes": facts.probes,
-            "citations": facts.citations,
         },
         "coding": _coding_sync(session),
     }
@@ -125,7 +123,6 @@ def _coding_sync(session: InterviewSession) -> dict | None:
         "title": task.get("title", ""),
         "brief": task.get("brief", []),
         "constraints": task.get("constraints", []),
-        "citation": task.get("citation"),
         "language": last.language if last else task.get("defaultLanguage"),
         "hasRun": last is not None,
     }

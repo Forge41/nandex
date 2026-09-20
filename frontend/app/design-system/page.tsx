@@ -9,7 +9,6 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Citation } from "@/components/ui/citation";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { IconButton } from "@/components/ui/icon-button";
 import { AudioBars } from "@/components/ui/audio-bars";
@@ -110,21 +109,8 @@ export default function DesignSystemPage() {
 
       <Section title="Tags">
         <Tag>resume line 4</Tag>
-        <Tag variant="outline">
-          resume line 4<Citation n={2} />
-        </Tag>
+        <Tag variant="outline">resume line 4</Tag>
         <Tag variant="inverted">your answer to Q1</Tag>
-      </Section>
-
-      <Section title="Citations in prose">
-        <p className="t-body-md max-w-[70ch] leading-[1.75]">
-          Owned the double-entry ledger service handling{" "}
-          <span className="border-b border-dashed border-content-muted">1.4M transactions a day</span>
-          <Citation n={1} />. Led the migration to a{" "}
-          <span className="border-b border-dashed border-content-muted">Kafka-backed event pipeline</span>
-          <Citation n={2} selected />, cutting settlement latency by 40%
-          <Citation n={3} />.
-        </p>
       </Section>
 
       <Section title="Banners">

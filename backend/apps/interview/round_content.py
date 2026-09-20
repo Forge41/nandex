@@ -216,10 +216,6 @@ async def _generate_behavioral(session: InterviewSession) -> dict | None:
         # question with no stated source is the thing this whole plan exists to avoid.
         "derivedFrom": derived or ["your resume"],
     }
-    # Only when it points at a citation the resume really produced.
-    citation = written.get("citation")
-    if isinstance(citation, int) and citation in {c["id"] for c in brief["citations"]}:
-        content["citation"] = citation
     return content
 
 
@@ -238,7 +234,6 @@ def _brief_sync(session_id: str, stage_id: str) -> dict | None:
         "role": round_.session.role_title,
         "round": {"id": stage_id, "label": round_.label, "summary": round_.summary},
         "probes": [p for p in facts.probes if p.get("round") == stage_id],
-        "citations": [c for c in facts.citations if isinstance(c.get("id"), int)],
     }
 
 

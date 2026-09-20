@@ -1,7 +1,7 @@
 """sanitize_plan is the boundary between a model's output and what the UI renders.
 
-A citation id pointing at nothing renders as a chip referring to nowhere; a round the
-interview does not have silently never appears. Both are better dropped here than shown.
+A round the interview does not have silently never appears, and an empty section renders
+as a heading with nothing under it. Both are better dropped here than shown.
 """
 
 import pytest
@@ -17,33 +17,17 @@ from apps.interview.resume import (
 
 PLAN = {
     "candidate": {"name": "Priya R", "title": "Senior Backend Engineer", "yearsExperience": 6},
-    "citations": [
-        {"id": 1, "quote": "1.4M transactions a day", "source": "Experience"},
-        {"id": 2, "quote": "deep SQL performance work", "source": "Skills"},
-    ],
     "sections": [
         {
             "id": "experience",
             "label": "Experience",
-            "paragraphs": [
-                [
-                    {"text": "Owned the ledger handling "},
-                    {"text": "1.4M transactions a day", "citation": 1},
-                    {"text": "."},
-                ]
-            ],
+            "paragraphs": ["Owned the ledger handling 1.4M transactions a day."],
         }
     ],
     "probes": [
-        {
-            "id": "p1",
-            "title": "Kafka at scale",
-            "note": "Worth grounding",
-            "citation": 1,
-            "round": "coding",
-        }
+        {"id": "p1", "title": "Kafka at scale", "note": "Worth grounding", "round": "coding"}
     ],
-    "rounds": [{"id": "sql", "citation": 2, "summary": "Tests the SQL claim."}],
+    "rounds": [{"id": "sql", "summary": "Tests the SQL claim."}],
     "entityCount": 18,
 }
 
@@ -51,43 +35,12 @@ PLAN = {
 def test_a_well_formed_plan_survives_intact():
     clean = sanitize_plan(PLAN)
 
-    assert [c["id"] for c in clean["citations"]] == [1, 2]
-    assert clean["sections"][0]["paragraphs"][0][1]["citation"] == 1
+    assert clean["sections"][0]["paragraphs"] == [
+        "Owned the ledger handling 1.4M transactions a day."
+    ]
     assert clean["probes"][0]["round"] == "coding"
-    assert clean["rounds"]["sql"] == {"citation": 2, "summary": "Tests the SQL claim."}
+    assert clean["rounds"]["sql"] == {"summary": "Tests the SQL claim."}
     assert clean["entity_count"] == 18
-
-
-def test_concatenating_a_paragraphs_fragments_reproduces_the_prose():
-    """The fragments are how the UI underlines a claim in place. A dropped one shows up as
-    corrupted resume text on screen, so the round trip is the contract."""
-    clean = sanitize_plan(PLAN)
-    rebuilt = "".join(f["text"] for f in clean["sections"][0]["paragraphs"][0])
-
-    assert rebuilt == "Owned the ledger handling 1.4M transactions a day."
-
-
-def test_a_citation_pointing_at_nothing_is_dropped_everywhere_it_appears():
-    plan = {
-        **PLAN,
-        "sections": [
-            {
-                "id": "experience",
-                "label": "Experience",
-                "paragraphs": [[{"text": "Claimed ", "citation": 99}, {"text": "something."}]],
-            }
-        ],
-        "probes": [{"id": "p1", "title": "t", "note": "n", "citation": 99, "round": "coding"}],
-        "rounds": [{"id": "sql", "citation": 99, "summary": "s"}],
-    }
-
-    clean = sanitize_plan(plan)
-
-    assert "citation" not in clean["sections"][0]["paragraphs"][0][0]
-    assert "citation" not in clean["probes"][0]
-    assert clean["rounds"]["sql"]["citation"] is None
-    # The prose itself is kept: only the dangling reference goes.
-    assert clean["sections"][0]["paragraphs"][0][0]["text"] == "Claimed "
 
 
 @pytest.mark.parametrize("stage", ["preflight", "resume", "wrap", "invented", ""])
@@ -105,31 +58,24 @@ def test_a_plan_cannot_speak_about_a_round_it_does_not_own(stage):
     assert clean["rounds"] == {}
 
 
-def test_a_fragment_without_text_is_dropped_rather_than_rendered_empty():
+def test_a_paragraph_that_is_not_prose_is_dropped_rather_than_rendered():
+    """The model is asked for strings. Anything else on screen is not the resume."""
     plan = {
         **PLAN,
-        "sections": [
-            {
-                "id": "x",
-                "label": "X",
-                "paragraphs": [[{"citation": 1}, {"text": "real"}, {"text": None}]],
-            }
-        ],
+        "sections": [{"id": "x", "label": "X", "paragraphs": [None, "real", "   ", 7]}],
     }
 
-    fragments = sanitize_plan(plan)["sections"][0]["paragraphs"][0]
-    assert [f["text"] for f in fragments] == ["real"]
+    assert sanitize_plan(plan)["sections"][0]["paragraphs"] == ["real"]
 
 
 def test_an_empty_section_is_dropped_rather_than_rendered_as_a_heading():
-    plan = {**PLAN, "sections": [{"id": "x", "label": "Empty", "paragraphs": [[]]}]}
+    plan = {**PLAN, "sections": [{"id": "x", "label": "Empty", "paragraphs": []}]}
     assert sanitize_plan(plan)["sections"] == []
 
 
 def test_a_plan_missing_every_optional_key_does_not_raise():
     clean = sanitize_plan({})
 
-    assert clean["citations"] == []
     assert clean["sections"] == []
     assert clean["probes"] == []
     assert clean["rounds"] == {}

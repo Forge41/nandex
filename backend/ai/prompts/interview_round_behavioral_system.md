@@ -27,8 +27,7 @@ Return only JSON, with no prose around it and no markdown fence, matching this s
 ```json
 {
   "question": "the question, addressed to the candidate",
-  "derivedFrom": ["short label for what prompted it"],
-  "citation": 1
+  "derivedFrom": ["short label for what prompted it"]
 }
 ```
 
@@ -36,7 +35,3 @@ Return only JSON, with no prose around it and no markdown fence, matching this s
 phrased as the candidate would recognise it ("the ledger migration", "the 40% latency
 figure"). These render as tags beside the question, so they are labels and not
 sentences.
-
-`citation` is the `id` of the citation the question rests on, taken from the citations
-you were given. Omit the key entirely if the question rests on none; do not invent an id
-and do not use null or 0.

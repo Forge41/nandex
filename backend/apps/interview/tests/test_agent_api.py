@@ -33,19 +33,18 @@ def planned(client, session):
         candidate_name="Priya Raghunathan",
         candidate_title="Senior Backend Engineer",
         candidate_years_experience=7,
-        probes=[{"title": "Latency", "note": "How it was measured", "citation": 3}],
-        citations=[{"id": 3, "quote": "cutting settlement latency by 40 percent"}],
+        probes=[{"title": "Latency", "note": "How it was measured", "round": "behavioral"}],
     )
     session_id = session["id"]
     from apps.interview.models import InterviewRound
 
     InterviewRound.objects.filter(session_id=session_id, stage_id="behavioral").update(
-        summary="Ownership scope", citation=3
+        summary="Ownership scope"
     )
     return session_id, facts
 
 
-def test_the_brief_carries_the_plan_and_the_lines_it_came_from(client, planned):
+def test_the_brief_carries_the_plan(client, planned):
     session_id, _ = planned
 
     body = client.get(f"/interview/agent/sessions/{session_id}/brief", **auth()).json()
@@ -53,8 +52,7 @@ def test_the_brief_carries_the_plan_and_the_lines_it_came_from(client, planned):
     assert body["candidateName"] == "Priya Raghunathan"
     behavioral = next(r for r in body["rounds"] if r["id"] == "behavioral")
     assert behavioral["summary"] == "Ownership scope"
-    assert behavioral["citation"] == 3
-    assert body["resume"]["citations"][0]["quote"] == "cutting settlement latency by 40 percent"
+    assert body["resume"]["probes"][0]["title"] == "Latency"
 
 
 def test_the_brief_leaves_out_the_rounds_there_is_nothing_to_say_about(client, planned):
