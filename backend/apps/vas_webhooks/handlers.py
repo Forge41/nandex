@@ -8,6 +8,7 @@ on the server -- so an unknown id is not an error to raise.
 import logging
 
 from apps.vas_recordings import services
+from apps.vas_recordings.activities import post_event_to_main_backend
 from apps.vas_recordings.models import Recording, VideoSession
 from apps.vas_recordings.providers.base import FileInfo, ProviderEvent
 from apps.vas_webhooks.registry import registry
@@ -93,6 +94,35 @@ async def on_room_started(event: ProviderEvent) -> None:
 
 async def on_room_finished(event: ProviderEvent) -> None:
     await _set_session_status(event, VideoSession.Status.ENDED)
+    await _tell_the_main_backend(event)
+
+
+async def _tell_the_main_backend(event: ProviderEvent) -> None:
+    """The room emptying is what the caller cannot observe for itself.
+
+    A browser's "I am leaving" is unacknowledged and does not fire for every way of
+    leaving; this does, and only after the provider's own empty timeout, so a candidate
+    who reconnects has already had their chance. Posted directly rather than through a
+    workflow: the caller has its own backstop for a session nobody ends, so a failure
+    here is a delay and not a loss -- but it is a real gap, so it is logged as one.
+    """
+    if not event.room_name:
+        return
+    session = await VideoSession.objects.filter(room_name=event.room_name).afirst()
+    if session is None or not session.external_session_id:
+        return
+    try:
+        await post_event_to_main_backend(
+            {
+                "event": "session.room_finished",
+                "external_session_id": session.external_session_id,
+                "vas_session_id": session.id,
+            }
+        )
+    except Exception:
+        logger.warning(
+            "Couldn't tell the main backend room %s finished", event.room_name, exc_info=True
+        )
 
 
 def register_default_handlers() -> None:

@@ -5,6 +5,7 @@ from temporalio.client import Client
 from temporalio.worker import Worker
 
 from apps.interview.activities import (
+    end_session_activity,
     generate_plan_activity,
     generate_round_content_activity,
     parse_resume_activity,
@@ -28,6 +29,7 @@ class Command(BaseCommand):
             task_queue=settings.temporal_task_queue,
             workflows=[InterviewSessionWorkflow],
             activities=[
+                end_session_activity,
                 parse_resume_activity,
                 generate_plan_activity,
                 generate_round_content_activity,

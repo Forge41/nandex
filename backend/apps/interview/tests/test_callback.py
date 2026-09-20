@@ -154,3 +154,50 @@ def test_the_callback_mints_no_identity_however_many_times_it_is_retried(client,
         Project.objects.count(),
         Session.objects.count(),
     ) == before
+
+
+def test_the_room_emptying_ends_the_session(client, session):
+    """The provider's own word that nobody is in the room, after its empty timeout.
+
+    The only end signal that does not depend on a browser managing to say anything --
+    which is why the beacon no longer fires for a backgrounded tab.
+    """
+    response = _post({"event": "session.room_finished", "external_session_id": session["id"]})
+
+    assert response.status_code == 200
+    ended = InterviewSession.objects.get(id=session["id"])
+    assert ended.status == InterviewSession.Status.ENDED
+    assert ended.ended_at is not None
+
+
+def test_a_failed_recording_does_not_stop_the_rounds_being_prepared(client, session, monkeypatch):
+    """Egress breaking says nothing about the interview being over.
+
+    Winding up the workflow on it left the candidate's later rounds ungenerated, and
+    they found out two rounds later on a screen that blamed the round.
+    """
+    told = []
+    monkeypatch.setattr(
+        "apps.interview.services.trigger_post_session_processing",
+        lambda session_id: told.append(session_id) or _noop(),
+    )
+
+    _post(_complete_payload(session["id"], status="failed", failure_reason="egress died"))
+
+    assert told == []
+
+
+def test_a_completed_recording_still_winds_the_workflow_up(client, session, monkeypatch):
+    told = []
+    monkeypatch.setattr(
+        "apps.interview.services.trigger_post_session_processing",
+        lambda session_id: told.append(session_id) or _noop(),
+    )
+
+    _post(_complete_payload(session["id"]))
+
+    assert told == [session["id"]]
+
+
+async def _noop() -> None:
+    return None

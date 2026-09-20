@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Eyebrow } from "@/components/ui/typography";
 import { useInterviewSession } from "@/lib/interview/session-provider";
+import { useSessionEnd } from "@/lib/interview/use-session-end";
 import { formatClock } from "@/lib/interview/format";
 
 /** Long enough to read the two sentences above it, short enough not to strand
@@ -27,11 +28,21 @@ export function WrapStage() {
   const elapsed = elapsedSeconds(session.startedAt, session.endedAt);
   const remaining = useCountdown(REDIRECT_SECONDS);
   const router = useRouter();
+  // The wrap screen is reachable by advancing as well as by clicking End, so a
+  // candidate can arrive here with the interview still running. Leaving from here is a
+  // deliberate departure and ends it -- and a client-side navigation fires no pagehide,
+  // so nothing else would.
+  const endSession = useSessionEnd(session.id, session.startedAt !== null);
+
+  const leave = useCallback(async () => {
+    await endSession();
+    router.replace("/");
+  }, [endSession, router]);
 
   useEffect(() => {
     if (remaining > 0) return;
-    router.replace("/");
-  }, [remaining, router]);
+    void leave();
+  }, [remaining, leave]);
 
   return (
     <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto">
@@ -44,7 +55,7 @@ export function WrapStage() {
         </p>
 
         <div className="mt-5 flex items-center gap-3">
-          <Button variant="secondary" size="sm" onClick={() => router.replace("/")}>
+          <Button variant="secondary" size="sm" onClick={() => void leave()}>
             Back to the start
           </Button>
           {/* A count rather than a bare "redirecting": a screen that navigates on its
