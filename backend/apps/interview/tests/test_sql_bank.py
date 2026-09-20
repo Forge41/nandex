@@ -8,8 +8,11 @@ import csv
 import io
 
 import pytest
+from django.core.management import call_command
+from django.utils import timezone
 
-from apps.interview import sql_bank
+from apps.interview import sql_bank, task_bank
+from apps.interview.models import InterviewTask
 
 REQUIRED_FILES = {"query.sql", "schema.sql", "seed.sql", "expected.csv"}
 
@@ -54,5 +57,28 @@ def test_the_schema_shown_matches_the_schema_created(task):
             assert column["name"] in ddl
 
 
+@pytest.mark.django_db
 def test_the_same_session_is_always_set_the_same_task():
+    """Picks from rows, so this loads them the way a deploy does."""
+    call_command("load_task_banks")
+
     assert sql_bank.pick(seed="s1") == sql_bank.pick(seed="s1")
+
+
+@pytest.mark.django_db
+def test_a_retired_task_is_never_set_again():
+    call_command("load_task_banks")
+    InterviewTask.objects.filter(kind=InterviewTask.Kind.SQL).update(retired_at=timezone.now())
+
+    assert sql_bank.pick(seed="s1") is None
+
+
+@pytest.mark.django_db
+def test_loading_twice_updates_rather_than_duplicates():
+    """It runs on every deploy, so it has to be idempotent."""
+    call_command("load_task_banks")
+    before = InterviewTask.objects.count()
+    call_command("load_task_banks")
+
+    assert InterviewTask.objects.count() == before
+    assert before == len(sql_bank.load()) + len(task_bank.load())

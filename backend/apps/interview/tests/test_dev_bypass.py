@@ -8,6 +8,7 @@ import importlib
 import json
 
 import pytest
+from django.core.management import call_command
 from django.test import override_settings
 
 from apps.interview.models import InterviewRound, InterviewSession
@@ -21,6 +22,13 @@ pytestmark = pytest.mark.django_db
 @pytest.fixture(autouse=True)
 def dev_urlconf(settings):
     settings.ROOT_URLCONF = "apps.interview.tests.dev_urls"
+
+
+@pytest.fixture(autouse=True)
+def banks_loaded():
+    """The bypass sets real tasks, which now live in rows. A deploy loads them; so does
+    this, rather than stubbing the pick and testing nothing about what it hands over."""
+    call_command("load_task_banks")
 
 
 def jump(client, stage="coding", language="python"):

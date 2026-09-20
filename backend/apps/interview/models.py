@@ -7,6 +7,7 @@ deployable behind an HTTP boundary, and an ORM relation would weld the two toget
 """
 
 import secrets
+from typing import ClassVar
 
 from django.db import models
 
@@ -385,3 +386,53 @@ class CodeRun(models.Model):
 
     def visible_tests(self, hidden_names: set[str]) -> list[dict]:
         return [t for t in self.tests if t.get("name") not in hidden_names]
+
+
+class InterviewTask(models.Model):
+    """A question this system can set, and what is known about it.
+
+    Global rather than per-project: one curated question set for now. A project column is
+    much cheaper to add than to backfill, so it is the first thing to revisit if teams
+    ever curate their own.
+
+    The payload is exactly what a round's content needs, so a task is set by reading a
+    row rather than by assembling one. What the columns beside it hold is everything the
+    files this replaces could not: which tasks are live, which have been retired, and
+    when a task's reference solution last actually ran.
+    """
+
+    class Kind(models.TextChoices):
+        CODING = "coding", "coding"
+        SQL = "sql", "sql"
+
+    id = models.CharField(primary_key=True, max_length=24, default=generate_id, editable=False)
+    # Stable across reloads of the seed data, which is what makes loading idempotent --
+    # and what lets a session's task still be identified after the payload is corrected.
+    slug = models.CharField(max_length=128, unique=True)
+    kind = models.CharField(max_length=16, choices=Kind.choices)
+    title = models.CharField(max_length=255)
+    payload = models.JSONField()
+    # Denormalised out of the payload: the only thing pick() filters on, and the only
+    # reason to read a task this system is not going to set.
+    languages = models.JSONField(default=list)
+    # Attribution travels with the content rather than living in a note somewhere else.
+    source = models.CharField(max_length=64, blank=True, default="")
+    licence = models.CharField(max_length=64, blank=True, default="")
+    # Retired, never deleted. A task that has been set appears in some candidate's
+    # session forever, and a bank that cannot say what it used to contain cannot answer
+    # a question about a past interview.
+    retired_at = models.DateTimeField(null=True, blank=True)
+    # When this task's reference solution last passed against the runner images. The
+    # claim the files could not make: verified once, at import, and never again.
+    verified_at = models.DateTimeField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "interview_task"
+        # Every read is "the live tasks of one kind", so that is the index.
+        indexes: ClassVar = [models.Index(fields=["kind", "retired_at"])]
+
+    def __str__(self) -> str:
+        return f"{self.kind}:{self.slug}"

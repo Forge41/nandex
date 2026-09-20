@@ -5,40 +5,44 @@ pin the properties that make that true, and the one that makes it fair: two cand
 the same seat must not get the same interview by accident.
 """
 
-import json
-
 import pytest
+from django.utils import timezone
 
 from apps.interview import task_bank
+from apps.interview.models import InterviewTask
 
 
 @pytest.fixture
-def bank(tmp_path, monkeypatch):
-    """A bank on disk, because loading from disk is what the real one does."""
+def bank(db):
+    """Rows, because rows are what the real one picks from now. The JSON files are still
+    where the bank is authored -- see the shipped-bank test below, which reads those."""
 
-    def write(slug: str, languages: list[str]):
-        (tmp_path / f"{slug}.json").write_text(
-            json.dumps(
-                {
-                    "slug": slug,
-                    "title": slug,
-                    "source": "exercism",
-                    "licence": task_bank.__doc__ and "Exercism (https://exercism.org), MIT",
-                    "brief": ["Do the thing."],
-                    "attemptsAllowed": 3,
+    def write(slug: str, languages: list[str], *, retired: bool = False):
+        payload = {
+            "slug": slug,
+            "title": slug,
+            "brief": ["Do the thing."],
+            "attemptsAllowed": 3,
+            "tests": [{"name": "basic", "hidden": False}],
+            "languages": {
+                language: {
+                    "files": [{"name": "solution.py", "content": "", "language": language}],
                     "tests": [{"name": "basic", "hidden": False}],
-                    "languages": {
-                        language: {
-                            "files": [{"name": "solution.py", "content": "", "language": language}],
-                            "tests": [{"name": "basic", "hidden": False}],
-                        }
-                        for language in languages
-                    },
                 }
-            )
+                for language in languages
+            },
+        }
+        InterviewTask.objects.create(
+            slug=f"coding:{slug}",
+            kind=InterviewTask.Kind.CODING,
+            title=slug,
+            payload=payload,
+            languages=sorted(languages),
+            source="exercism",
+            licence="Exercism (https://exercism.org), MIT",
+            retired_at=timezone.now() if retired else None,
         )
 
-    monkeypatch.setattr(task_bank, "BANK_DIR", tmp_path)
     return write
 
 
@@ -101,3 +105,13 @@ def test_a_task_without_the_language_is_still_offered_rather_than_nothing(bank):
 
 def test_an_empty_bank_hands_back_nothing_rather_than_failing(bank):
     assert task_bank.pick(2, seed="whatever", language="python") == []
+
+
+def test_a_retired_task_is_never_set_again(bank):
+    """Retired, not deleted: it may already be in somebody's finished interview."""
+    bank("live-one", ["python"])
+    bank("withdrawn", ["python"], retired=True)
+
+    picked = task_bank.pick(5, seed="whatever", language="python")
+
+    assert [t["slug"] for t in picked] == ["live-one"]
