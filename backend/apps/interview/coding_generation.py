@@ -71,6 +71,7 @@ async def generate_task(brief: dict) -> dict:
         system_prompt=load_prompt(TASK_PROMPT),
         messages=[{"role": "user", "content": json.dumps(brief)}],
         model=settings.plan_model,
+        fast=True,
     )
     return _sanitize_task(_decode(raw))
 
@@ -98,6 +99,7 @@ async def generate_files(task: dict, language: str) -> dict:
         system_prompt=load_prompt(FILES_PROMPT),
         messages=[{"role": "user", "content": json.dumps(asked)}],
         model=settings.plan_model,
+        fast=True,
     )
     written = _decode(raw)
 

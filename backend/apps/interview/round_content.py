@@ -198,6 +198,7 @@ async def _generate_behavioral(session: InterviewSession) -> dict | None:
         system_prompt=load_prompt("interview_round_behavioral_system.md"),
         messages=[{"role": "user", "content": json.dumps(brief)}],
         model=settings.plan_model,
+        fast=True,
     )
     written = _decode(raw)
 
