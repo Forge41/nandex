@@ -6,6 +6,7 @@ the same seat must not get the same interview by accident.
 """
 
 import pytest
+from asgiref.sync import sync_to_async
 from django.utils import timezone
 
 from apps.interview import task_bank
@@ -115,3 +116,39 @@ def test_a_retired_task_is_never_set_again(bank):
     picked = task_bank.pick(5, seed="whatever", language="python")
 
     assert [t["slug"] for t in picked] == ["live-one"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.django_db(transaction=True)
+async def test_a_round_can_be_prepared_from_inside_an_activity(bank):
+    """Both banks are database reads now, and both are read from an async activity.
+
+    Django refuses a query from an async context, so a pick that is not handed to a
+    thread raises SynchronousOnlyOperation at interview time and nowhere else. This goes
+    through `generate` rather than calling `pick` directly, because wrapping the call in
+    the test is exactly the mistake being guarded against.
+    """
+    from apps.interview import round_content
+    from apps.interview.models import InterviewRound, InterviewSession, ResumeFacts
+
+    await sync_to_async(bank)("live-one", ["python"])
+    session = await InterviewSession.objects.acreate(
+        project_id="p1", user_id="u1", role_title="Backend Engineer"
+    )
+    await InterviewRound.objects.acreate(
+        session=session,
+        stage_id="coding",
+        label="Live coding + terminal",
+        kind=InterviewRound.Kind.TASK,
+        duration_min=25,
+        order=1,
+    )
+    await ResumeFacts.objects.acreate(
+        session=session,
+        file_name="r.txt",
+        probes=[{"title": "Python at scale", "note": "n", "round": "coding"}],
+    )
+
+    content = await round_content.generate(session, "coding")
+
+    assert content["tasks"][0]["slug"] == "live-one"

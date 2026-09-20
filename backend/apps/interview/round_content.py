@@ -70,7 +70,9 @@ async def _generate_coding(session: InterviewSession) -> dict | None:
     # The bank, and only the bank. Its tasks were proved runnable when they were
     # imported; a generated one costs minutes of an interview, can fail in the middle of
     # one, and is no better a question than an exercise somebody already wrote.
-    banked = task_bank.pick(CODING_TASKS, seed=session.id, language=wanted)
+    banked = await sync_to_async(task_bank.pick, thread_sensitive=True)(
+        CODING_TASKS, seed=session.id, language=wanted
+    )
     if not banked:
         return None
     return _from_bank(banked, wanted)

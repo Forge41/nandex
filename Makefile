@@ -2,7 +2,8 @@
 .PHONY: help install hooks agent-permissions link-agents fmt lint lint-ci test check \
 	up down doctor check-speech serve-all temporal temporal-down tps tps-migrate tps-grpc grpc-gen migrate importer-migrate \
 	ingest-migrate importer-worker ingest-worker interview-worker interviewer-agent \
-	vas vas-worker vas-stack vas-stack-down asgi frontend runner runner-images import-tasks
+	vas vas-worker vas-stack vas-stack-down asgi frontend runner runner-images \
+	import-tasks build-sql-bank load-tasks
 
 help: ## List available targets
 	@grep -hE '^[a-z][a-zA-Z0-9_-]*:.*?## ' $(MAKEFILE_LIST) \
@@ -42,6 +43,7 @@ up: ## Everything, from nothing: containers, migrations, then every service
 	$(MAKE) vas-stack
 	$(MAKE) runner-images
 	$(MAKE) migrate
+	$(MAKE) load-tasks
 	$(MAKE) serve-all
 
 down: ## Stop what `up` started: the containers and the Temporal dev server
@@ -161,8 +163,14 @@ check: fmt lint test ## Format, lint, and test
 runner: ## Run the code-execution sandbox service (needs Docker; loopback only)
 	cd backend && uv run uvicorn config.runner_asgi:application --host 127.0.0.1 --port 8002 --reload
 
-import-tasks: ## Import Exercism exercises into the coding task bank (needs the runner up)
+import-tasks: ## Import Exercism exercises into the coding bank's JSON (needs the runner up)
 	cd backend && uv run manage.py import_exercism --slugs $(SLUGS)
+
+build-sql-bank: ## Rebuild the SQL bank's JSON, running every reference query (needs the runner up)
+	cd backend && uv run manage.py build_sql_bank
+
+load-tasks: ## Load both task banks from their JSON into the database (safe to re-run)
+	cd backend && uv run manage.py load_task_banks
 
 runner-images: ## Build the four sandbox images (python, java, c/c++, sql)
 	@cp backend/apps/runner/harness/harness.py dev/runner/harness.py
