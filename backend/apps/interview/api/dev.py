@@ -73,9 +73,8 @@ def _seed_sync(session_id: str, stage: str, body: dict) -> None:
             "candidate_name": "Dev Candidate",
             "candidate_title": "Senior Backend Engineer",
             "candidate_years_experience": 7,
-            "sections": [{"heading": "Experience", "paragraphs": [[{"text": SEEDED_BY}]]}],
+            "sections": [{"id": "experience", "label": "Experience", "paragraphs": [SEEDED_BY]}],
             "probes": [],
-            "citations": [],
         },
     )
 

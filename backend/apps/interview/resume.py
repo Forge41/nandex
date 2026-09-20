@@ -55,11 +55,22 @@ def resume_text_of(parsed: ParsedDocument) -> str:
     return "\n\n".join(s.text for s in parsed.segments if s.text.strip())
 
 
+def number_lines(resume_text: str) -> str:
+    """The resume as the model sees it, one line per number.
+
+    Numbering is what makes the plan cheap: the model answers with ranges into this
+    rather than re-typing the document, which is the difference between ~3,200 output
+    tokens and ~900. Ranges are 1-based, because the model is looking at these numbers.
+    """
+    return "\n".join(f"{i}\t{line}" for i, line in enumerate(resume_text.split("\n"), start=1))
+
+
 async def generate_plan(resume_text: str) -> dict:
     raw = await complete(
         system_prompt=load_prompt("interview_plan_system.md"),
-        messages=[{"role": "user", "content": resume_text}],
+        messages=[{"role": "user", "content": number_lines(resume_text)}],
         model=settings.plan_model,
+        fast=True,
     )
     return _decode_plan(raw)
 
@@ -79,42 +90,46 @@ def _decode_plan(raw: str) -> dict:
     return plan
 
 
-def _citation_ids(plan: dict) -> set[int]:
-    return {
-        c["id"]
-        for c in plan.get("citations") or []
-        if isinstance(c, dict) and isinstance(c.get("id"), int)
-    }
+MAX_PROBES = 6
 
 
-def sanitize_plan(plan: dict) -> dict:
+def _paragraphs_from_lines(section: dict, lines: list[str]) -> list[str]:
+    """The resume's own text, cut out at the ranges the plan pointed to.
+
+    The model never writes the prose, so it cannot alter it -- that is the point of
+    asking for ranges. What it can still do is point somewhere the document does not go,
+    and a range that does not fit is dropped rather than clamped: a half-range would put
+    part of one section under another's heading, which is the failure this is meant to
+    make impossible rather than quieter.
+    """
+    paragraphs = []
+    for span in section.get("lines") or []:
+        if not (isinstance(span, list | tuple) and len(span) == 2):
+            continue
+        start, end = span
+        if not (isinstance(start, int) and isinstance(end, int)):
+            continue
+        if not (1 <= start <= end <= len(lines)):
+            continue
+        text = "\n".join(lines[start - 1 : end]).strip()
+        if text:
+            paragraphs.append(text)
+    return paragraphs
+
+
+def sanitize_plan(plan: dict, resume_text: str) -> dict:
     """Drops anything the plan asserts that we cannot honour.
 
-    A citation id that does not exist would render as a chip pointing at nothing, and a
-    round the interview does not have would silently never appear -- both are better
-    dropped here than rendered as a broken reference.
+    A round the interview does not have would silently never appear, and a line range
+    outside the document points at nothing. Both are better dropped here than shown.
     """
-    valid_ids = _citation_ids(plan)
-
-    def keep_citation(value) -> bool:
-        return isinstance(value, int) and value in valid_ids
+    lines = resume_text.split("\n")
 
     sections = []
     for section in plan.get("sections") or []:
         if not isinstance(section, dict):
             continue
-        paragraphs = []
-        for paragraph in section.get("paragraphs") or []:
-            fragments = []
-            for fragment in paragraph or []:
-                if not isinstance(fragment, dict) or not isinstance(fragment.get("text"), str):
-                    continue
-                kept = {"text": fragment["text"]}
-                if keep_citation(fragment.get("citation")):
-                    kept["citation"] = fragment["citation"]
-                fragments.append(kept)
-            if fragments:
-                paragraphs.append(fragments)
+        paragraphs = _paragraphs_from_lines(section, lines)
         if paragraphs:
             sections.append(
                 {
@@ -131,21 +146,19 @@ def sanitize_plan(plan: dict) -> dict:
         stage = probe.get("round")
         if stage not in PLANNABLE_STAGE_IDS:
             continue
-        kept = {
-            "id": str(probe.get("id") or f"p{len(probes) + 1}"),
-            "title": str(probe.get("title") or ""),
-            "note": str(probe.get("note") or ""),
-            "round": stage,
-        }
-        if keep_citation(probe.get("citation")):
-            kept["citation"] = probe["citation"]
-        probes.append(kept)
-
-    citations = [
-        {"id": c["id"], "quote": str(c.get("quote") or ""), "source": str(c.get("source") or "")}
-        for c in plan.get("citations") or []
-        if isinstance(c, dict) and isinstance(c.get("id"), int)
-    ]
+        probes.append(
+            {
+                "id": str(probe.get("id") or f"p{len(probes) + 1}"),
+                "title": str(probe.get("title") or ""),
+                "note": str(probe.get("note") or ""),
+                "round": stage,
+            }
+        )
+        # The prompt asks for at most six. Enforced here as well because a list of
+        # twenty-one -- which is what one real resume produced -- is a screen nobody
+        # reads and an interview nobody could run.
+        if len(probes) == MAX_PROBES:
+            break
 
     rounds = {}
     for round_ in plan.get("rounds") or []:
@@ -154,15 +167,11 @@ def sanitize_plan(plan: dict) -> dict:
         stage = round_.get("id")
         if stage not in PLANNABLE_STAGE_IDS:
             continue
-        rounds[stage] = {
-            "summary": str(round_.get("summary") or ""),
-            "citation": round_["citation"] if keep_citation(round_.get("citation")) else None,
-        }
+        rounds[stage] = {"summary": str(round_.get("summary") or "")}
 
     candidate = plan.get("candidate") if isinstance(plan.get("candidate"), dict) else {}
     return {
         "candidate": candidate,
-        "citations": citations,
         "sections": sections,
         "probes": probes,
         "rounds": rounds,
@@ -191,13 +200,12 @@ def _persist_sync(
             "candidate_years_experience": years if isinstance(years, int) else None,
             "sections": plan["sections"],
             "probes": plan["probes"],
-            "citations": plan["citations"],
         },
     )
 
     for stage, values in plan["rounds"].items():
         InterviewRound.objects.filter(session=session, stage_id=stage).update(
-            summary=values["summary"], citation=values["citation"]
+            summary=values["summary"]
         )
 
     updates = ["resume_document_id", "updated_at"]
@@ -280,7 +288,7 @@ async def read_and_parse(session: InterviewSession, document_id: str) -> ParsedR
 
 
 async def build_plan(resume_text: str) -> dict:
-    return sanitize_plan(await generate_plan(resume_text))
+    return sanitize_plan(await generate_plan(resume_text), resume_text)
 
 
 async def persist_plan(session: InterviewSession, parsed: ParsedResume, plan: dict) -> ResumeFacts:

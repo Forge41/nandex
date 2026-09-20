@@ -1,9 +1,9 @@
 """The default round shape, and the metadata a generated round inherits.
 
 Mirrors frontend/lib/interview/agenda.ts::DEFAULT_ROUNDS, which is now the fallback for
-a session the server hasn't planned yet. A resume-derived plan overrides citation and
-summary per round; label, kind and duration stay from here so the agenda's shape is
-stable whether or not a resume was read.
+a session the server hasn't planned yet. A resume-derived plan overrides each round's
+summary; label, kind and duration stay from here so the agenda's shape is stable whether
+or not a resume was read.
 """
 
 # The whole interview as designed. `shipped` is what a candidate actually sits.

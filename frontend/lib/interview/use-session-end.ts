@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect } from "react";
-import { apiFetch } from "@/lib/api/client";
+import { apiFetch, beacon } from "@/lib/api/client";
 
 /** Tells the server the interview is over.
  *
@@ -29,7 +29,7 @@ export function useSessionEnd(sessionId: string, active: boolean) {
     const onPageHide = () => {
       // pagehide rather than beforeunload: it fires for a backgrounded tab on
       // mobile, which beforeunload does not.
-      navigator.sendBeacon?.(`/api/interview/sessions/${sessionId}/end`);
+      beacon(`/interview/sessions/${sessionId}/end`);
     };
 
     window.addEventListener("pagehide", onPageHide);

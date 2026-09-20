@@ -37,18 +37,12 @@ PLAN = {
         "email": "priya@example.com",
         "yearsExperience": 6,
     },
-    "citations": [{"id": 1, "quote": "1.4M transactions a day", "source": "Experience"}],
     "sections": [
         {
             "id": "experience",
             "label": "Experience",
-            "paragraphs": [
-                [
-                    {"text": "Owned the double-entry ledger handling "},
-                    {"text": "1.4M transactions a day", "citation": 1},
-                    {"text": " at Northwind."},
-                ]
-            ],
+            # Line 4 of RESUME_TEXT, which is what the model is given to point at.
+            "lines": [[4, 4]],
         }
     ],
     "probes": [
@@ -56,18 +50,17 @@ PLAN = {
             "id": "p1",
             "title": "Ledger at 1.4M/day",
             "note": "Scale claim worth grounding",
-            "citation": 1,
             "round": "coding",
         }
     ],
-    "rounds": [{"id": "coding", "citation": 1, "summary": "Retry-safe transfer applier."}],
+    "rounds": [{"id": "coding", "summary": "Retry-safe transfer applier."}],
     "entityCount": 4,
 }
 
 
 @pytest.fixture
 def fake_plan(monkeypatch):
-    async def complete(*, system_prompt, messages, model):
+    async def complete(*, system_prompt, messages, model, **kwargs):
         # The prompt must be the file's contents, not an f-string assembled here.
         assert "Return only JSON" in system_prompt
         assert messages[0]["content"].strip()
@@ -124,7 +117,6 @@ async def test_planning_writes_the_facts_and_the_round_summaries(
 
     coding = await InterviewRound.objects.aget(session_id=session["id"], stage_id="coding")
     assert coding.summary == "Retry-safe transfer applier."
-    assert coding.citation == 1
 
     # What the workflow needs to describe itself, and nothing more.
     assert result["probe_count"] == 1

@@ -25,7 +25,7 @@ export function GeneratedPlanPanel() {
     <div className="scrollbar-thin flex w-[400px] shrink-0 flex-col overflow-y-auto bg-surface-subtle px-6 py-6">
       <Eyebrow>Generated plan</Eyebrow>
       <h3 className="t-h3 mt-1.5">{plan.heading}</h3>
-      <p className="t-small mt-2 text-content-subtle">Each round cites the resume line that motivated it.</p>
+      <p className="t-small mt-2 text-content-subtle">Each round is written from what your resume says.</p>
 
       {/* Negative inset gives the cards room to scale on hover without being
           clipped by the scroll container. */}
@@ -36,7 +36,6 @@ export function GeneratedPlanPanel() {
             label={card.label}
             durationMin={card.durationMin}
             summary={card.summary}
-            citation={card.citation}
           />
         ))}
         {plan.remainder && (

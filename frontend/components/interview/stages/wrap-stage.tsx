@@ -1,10 +1,17 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Banner } from "@/components/ui/banner";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Eyebrow } from "@/components/ui/typography";
 import { useInterviewSession } from "@/lib/interview/session-provider";
 import { formatClock } from "@/lib/interview/format";
+
+/** Long enough to read the two sentences above it, short enough not to strand
+ * someone on a screen that has nothing left for them. */
+const REDIRECT_SECONDS = 5;
 
 /** The closing screen.
  *
@@ -18,6 +25,13 @@ import { formatClock } from "@/lib/interview/format";
 export function WrapStage() {
   const { session } = useInterviewSession();
   const elapsed = elapsedSeconds(session.startedAt, session.endedAt);
+  const remaining = useCountdown(REDIRECT_SECONDS);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (remaining > 0) return;
+    router.replace("/");
+  }, [remaining, router]);
 
   return (
     <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto">
@@ -25,8 +39,22 @@ export function WrapStage() {
         <Eyebrow>Interview complete</Eyebrow>
         <h2 className="t-h2 mt-2">That&rsquo;s everything. Thank you.</h2>
         <p className="t-body mt-3 leading-[1.7] text-content-subtle">
-          Nothing else is asked of you here. You can close this tab.
+          Nothing else is asked of you here. You can close this tab, or wait and we
+          will take you back to the start.
         </p>
+
+        <div className="mt-5 flex items-center gap-3">
+          <Button variant="secondary" size="sm" onClick={() => router.replace("/")}>
+            Back to the start
+          </Button>
+          {/* A count rather than a bare "redirecting": a screen that navigates on its
+              own with no warning reads as the app losing the page. */}
+          <span className="t-xs text-content-muted" aria-live="polite">
+            {remaining > 0
+              ? `Going back in ${remaining} second${remaining === 1 ? "" : "s"}.`
+              : "Going back now."}
+          </span>
+        </div>
 
         <Card className="mt-6 p-4">
           <Eyebrow>What was saved with this session</Eyebrow>
@@ -54,6 +82,21 @@ export function WrapStage() {
       </div>
     </div>
   );
+}
+
+/** Seconds left before this screen sends the candidate back.
+ *
+ * In state rather than read from a clock during render, and started from the full
+ * count so the server and the first client render agree. */
+function useCountdown(from: number): number {
+  const [remaining, setRemaining] = useState(from);
+
+  useEffect(() => {
+    const timer = setInterval(() => setRemaining((left) => (left > 0 ? left - 1 : 0)), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return remaining;
 }
 
 /** How long the interview ran.

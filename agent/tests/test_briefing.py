@@ -20,23 +20,18 @@ PAYLOAD = {
             "label": "Behavioral — ownership",
             "durationMin": 10,
             "summary": "Ownership scope and measurement rigor",
-            "citation": 3,
         },
         {
             "id": "quiz",
             "label": "Knowledge check",
             "durationMin": 5,
             "summary": "",
-            "citation": None,
         },
-        {"id": "qa", "label": "Your questions", "durationMin": 8, "summary": "", "citation": None},
+        {"id": "qa", "label": "Your questions", "durationMin": 8, "summary": ""},
     ],
     "resume": {
         "candidate": {"name": "Priya Raghunathan", "title": "Senior Backend Engineer"},
-        "probes": [
-            {"title": "Latency measurement", "note": "How 40 percent was measured", "citation": 3}
-        ],
-        "citations": [{"id": 3, "quote": "cutting settlement latency by 40 percent"}],
+        "probes": [{"title": "Latency measurement", "note": "How 40 percent was measured"}],
     },
 }
 
@@ -45,21 +40,13 @@ def brief(**overrides) -> Brief:
     return Brief.from_payload({**PAYLOAD, **overrides})
 
 
-def test_each_substantial_round_carries_the_line_it_came_from():
-    """The whole point of the plan screen: the interviewer can say why a round exists,
-    in the candidate's own words."""
+def test_each_substantial_round_carries_its_own_summary():
+    """The interviewer can say what a round is for, from the plan rather than from a
+    sentence it made up on the way in."""
     text = describe(brief())
 
     assert "Behavioral — ownership (10 min)" in text
-    assert 'they wrote "cutting settlement latency by 40 percent"' in text
-
-
-def test_the_quote_is_verbatim_and_never_reconstructed():
-    b = brief()
-    assert b.quote_for(3) == "cutting settlement latency by 40 percent"
-    # A citation the resume did not produce yields nothing rather than a guess.
-    assert b.quote_for(99) == ""
-    assert b.quote_for(None) == ""
+    assert "Ownership scope and measurement rigor." in text
 
 
 def test_short_rounds_are_summarised_rather_than_read_out():
@@ -79,7 +66,6 @@ def test_a_round_with_no_summary_is_still_named():
                     "label": "System design canvas",
                     "durationMin": 15,
                     "summary": "",
-                    "citation": None,
                 }
             ]
         )
@@ -88,9 +74,7 @@ def test_a_round_with_no_summary_is_still_named():
 
 
 def test_an_unnamed_candidate_is_not_given_an_invented_name():
-    text = describe(
-        brief(candidateName="", resume={"candidate": {}, "probes": [], "citations": []})
-    )
+    text = describe(brief(candidateName="", resume={"candidate": {}, "probes": []}))
     assert "do not guess" in text
 
 

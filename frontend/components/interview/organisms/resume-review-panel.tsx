@@ -59,7 +59,7 @@ export function ResumeReviewPanel({ resume, rounds }: { resume: ResumeDoc; round
             ))}
           </div>
           <p className="t-xs mt-2.5 text-content-muted">
-            Underlined phrases are the lines these rounds came from. Nothing here is a judgement yet.
+            Read from your document as you wrote it. Nothing here is a judgement yet.
           </p>
         </div>
       </div>

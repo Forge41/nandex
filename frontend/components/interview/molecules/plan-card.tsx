@@ -1,8 +1,5 @@
-"use client";
-
 import { cn } from "@/lib/utils";
 import { Mono } from "@/components/ui/typography";
-import { CitationChip } from "./citation-chip";
 
 /** Plan tile that lifts on hover and reveals why the round exists.
  *
@@ -12,14 +9,12 @@ export function PlanCard({
   label,
   durationMin,
   summary,
-  citation,
   dashed,
   muted,
 }: {
   label: string;
   durationMin: number;
   summary?: string;
-  citation?: number;
   dashed?: boolean;
   muted?: boolean;
 }) {
@@ -50,7 +45,6 @@ export function PlanCard({
           )}
         >
           {summary}
-          {citation !== undefined && <CitationChip n={citation} />}
         </p>
       )}
     </div>

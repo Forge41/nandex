@@ -17,51 +17,28 @@ export const MOCK_RESUME: ResumeDoc = {
     email: "priya@example.com",
     yearsExperience: 6,
   },
-  citations: [
-    { id: 1, quote: "1.4M transactions a day", source: "Experience, Northwind" },
-    { id: 2, quote: "Kafka-backed event pipeline", source: "Experience, Northwind" },
-    { id: 3, quote: "by 40%", source: "Experience, Northwind" },
-    { id: 4, quote: "March to August 2024 has no listed role", source: "Experience, gap" },
-    { id: 5, quote: "deep SQL performance work", source: "Skills" },
-  ],
   sections: [
     {
       id: "experience",
       label: "Experience",
       paragraphs: [
-        [
-          { text: "Staff-track backend engineer on the payments platform at Northwind. Owned the double-entry ledger service handling " },
-          { text: "1.4M transactions a day", citation: 1 },
-          { text: ". Led the migration from a single Postgres writer to a " },
-          { text: "Kafka-backed event pipeline", citation: 2 },
-          { text: ", cutting settlement latency " },
-          { text: "by 40%", citation: 3 },
-          { text: "." },
-        ],
-        [
-          { text: "Previously at Velo, 2018 to 2021 — idempotency and retry infrastructure on the card authorisation path. " },
-          { text: "March to August 2024 has no listed role", citation: 4 },
-          { text: "." },
-        ],
+        "Staff-track backend engineer on the payments platform at Northwind. Owned the double-entry ledger service handling 1.4M transactions a day. Led the migration from a single Postgres writer to a Kafka-backed event pipeline, cutting settlement latency by 40%.",
+        "Previously at Velo, 2018 to 2021 — idempotency and retry infrastructure on the card authorisation path. March to August 2024 has no listed role.",
       ],
     },
     {
       id: "skills",
       label: "Skills as written",
       paragraphs: [
-        [
-          { text: "Go · Python · Postgres · Kafka · gRPC · Terraform · " },
-          { text: "“deep SQL performance work”", citation: 5 },
-          { text: " · Kubernetes, basic" },
-        ],
+        "Go · Python · Postgres · Kafka · gRPC · Terraform · “deep SQL performance work” · Kubernetes, basic",
       ],
     },
   ],
   probes: [
-    { id: "p1", title: "The 40% latency figure", note: "No measurement method stated", citation: 3, round: "behavioral" },
-    { id: "p2", title: "Kafka at 1.4M/day", note: "Scale claim worth grounding", citation: 1, round: "coding" },
-    { id: "p3", title: "Five-month gap", note: "Asked once, answer taken as given", citation: 4, round: "behavioral" },
-    { id: "p4", title: "“Deep SQL performance”", note: "Tested by task, not conversation", citation: 5, round: "sql" },
+    { id: "p1", title: "The 40% latency figure", note: "No measurement method stated", round: "behavioral" },
+    { id: "p2", title: "Kafka at 1.4M/day", note: "Scale claim worth grounding", round: "coding" },
+    { id: "p3", title: "Five-month gap", note: "Asked once, answer taken as given", round: "behavioral" },
+    { id: "p4", title: "“Deep SQL performance”", note: "Tested by task, not conversation", round: "sql" },
     { id: "p5", title: "Ledger correctness", note: "Core to the role, not yet evidenced", round: "coding" },
   ],
 };

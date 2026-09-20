@@ -180,7 +180,6 @@ export interface PlanCardView {
   label: string;
   durationMin: number;
   summary?: string;
-  citation?: number;
 }
 
 export interface PlanSummary {
@@ -209,12 +208,11 @@ export function derivePlanSummary(session: InterviewSession): PlanSummary {
 
   return {
     heading: `${roundCount} rounds, ${session.totalDurationMin} minutes`,
-    cards: cards.map(({ id, label, durationMin, summary, citation }) => ({
+    cards: cards.map(({ id, label, durationMin, summary }) => ({
       id,
       label,
       durationMin,
       summary,
-      citation,
     })),
     remainder: tail.length
       ? {

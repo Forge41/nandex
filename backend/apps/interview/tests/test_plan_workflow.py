@@ -31,17 +31,11 @@ RESUME_TEXT = "Priya Raghunathan\nOwned the ledger handling 1.4M transactions a 
 
 PLAN = {
     "candidate": {"name": "Priya Raghunathan", "title": "Senior Backend Engineer"},
-    "citations": [{"id": 1, "quote": "1.4M transactions a day", "source": "Experience"}],
     "sections": [
         {
             "id": "experience",
             "label": "Experience",
-            "paragraphs": [
-                [
-                    {"text": "Owned the ledger handling "},
-                    {"text": "1.4M transactions a day", "citation": 1},
-                ]
-            ],
+            "lines": [[2, 2]],
         }
     ],
     "probes": [
@@ -49,20 +43,18 @@ PLAN = {
             "id": "p1",
             "title": "Ledger scale",
             "note": "Worth grounding",
-            "citation": 1,
             "round": "behavioral",
         },
         {
             "id": "p2",
             "title": "Retry safety",
             "note": "Core to the role",
-            "citation": 1,
             "round": "coding",
         },
     ],
     "rounds": [
-        {"id": "behavioral", "citation": 1, "summary": "Probe the ledger decision."},
-        {"id": "coding", "citation": 1, "summary": "Retry-safe transfer applier."},
+        {"id": "behavioral", "summary": "Probe the ledger decision."},
+        {"id": "coding", "summary": "Retry-safe transfer applier."},
     ],
     "entityCount": 4,
 }
@@ -70,7 +62,6 @@ PLAN = {
 QUESTION = {
     "question": "Walk me through the moment you knew the single writer would not hold.",
     "derivedFrom": ["the ledger migration"],
-    "citation": 1,
 }
 
 
@@ -83,7 +74,6 @@ CODING_TASK = {
     "constraints": ["No external datastore"],
     "complexity": [{"label": "Time", "value": "O(1)"}],
     "attemptsAllowed": 3,
-    "citation": 1,
     "tests": [{"name": "single_transfer", "hidden": False}, {"name": "duplicate", "hidden": True}],
 }
 
@@ -138,7 +128,7 @@ class FakeModel:
         self.round_gate = asyncio.Event()
         self.round_gate.set()
 
-    async def complete(self, *, system_prompt, messages, model):
+    async def complete(self, *, system_prompt, messages, model, **kwargs):
         self.prompts.append(system_prompt)
         if "behavioral round" in system_prompt:
             await self.round_gate.wait()
@@ -318,7 +308,6 @@ async def test_the_generated_question_is_written_from_the_resume(
     round_ = await InterviewRound.objects.aget(session_id=session["id"], stage_id="behavioral")
     assert round_.content["question"] == QUESTION["question"]
     assert round_.content["derivedFrom"] == ["the ledger migration"]
-    assert round_.content["citation"] == 1
     # Never a total the round has not got: the interviewer follows up live, so how many
     # questions there will be is not knowable here.
     assert "questionTotal" not in round_.content

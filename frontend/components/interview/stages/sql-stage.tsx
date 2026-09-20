@@ -18,7 +18,7 @@ export function SqlStage() {
   const roundNumber = session.rounds.findIndex((r) => r.id === "sql") + 1;
 
   if (!content || content.tasks.length === 0) {
-    return <MissingRoundContent generating={isGenerating(session, "sql")} />;
+    return <MissingRoundContent generating={isGenerating(session, "sql")} checkedByRunning />;
   }
   return (
     <SqlRound

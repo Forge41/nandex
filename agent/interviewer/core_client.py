@@ -30,7 +30,6 @@ class Brief:
     total_duration_min: int
     rounds: list[dict] = field(default_factory=list)
     probes: list[dict] = field(default_factory=list)
-    citations: list[dict] = field(default_factory=list)
     candidate_title: str = ""
     # Present only while the candidate is in the coding round. Counts and failing case
     # names, never their source.
@@ -49,23 +48,9 @@ class Brief:
             total_duration_min=payload.get("totalDurationMin") or 0,
             rounds=payload.get("rounds") or [],
             probes=resume.get("probes") or [],
-            citations=resume.get("citations") or [],
             candidate_title=candidate.get("title") or "",
             coding=payload.get("coding"),
         )
-
-    def quote_for(self, citation_id: int | None) -> str:
-        """The resume line a probe or round came from, verbatim.
-
-        The interviewer quotes the candidate's own words back to them, so this must be
-        the stored quote and never a paraphrase of it.
-        """
-        if citation_id is None:
-            return ""
-        for citation in self.citations:
-            if citation.get("id") == citation_id:
-                return str(citation.get("quote") or "")
-        return ""
 
 
 def _client() -> httpx.AsyncClient:

@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     # expires. The browser re-fetches off the JWT's own exp, not this number.
     join_token_ttl_seconds: int = 900
 
-    plan_model: str = "claude-sonnet-4-5"
+    plan_model: str = "claude-opus-5"
 
     # The interviewer agent runs as its own process with no candidate cookie, so it
     # presents this to read a session's brief and append transcript turns. Empty rejects
