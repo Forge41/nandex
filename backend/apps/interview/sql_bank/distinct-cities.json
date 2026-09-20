@@ -1,5 +1,6 @@
 {
   "slug": "distinct-cities",
+  "verifiedAt": "2026-09-20T12:40:10.275422+00:00",
   "title": "Every city a customer signed up from",
   "prompt": "Return each distinct `city`, alphabetically, with no repeats.",
   "schema": [

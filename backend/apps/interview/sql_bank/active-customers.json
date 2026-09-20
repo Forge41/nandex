@@ -1,5 +1,6 @@
 {
   "slug": "active-customers",
+  "verifiedAt": "2026-09-20T12:40:05.076807+00:00",
   "title": "Customers in one city",
   "prompt": "Return the name and signup date of every customer in Bengaluru, newest first. Name the columns `name` and `signed_up`.",
   "schema": [

@@ -1,5 +1,6 @@
 {
   "slug": "repeat-buyers",
+  "verifiedAt": "2026-09-20T12:40:09.520087+00:00",
   "title": "Customers who ordered more than once",
   "prompt": "Return `customer_id` and their order count as `orders`, for customers with more than one order. Order by `customer_id`.",
   "schema": [

@@ -1,5 +1,6 @@
 {
   "slug": "join-orders-customers",
+  "verifiedAt": "2026-09-20T12:40:08.028290+00:00",
   "title": "Orders with the customer who placed them",
   "prompt": "Return every order alongside the customer who placed it, as `name` and `amount_cents`, ordered by `amount_cents` descending.",
   "schema": [

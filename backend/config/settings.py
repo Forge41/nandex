@@ -43,6 +43,9 @@ ALLOWED_HOSTS = [h for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "").split(","
 # Application definition
 
 INSTALLED_APPS = [
+    # Before django.contrib.admin: it works by overriding the admin's own templates, so
+    # listing it after would leave the stock ones winning.
+    "jazzmin",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -114,6 +117,11 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 25 * 1024 * 1024
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # Directly after the security middleware, which is where WhiteNoise documents it.
+    # Everything here runs under uvicorn, and ASGI serves no static files of its own --
+    # without this the admin has no CSS at all, which matters now that the admin is a
+    # skin made almost entirely of static assets.
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -193,6 +201,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = "static/"
+# Only used by `collectstatic`; WhiteNoise serves each app's own files directly in
+# development, so nothing has to be collected to see them.
+STATIC_ROOT = BASE_DIR / "staticfiles"
+WHITENOISE_AUTOREFRESH = DEBUG
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

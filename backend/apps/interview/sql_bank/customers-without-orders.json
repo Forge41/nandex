@@ -1,5 +1,6 @@
 {
   "slug": "customers-without-orders",
+  "verifiedAt": "2026-09-20T12:40:08.772642+00:00",
   "title": "Customers who never ordered",
   "prompt": "Return the `name` of every customer who has never placed an order, alphabetically.",
   "schema": [
