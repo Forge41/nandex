@@ -12,7 +12,7 @@ import { CitationProvider } from "@/lib/interview/citation-context";
 import { useInterviewSession } from "@/lib/interview/session-provider";
 import { useTranscript } from "@/lib/interview/transcript-provider";
 import { initialsOf } from "@/lib/interview/format";
-import { MissingRoundContent } from "./missing-round-content";
+import { MissingRoundContent, isGenerating } from "./missing-round-content";
 
 export function BehavioralStage() {
   const { session } = useInterviewSession();
@@ -25,7 +25,7 @@ export function BehavioralStage() {
     return (
       <div className="relative flex min-h-0 flex-1 flex-col">
         <ConnectionBanner />
-        <MissingRoundContent />
+        <MissingRoundContent generating={isGenerating(session, "behavioral")} />
       </div>
     );
   }

@@ -71,11 +71,21 @@ export interface RunHandlers {
   onRows?: (csv: string) => void;
 }
 
-/** Takes an attempt and reports what happens while it happens.
+/** A stand-in for the runner, installed only by the dev screen harness.
  *
- * `fetch` rather than `EventSource`, which cannot POST. The stream is read to
- * completion; the server owns the run regardless, so abandoning this read loses
- * the view of the attempt and not the attempt. */
+ * Its own seam rather than the JSON interceptor's: a run is a stream of events over
+ * time, and the states worth looking at -- a compile error, a timeout, a case failing
+ * after two have passed -- are distinguishable only in the order they arrive.
+ */
+export type RunTransport = typeof startRun;
+
+let transport: RunTransport | null = null;
+
+export function setRunTransport(next: RunTransport | null): void {
+  transport = next;
+}
+
+/** Takes an attempt and reports what happens while it happens. */
 export async function startRun(
   sessionId: string,
   stage: string,
@@ -83,6 +93,23 @@ export async function startRun(
   handlers: RunHandlers,
   signal?: AbortSignal
 ): Promise<void> {
+  if (transport) return transport(sessionId, stage, body, handlers, signal);
+  return runOverNetwork(sessionId, stage, body, handlers, signal);
+}
+
+/** The attempt over the wire, named so an installed transport can still reach it for
+ * a session that is not its own.
+ *
+ * `fetch` rather than `EventSource`, which cannot POST. The stream is read to
+ * completion; the server owns the run regardless, so abandoning this read loses the
+ * view of the attempt and not the attempt. */
+export const runOverNetwork: RunTransport = async (
+  sessionId,
+  stage,
+  body,
+  handlers,
+  signal
+) => {
   const response = await fetch(`/api/interview/sessions/${sessionId}/rounds/${stage}/runs`, {
     method: "POST",
     credentials: "same-origin",
@@ -121,7 +148,7 @@ export async function startRun(
     buffer = frames.pop() ?? "";
     for (const frame of frames) dispatch(frame, handlers);
   }
-}
+};
 
 function dispatch(frame: string, handlers: RunHandlers): void {
   let event = "";

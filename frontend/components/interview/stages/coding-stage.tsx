@@ -37,7 +37,7 @@ export function CodingStage() {
   const content = session.content.coding;
 
   if (!content || content.tasks.length === 0) {
-    return <MissingRoundContent generating={isGenerating(session, "coding")} />;
+    return <MissingRoundContent generating={isGenerating(session, "coding")} checkedByRunning />;
   }
   return <CodingRound sessionId={session.id} content={content} onFinish={() => dispatch({ type: "ADVANCE" })} />;
 }
