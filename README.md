@@ -224,6 +224,18 @@ A task is never deleted, only retired: one that has been set appears in some can
 finished interview forever, and a bank that cannot say what it used to contain cannot
 explain a past one.
 
+**Adding a question.** The Django admin (`/admin/`, `Interview tasks`) is for reading the
+bank, retiring a task and fixing wording. It is not the way to add one: a task typed in
+has never been run, and neither reference solution is kept, so nothing can prove it
+afterwards — its "Reference last ran" stays empty and that is the honest record. To add a
+question that has been proved, write it into the bank's JSON and rebuild:
+
+```bash
+make import-tasks SLUGS=bob,darts   # coding, from Exercism
+make build-sql-bank                 # SQL, runs every reference query
+make load-tasks                     # either one, into the database
+```
+
 The licence travels with each task rather than living in a note elsewhere, because the
 attribution obligation belongs to the content. The SQL tasks were written for this
 repository — the ready-made exercise sets are licensed in ways an MIT project cannot take.

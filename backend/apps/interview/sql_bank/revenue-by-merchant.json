@@ -1,5 +1,6 @@
 {
   "slug": "revenue-by-merchant",
+  "verifiedAt": "2026-09-20T12:40:07.291690+00:00",
   "title": "Settled total per merchant",
   "prompt": "For each merchant, return the total of its **settled** transfers as `merchant` and `total_cents`, ordered by merchant. Merchants with no settled transfer should not appear.",
   "schema": [

@@ -10,6 +10,7 @@ first person to discover a task is broken.
 """
 
 import csv
+import datetime
 import io
 import json
 from pathlib import Path
@@ -292,6 +293,10 @@ class Command(BaseCommand):
             rows = self._expected(task)
             payload = {
                 "slug": task["slug"],
+                # When the reference query actually ran. Carried into the row by
+                # load_task_banks, so the bank can say how old its proof is rather than
+                # only that one was taken once.
+                "verifiedAt": datetime.datetime.now(datetime.UTC).isoformat(),
                 "title": task["title"],
                 "prompt": task["prompt"],
                 "schema": _schema_shape(task["schema_sql"]),
