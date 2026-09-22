@@ -15,7 +15,7 @@ from dataclasses import dataclass
 import anthropic as anthropic_sdk
 from livekit.agents import AgentSession, RoomInputOptions, RoomOutputOptions
 from livekit.agents.voice.turn import InterruptionOptions, TurnHandlingOptions
-from livekit.plugins import anthropic, cartesia, deepgram
+from livekit.plugins import anthropic, deepgram
 
 from interviewer.config import settings
 
@@ -36,22 +36,17 @@ class Modality:
     def describe(self) -> str:
         if self.voice:
             return "voice"
-        missing = [
-            name
-            for name, present in (
-                ("DEEPGRAM_API_KEY", self.can_hear),
-                ("CARTESIA_API_KEY", self.can_speak),
-            )
-            if not present
-        ]
-        return f"text only ({' and '.join(missing)} not set)"
+        return "text only (DEEPGRAM_API_KEY not set)"
 
 
 def available() -> Modality:
-    return Modality(
-        can_hear=bool(os.getenv("DEEPGRAM_API_KEY")),
-        can_speak=bool(os.getenv("CARTESIA_API_KEY")),
-    )
+    """One key, both halves.
+
+    Deepgram does speech-to-text and text-to-speech, so hearing and speaking stand or
+    fall together -- which is what `build_session` wants anyway.
+    """
+    configured = bool(os.getenv("DEEPGRAM_API_KEY"))
+    return Modality(can_hear=configured, can_speak=configured)
 
 
 def build_session(vad, modality: Modality) -> AgentSession:
@@ -74,9 +69,13 @@ def build_session(vad, modality: Modality) -> AgentSession:
 
     return AgentSession(
         vad=vad,
-        stt=deepgram.STT(model="nova-3", language="en"),
+        stt=deepgram.STT(model=settings.stt_model, language="en"),
         llm=llm,
-        tts=cartesia.TTS(voice=settings.voice_id),
+        # Aura, on the same key and the same account as the transcription above. This
+        # was Cartesia until that account ran out of credit, which is a failure worth
+        # naming: a second speech provider is a second balance to keep topped up, and
+        # nothing about the product needed one.
+        tts=deepgram.TTS(model=settings.voice_model),
         # Interruptions from the local VAD rather than LiveKit Cloud's adaptive service,
         # which a self-hosted deployment has no credentials for: left to choose, the
         # session tries it three times per job and logs a 401 each time before falling
@@ -96,3 +95,27 @@ def room_options(modality: Modality) -> tuple[RoomInputOptions, RoomOutputOption
         RoomInputOptions(text_enabled=True, audio_enabled=modality.voice),
         RoomOutputOptions(transcription_enabled=True, audio_enabled=modality.voice),
     )
+
+
+# Nothing about a session gets better by retrying these: the key is wrong, or the account
+# cannot synthesise. Anything else -- a timeout, a 5xx, a dropped connection -- is worth
+# another utterance.
+_PERMANENT_SPEECH_FAILURES = frozenset({401, 402, 403})
+
+
+def is_permanent(error: object) -> bool:
+    return getattr(error, "status_code", None) in _PERMANENT_SPEECH_FAILURES
+
+
+def drop_to_text(session, reason: str) -> None:
+    """Stop trying to speak, once, and leave the transcript running.
+
+    A credit-exhausted account used to throw on every utterance while the interviewer sat
+    in the room saying nothing -- which reads as an agent that never joined, not as a
+    provider that stopped working. Text is what the room already falls back to when there
+    is no key at all; this is the same outcome, arrived at later.
+    """
+    if not session.output.audio_enabled:
+        return
+    session.output.set_audio_enabled(False)
+    logger.error("Speech is off for the rest of this interview: %s", reason)

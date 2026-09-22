@@ -36,9 +36,11 @@ class Settings(BaseSettings):
     anthropic_api_key: str = Field(
         "", validation_alias=AliasChoices("AI_ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY")
     )
-    # Cartesia's voice id. Swappable without touching code because the right voice is a
-    # judgement about the product, not about the agent.
-    voice_id: str = "6f84f4b8-58a2-430c-8c79-688dad597532"
+    # Deepgram does both halves of the conversation, so both live on DEEPGRAM_API_KEY.
+    # Swappable without touching code because which voice and which transcription model
+    # are judgements about the product, not about the agent.
+    stt_model: str = "nova-3"
+    voice_model: str = "aura-2-thalia-en"
 
     model_config = {
         "env_file": str(_BACKEND_ENV),

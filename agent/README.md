@@ -27,7 +27,7 @@ same value.
 | `INTERVIEW_CORE_BASE_URL` | The core process, not the frontend — no `/api` prefix |
 | `LIVEKIT_URL` / `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` | The agent SDK's own names for the pair `TPS_LIVEKIT_*` holds |
 | `AI_ANTHROPIC_API_KEY` | Shared with core; `ANTHROPIC_API_KEY` is accepted too |
-| `DEEPGRAM_API_KEY`, `CARTESIA_API_KEY` | Speech in and speech out |
+| `DEEPGRAM_API_KEY` | Speech in and speech out — Deepgram does both |
 
 **Without both speech keys the interviewer still runs**, and says everything it would
 have said as text — the live transcript panel renders it either way. Silence would be

@@ -95,17 +95,16 @@ def test_the_instructions_carry_the_prompt_file_and_the_plan():
     assert "Behavioral — ownership" in text
 
 
-def test_missing_speech_keys_leave_a_working_interviewer(monkeypatch):
+def test_a_missing_speech_key_leaves_a_working_interviewer(monkeypatch):
     """A missing API key must not become an interviewer who never arrives: the candidate
     cannot tell that apart from a broken product."""
     from interviewer import voice
 
     monkeypatch.delenv("DEEPGRAM_API_KEY", raising=False)
-    monkeypatch.delenv("CARTESIA_API_KEY", raising=False)
     modality = voice.available()
 
     assert modality.voice is False
-    assert "DEEPGRAM_API_KEY and CARTESIA_API_KEY" in modality.describe()
+    assert "DEEPGRAM_API_KEY" in modality.describe()
 
     room_input, room_output = voice.room_options(modality)
     # Still heard from, in writing: the transcript panel renders these.
@@ -115,22 +114,11 @@ def test_missing_speech_keys_leave_a_working_interviewer(monkeypatch):
     assert room_input.text_enabled is True
 
 
-def test_one_speech_key_is_not_half_a_conversation(monkeypatch):
-    """Hearing without speaking listens in silence; speaking without hearing talks over
-    the candidate. Either is worse than text both sides can read."""
+def test_the_speech_key_gives_a_spoken_interview(monkeypatch):
+    """One key, both halves: Deepgram transcribes and speaks."""
     from interviewer import voice
 
     monkeypatch.setenv("DEEPGRAM_API_KEY", "set")
-    monkeypatch.delenv("CARTESIA_API_KEY", raising=False)
-
-    assert voice.available().voice is False
-
-
-def test_both_keys_give_a_spoken_interview(monkeypatch):
-    from interviewer import voice
-
-    monkeypatch.setenv("DEEPGRAM_API_KEY", "set")
-    monkeypatch.setenv("CARTESIA_API_KEY", "set")
     modality = voice.available()
 
     assert modality.voice is True
