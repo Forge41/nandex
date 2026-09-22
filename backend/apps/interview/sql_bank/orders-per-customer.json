@@ -1,5 +1,6 @@
 {
   "slug": "orders-per-customer",
+  "verifiedAt": "2026-09-20T12:40:06.549787+00:00",
   "title": "How many orders each customer placed",
   "prompt": "Return `customer_id` and how many orders they placed as `orders`, busiest first. Break ties by `customer_id` ascending.",
   "schema": [

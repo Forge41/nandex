@@ -174,6 +174,7 @@ dependencies = [
     { name = "anthropic" },
     { name = "cryptography" },
     { name = "django" },
+    { name = "django-jazzmin" },
     { name = "djangorestframework" },
     { name = "docker" },
     { name = "fastembed" },
@@ -194,6 +195,7 @@ dependencies = [
     { name = "temporalio" },
     { name = "tenacity" },
     { name = "uvicorn", extra = ["standard"] },
+    { name = "whitenoise" },
 ]
 
 [package.dev-dependencies]
@@ -208,6 +210,7 @@ requires-dist = [
     { name = "anthropic", specifier = ">=1.4.0" },
     { name = "cryptography", specifier = ">=42" },
     { name = "django", specifier = ">=5.1,<6.0" },
+    { name = "django-jazzmin", specifier = ">=3.0.5" },
     { name = "djangorestframework", specifier = ">=3.15" },
     { name = "docker", specifier = ">=7.1" },
     { name = "fastembed", specifier = ">=0.8.0" },
@@ -228,6 +231,7 @@ requires-dist = [
     { name = "temporalio", specifier = ">=1.32.0" },
     { name = "tenacity", specifier = ">=9.1.4" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.52.4" },
+    { name = "whitenoise", specifier = ">=6.12.0" },
 ]
 
 [package.metadata.requires-dev]
@@ -514,6 +518,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/d5/d8/43e9d000519adceb189620b6869ff88031e046df91c2e9da72f8f6918399/django-5.2.17.tar.gz", hash = "sha256:9d4d93be539a18ab80d058eb515900e10951e04c537c5a6b394fc49528d3251f", size = 10889740, upload-time = "2026-08-04T15:04:03.173Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/df/f8/ce120525ca78f12b07daf65786679c5d0b54a75285a8958d3ae55e39da35/django-5.2.17-py3-none-any.whl", hash = "sha256:f04fb3b36ee119e1af4fa1d397d5fd6cf12700f49321e84d4f4c642c5b1973db", size = 8315563, upload-time = "2026-08-04T15:03:59.1Z" },
+]
+
+[[package]]
+name = "django-jazzmin"
+version = "3.0.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/15/e4/17cd62e80c4876088bc5f8bca24446586a62eca386c82755894408751a44/django_jazzmin-3.0.5.tar.gz", hash = "sha256:7e39b029bddbb60f3aaf9897bd009f39f8f2bdc8a7d86beed1e943706dd79692", size = 2509734, upload-time = "2026-06-25T21:05:52.699Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/23/40/892f4c922c92d0d2b8ca5f96f556c5dc04d19ea2ea717910d8bbf2dc23fc/django_jazzmin-3.0.5-py3-none-any.whl", hash = "sha256:578fb1fc0a1b7e3b8472d2692ace60b1584ccd937c3828e2c9a89bdf94067f94", size = 2581722, upload-time = "2026-06-25T21:05:50.948Z" },
 ]
 
 [[package]]
@@ -2476,6 +2492,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/2c/84/77599922ab441bfe61508f97dab2c71f8e114d31793993ea54011db16199/websockets-17.1-cp315-cp315t-win_amd64.whl", hash = "sha256:ad68c28a27246fed109a4409393d677b7e1388345cbbd2f5aee5c182d8506110", size = 217448, upload-time = "2026-08-26T14:58:21.382Z" },
     { url = "https://files.pythonhosted.org/packages/ce/3c/8b9a225b523f06a9389be81f1b0ab07c49bec6014742e6aa359c1f920f1f/websockets-17.1-cp315-cp315t-win_arm64.whl", hash = "sha256:e552e0037230ac16e5f568de7012041344d1b18c9feed30ec2891b8eba55af81", size = 217372, upload-time = "2026-08-26T14:58:22.807Z" },
     { url = "https://files.pythonhosted.org/packages/41/63/23572870e01836a98346075b9e17a8bc24a6ddd9800a3204ceee58677f3c/websockets-17.1-py3-none-any.whl", hash = "sha256:f221081107b8c48184d99f7019604486376e7ef826037e70aad6b02540732c23", size = 211134, upload-time = "2026-08-26T17:25:31.397Z" },
+]
+
+[[package]]
+name = "whitenoise"
+version = "6.12.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/cb/2a/55b3f3a4ec326cd077c1c3defeee656b9298372a69229134d930151acd01/whitenoise-6.12.0.tar.gz", hash = "sha256:f723ebb76a112e98816ff80fcea0a6c9b8ecde835f8ddda25df7a30a3c2db6ad", size = 26841, upload-time = "2026-02-27T00:05:42.028Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/db/eb/d5583a11486211f3ebd4b385545ae787f32363d453c19fffd81106c9c138/whitenoise-6.12.0-py3-none-any.whl", hash = "sha256:fc5e8c572e33ebf24795b47b6a7da8da3c00cff2349f5b04c02f28d0cc5a3cc2", size = 20302, upload-time = "2026-02-27T00:05:40.086Z" },
 ]
 
 [[package]]

@@ -15,6 +15,7 @@ and a bank that cannot say what it used to contain cannot explain a past one.
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 
 from apps.interview import sql_bank, task_bank
 from apps.interview.models import InterviewTask
@@ -29,6 +30,7 @@ def _row(task: dict, kind: str) -> dict:
         "source": str(task.get("source") or ""),
         "licence": str(task.get("licence") or ""),
         "retired_at": None,
+        "verified_at": parse_datetime(task["verifiedAt"]) if task.get("verifiedAt") else None,
     }
 
 
