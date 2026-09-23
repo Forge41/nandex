@@ -18,6 +18,12 @@ class Settings(BaseSettings):
 
     plan_model: str = "claude-opus-5"
 
+    # Off: no room is registered with vas, nothing is recorded, and the vas process and
+    # its worker need not run at all. The recording code stays in place -- this is the
+    # one switch that turns it back on, and the consent term and the wrap screen both
+    # read it so neither promises a recording that is not being made.
+    recording_enabled: bool = False
+
     # The interviewer agent runs as its own process with no candidate cookie, so it
     # presents this to read a session's brief and append transcript turns. Empty rejects
     # every agent request rather than accepting any.

@@ -85,17 +85,26 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# The vas process binds all interfaces because LiveKit and Egress run as containers and
-# reach it by the host gateway; a loopback-only listener is unreachable from there.
+# vas runs only where recording is turned on -- the video service and its worker exist
+# to record, and with INTERVIEW_RECORDING_ENABLED unset nothing ever calls them. The
+# code stays; the two processes do not start, here or in a deployment.
+#
+# When it does run, the vas process binds all interfaces because LiveKit and Egress run
+# as containers and reach it by the host gateway; a loopback-only listener is
+# unreachable from there.
 #
 # Start every other service. Each kills the whole group the moment it exits,
 # whether that's a clean stop or a crash -- see the trap note up top.
 # ---------------------------------------------------------------------------
 
+RECORDING_ENABLED=$(scripts/recording_enabled.sh)
+
 (cd backend && uv run uvicorn config.asgi:application --reload; kill 0) &
 (cd backend && uv run manage.py rungrpc; kill 0) &
-(cd backend && uv run uvicorn config.vas_asgi:application --host 0.0.0.0 --port "$VAS_PORT" --reload; kill 0) &
-(cd backend && uv run manage.py run_vas_worker; kill 0) &
+if [ "$RECORDING_ENABLED" = 1 ]; then
+    (cd backend && uv run uvicorn config.vas_asgi:application --host 0.0.0.0 --port "$VAS_PORT" --reload; kill 0) &
+    (cd backend && uv run manage.py run_vas_worker; kill 0) &
+fi
 (cd backend && uv run manage.py run_importer_worker; kill 0) &
 (cd backend && uv run manage.py run_ingest_worker; kill 0) &
 (cd backend && uv run manage.py run_interview_worker; kill 0) &
@@ -130,13 +139,19 @@ echo "│                   nandex -- all systems go                  │"
 echo "├─────────────────────────────────────────────────────────────┤"
 printf "│  %-16s →  %-39s│\n" "Frontend" "http://localhost:$FRONTEND_PORT"
 printf "│  %-16s →  %-39s│\n" "Backend API" "http://localhost:$HTTP_PORT"
-printf "│  %-16s →  %-39s│\n" "vas (video)" "http://localhost:$VAS_PORT"
+if [ "$RECORDING_ENABLED" = 1 ]; then
+    printf "│  %-16s →  %-39s│\n" "vas (video)" "http://localhost:$VAS_PORT"
+else
+    printf "│  %-16s →  %-39s│\n" "vas (video)" "not running -- recording is off"
+fi
 printf "│  %-16s →  %-39s│\n" "tps gRPC" "localhost:$GRPC_PORT"
 printf "│  %-16s →  %-39s│\n" "Temporal UI" "http://localhost:$TEMPORAL_UI_PORT"
 printf "│  %-16s →  %-39s│\n" "Temporal gRPC" "localhost:$TEMPORAL_PORT"
 printf "│  %-16s →  %-39s│\n" "importer worker" "(no port -- task queue \"importer\")"
 printf "│  %-16s →  %-39s│\n" "ingest worker" "(no port -- task queue \"ingest\")"
-printf "│  %-16s →  %-39s│\n" "vas worker" "(no port -- task queue \"vas\")"
+if [ "$RECORDING_ENABLED" = 1 ]; then
+    printf "│  %-16s →  %-39s│\n" "vas worker" "(no port -- task queue \"vas\")"
+fi
 printf "│  %-16s →  %-39s│\n" "interview worker" "(no port -- task queue \"interview\")"
 printf "│  %-16s →  %-39s│\n" "interviewer" "(no port -- LiveKit agent \"interviewer\")"
 echo "└─────────────────────────────────────────────────────────────┘"

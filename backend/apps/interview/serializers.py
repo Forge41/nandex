@@ -3,6 +3,7 @@ by frontend/lib/interview/types.ts -- this is the contract with the UI, so the s
 lives in one readable place rather than being derived.
 """
 
+from apps.interview.config import settings
 from apps.interview.models import (
     InterviewRound,
     InterviewSession,
@@ -102,6 +103,9 @@ def serialize_session(
         "endedAt": session.ended_at.isoformat() if session.ended_at else None,
         "status": session.status,
         "recordingState": session.recording_state,
+        # The consent term and the wrap screen both name a recording, so they have to
+        # know whether one is being made rather than assuming it.
+        "recordingEnabled": settings.recording_enabled,
         "planState": session.plan_state,
         "planError": session.plan_error,
         # Keyed by stage id, matching RoundContent. Rounds with nothing generated are

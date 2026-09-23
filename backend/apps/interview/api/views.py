@@ -23,6 +23,7 @@ from apps.core.services.workspace_service import current_workspace_for
 from apps.importer.models import RawDocument
 from apps.importer.uploads import UploadRejected, create_uploaded_document
 from apps.interview import services, workflow_client
+from apps.interview.config import settings as interview_settings
 from apps.interview.models import InterviewSession
 from apps.interview.serializers import serialize_session
 
@@ -71,6 +72,17 @@ async def _session_for(request: HttpRequest, session_id: str):
     if session is None:
         return None, _not_found()
     return session, None
+
+
+async def config(request: HttpRequest) -> JsonResponse:
+    """What this deployment does, for screens that run before a session exists.
+
+    Unauthenticated on purpose: it is the same fact the consent text states out loud,
+    and the pre-flight has to know it before anything is created.
+    """
+    if request.method != "GET":
+        return JsonResponse({"detail": "Method not allowed"}, status=405)
+    return JsonResponse({"recordingEnabled": interview_settings.recording_enabled})
 
 
 @csrf_exempt

@@ -64,6 +64,7 @@ export function sessionReducer(state: InterviewSession, action: SessionAction): 
         planState: action.server.planState,
         planError: action.server.planError,
         status: action.server.status,
+        recordingEnabled: action.server.recordingEnabled,
       };
 
     case "START":

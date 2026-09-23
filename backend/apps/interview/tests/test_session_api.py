@@ -2,6 +2,7 @@
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.test import Client
 
 from apps.core.models import Workspace
 from apps.interview.models import InterviewRound, InterviewSession
@@ -159,7 +160,7 @@ def test_ending_a_session_is_idempotent(client, session, fake_room):
     assert second.json()["status"] == "ended"
 
 
-def test_ending_a_session_stops_an_armed_recording(client, session, fake_room):
+def test_ending_a_session_stops_an_armed_recording(client, session, fake_room, recording_on):
     client.patch(
         f"/interview/sessions/{session['id']}",
         data={"consent": {"recording": True}},
@@ -195,7 +196,9 @@ def test_recording_control_rejects_an_unknown_action(client, session, fake_room)
     assert response.status_code == 400
 
 
-def test_a_recording_conflict_from_vas_keeps_its_status(client, session, monkeypatch, fake_room):
+def test_a_recording_conflict_from_vas_keeps_its_status(
+    client, session, monkeypatch, fake_room, recording_on
+):
     """A 409 means one is already running, which is a different thing for a caller than a
     fault -- flattening it to 502 would make those indistinguishable."""
     from apps.core.clients.vas_client import VasError
@@ -293,3 +296,32 @@ def test_a_signed_in_user_with_no_workspace_still_gets_an_interview(client):
 
     assert response.status_code == 201, response.content
     assert Workspace.objects.filter(members__user=user).exists()
+
+
+def test_the_recording_endpoint_refuses_where_recording_is_off(client, session, fake_room):
+    """An operator cannot start Egress on a deployment that does not run vas, so the
+    refusal is here rather than a connection error against a process nobody started."""
+    client.patch(
+        f"/interview/sessions/{session['id']}",
+        data={"consent": {"recording": True}},
+        content_type="application/json",
+    )
+
+    response = client.post(
+        f"/interview/sessions/{session['id']}/recording",
+        data={"action": "start"},
+        content_type="application/json",
+    )
+
+    assert response.status_code == 400
+    assert "off" in response.json()["detail"]
+    assert fake_room["starts"] == []
+
+
+def test_the_config_endpoint_answers_before_a_session_exists(db):
+    """The pre-flight reads this to decide what its consent term may claim, and it runs
+    before anything is created -- so it must not require a session or a cookie."""
+    response = Client().get("/interview/config")
+
+    assert response.status_code == 200
+    assert response.json() == {"recordingEnabled": False}

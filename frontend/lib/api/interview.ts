@@ -9,6 +9,16 @@ export interface SessionPayload extends InterviewSession {
   transcript: TranscriptTurn[];
 }
 
+/** What this deployment does. Needed by the pre-flight, which renders before a
+ * session exists and so cannot read it off one. */
+export interface InterviewConfig {
+  recordingEnabled: boolean;
+}
+
+export async function fetchConfig(): Promise<InterviewConfig> {
+  return apiFetch<InterviewConfig>("/interview/config");
+}
+
 export type PlanState = "idle" | "processing" | "ready" | "failed";
 
 export interface PlanStep {

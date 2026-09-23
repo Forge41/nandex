@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -17,21 +17,32 @@ import { DevicePreviewProvider, useDevicePreviews } from "@/lib/interview/media/
 import { useScreenShareSupport } from "@/lib/interview/media/use-screen-share-support";
 import type { SharedSurface } from "@/lib/interview/media/use-screen-share-test";
 import { deriveDeviceGate, derivePreflightCta } from "@/lib/interview/selectors";
-import { createSession, patchSession, uploadResume } from "@/lib/api/interview";
+import { createSession, fetchConfig, patchSession, uploadResume } from "@/lib/api/interview";
 import { ApiError } from "@/lib/api/client";
 import type { ConsentState, DeviceKind, ResumeFile } from "@/lib/interview/types";
 
-const CONSENT_TERMS: { key: keyof ConsentState; label: string }[] = [
-  {
-    key: "recording",
-    label: "This session is recorded — audio, transcript, and code — and reviewed by a human before any decision.",
-  },
-  { key: "aiInterviewer", label: "My interviewer is an AI agent. I can request a human interviewer at any point." },
-  {
-    key: "integrityMonitoring",
-    label: "Integrity monitoring is active during timed tasks (camera, screen, paste events).",
-  },
-];
+/** The first term depends on whether this deployment records. The term itself
+ * stays either way -- what is kept is still being agreed to -- because naming
+ * an audio recording that is never made would be asking for consent to
+ * something that does not happen. */
+function consentTerms(recordingEnabled: boolean): { key: keyof ConsentState; label: string }[] {
+  return [
+    {
+      key: "recording",
+      label: recordingEnabled
+        ? "This session is recorded — audio, transcript, and code — and reviewed by a human before any decision."
+        : "What you say is kept as a transcript, along with the code you write, and reviewed by a human before any decision.",
+    },
+    {
+      key: "aiInterviewer",
+      label: "My interviewer is an AI agent. I can request a human interviewer at any point.",
+    },
+    {
+      key: "integrityMonitoring",
+      label: "Integrity monitoring is active during timed tasks (camera, screen, paste events).",
+    },
+  ];
+}
 
 const SHARED_SURFACE_META: Record<SharedSurface, string> = {
   monitor: "whole screen",
@@ -136,8 +147,24 @@ function PreflightBody() {
   const [chosen, setChosen] = useState<{ file: File; previewUrl: string } | null>(null);
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  // Assumed on until the server says otherwise: a candidate who reads the
+  // stricter term and is then recorded has consented to it, while the reverse
+  // would be a recording nobody agreed to.
+  const [recordingEnabled, setRecordingEnabled] = useState(true);
   const firstFlaggedRef = useRef<HTMLButtonElement | null>(null);
 
+  useEffect(() => {
+    let live = true;
+    // A failure leaves the stricter term standing, which is the safe default.
+    void fetchConfig()
+      .then((config) => live && setRecordingEnabled(config.recordingEnabled))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  const terms = consentTerms(recordingEnabled);
   const cta = derivePreflightCta(session, chosen !== null);
   const gate = deriveDeviceGate(tested, { screenSupported: support.supported, wholeScreen });
 
@@ -249,7 +276,7 @@ function PreflightBody() {
           <Card className="p-4">
             <Eyebrow>Consent</Eyebrow>
             <div className="mt-3 flex flex-col gap-2.5">
-              {CONSENT_TERMS.map((term) => (
+              {terms.map((term) => (
                 <label key={term.key} className="flex cursor-pointer items-start gap-2.5 text-sm">
                   <Checkbox
                     className="mt-px"
