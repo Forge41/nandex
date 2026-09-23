@@ -17,6 +17,7 @@ from livekit.agents import (
     WorkerOptions,
     cli,
 )
+from livekit.agents.tts import TTS
 from livekit.agents.voice import events
 from livekit.plugins import silero
 
@@ -81,6 +82,13 @@ async def entrypoint(ctx: JobContext) -> None:
     session = voice.build_session(ctx.proc.userdata["vad"], modality)
 
     recorder = TranscriptRecorder(session_id)
+
+    @session.on("error")
+    def _speech_failed(event: events.ErrorEvent) -> None:
+        # Only speaking. A transcription failure leaves the candidate able to type, and
+        # an LLM failure is the session's own to retry.
+        if isinstance(event.source, TTS) and voice.is_permanent(event.error):
+            voice.drop_to_text(session, repr(event.error))
 
     @session.on("conversation_item_added")
     def _remember(event: events.ConversationItemAddedEvent) -> None:

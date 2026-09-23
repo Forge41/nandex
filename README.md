@@ -124,9 +124,10 @@ there).
 without a valid key. The interview's plan and its behavioral question need the same key; the
 coding and SQL rounds do not, because they come from the banks.
 
-`make check-speech` asks Deepgram and Cartesia whether the keys in `.env` actually work — the
-interviewer joins the room either way, so a key that is set but out of credit looks like an
-agent that never speaks.
+`make check-speech` makes the speech providers actually speak a word and transcribe it
+back, rather than asking whether the keys authenticate — the interviewer joins the room
+either way, so a key that is set but out of credit used to look like an agent that never
+speaks. Cartesia speaks, Deepgram hears.
 
 ## Running
 

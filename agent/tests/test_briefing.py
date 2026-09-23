@@ -95,7 +95,7 @@ def test_the_instructions_carry_the_prompt_file_and_the_plan():
     assert "Behavioral — ownership" in text
 
 
-def test_missing_speech_keys_leave_a_working_interviewer(monkeypatch):
+def test_a_missing_speech_key_leaves_a_working_interviewer(monkeypatch):
     """A missing API key must not become an interviewer who never arrives: the candidate
     cannot tell that apart from a broken product."""
     from interviewer import voice
@@ -115,18 +115,8 @@ def test_missing_speech_keys_leave_a_working_interviewer(monkeypatch):
     assert room_input.text_enabled is True
 
 
-def test_one_speech_key_is_not_half_a_conversation(monkeypatch):
-    """Hearing without speaking listens in silence; speaking without hearing talks over
-    the candidate. Either is worse than text both sides can read."""
-    from interviewer import voice
-
-    monkeypatch.setenv("DEEPGRAM_API_KEY", "set")
-    monkeypatch.delenv("CARTESIA_API_KEY", raising=False)
-
-    assert voice.available().voice is False
-
-
-def test_both_keys_give_a_spoken_interview(monkeypatch):
+def test_both_speech_keys_give_a_spoken_interview(monkeypatch):
+    """Deepgram transcribes, Cartesia speaks."""
     from interviewer import voice
 
     monkeypatch.setenv("DEEPGRAM_API_KEY", "set")

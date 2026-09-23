@@ -63,7 +63,7 @@ temporal-down: ## Stop a local Temporal dev server, whoever started it
 doctor: ## Say what backend/.env is missing, and what stops working without it
 	@uv run python scripts/check_env.py
 
-check-speech: ## Ask Deepgram and Cartesia whether the keys in .env actually work
+check-speech: ## Make the speech providers actually speak and listen, not just authenticate
 	@uv run python scripts/check_speech.py
 
 # ---------------------------------------------------------------------------

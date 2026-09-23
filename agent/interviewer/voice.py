@@ -74,8 +74,12 @@ def build_session(vad, modality: Modality) -> AgentSession:
 
     return AgentSession(
         vad=vad,
-        stt=deepgram.STT(model="nova-3", language="en"),
+        stt=deepgram.STT(model=settings.stt_model, language="en"),
         llm=llm,
+        # Cartesia. Deepgram does text-to-speech too, on the key transcription already
+        # uses, and it was tried -- one provider, one balance. Aura's voices were not
+        # good enough, so this stays a second account to keep topped up, which is the
+        # cost of the better voice rather than an oversight.
         tts=cartesia.TTS(voice=settings.voice_id),
         # Interruptions from the local VAD rather than LiveKit Cloud's adaptive service,
         # which a self-hosted deployment has no credentials for: left to choose, the
@@ -96,3 +100,27 @@ def room_options(modality: Modality) -> tuple[RoomInputOptions, RoomOutputOption
         RoomInputOptions(text_enabled=True, audio_enabled=modality.voice),
         RoomOutputOptions(transcription_enabled=True, audio_enabled=modality.voice),
     )
+
+
+# Nothing about a session gets better by retrying these: the key is wrong, or the account
+# cannot synthesise. Anything else -- a timeout, a 5xx, a dropped connection -- is worth
+# another utterance.
+_PERMANENT_SPEECH_FAILURES = frozenset({401, 402, 403})
+
+
+def is_permanent(error: object) -> bool:
+    return getattr(error, "status_code", None) in _PERMANENT_SPEECH_FAILURES
+
+
+def drop_to_text(session, reason: str) -> None:
+    """Stop trying to speak, once, and leave the transcript running.
+
+    A credit-exhausted account used to throw on every utterance while the interviewer sat
+    in the room saying nothing -- which reads as an agent that never joined, not as a
+    provider that stopped working. Text is what the room already falls back to when there
+    is no key at all; this is the same outcome, arrived at later.
+    """
+    if not session.output.audio_enabled:
+        return
+    session.output.set_audio_enabled(False)
+    logger.error("Speech is off for the rest of this interview: %s", reason)
