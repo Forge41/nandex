@@ -181,6 +181,8 @@ async def _arm_recording(session: InterviewSession) -> None:
     unrecorded one. A failure is logged and parked in recording_state, which is why that
     field exists on the session rather than being inferred.
     """
+    if not settings.recording_enabled:
+        return
     if not session.consent_recording:
         return
     if session.recording_state != InterviewSession.RecordingState.OFF:
@@ -208,6 +210,9 @@ async def control_recording(session: InterviewSession, action: str) -> dict:
     see _ensure_recording -- but other features and an operator need the handle."""
     if action not in ("start", "stop"):
         raise InterviewError("action must be 'start' or 'stop'")
+
+    if not settings.recording_enabled:
+        raise InterviewError("Recording is turned off for this deployment")
 
     if action == "start":
         if not session.consent_recording:

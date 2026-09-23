@@ -94,20 +94,26 @@ ingest-migrate: ## Apply pending database migrations for the ingest app
 importer-worker: ## Run importer's Temporal worker (needs a Temporal server already running)
 	cd backend && uv run manage.py run_importer_worker
 
-vas-stack: ## Start the containers vas needs locally: LiveKit, Egress, fake-GCS, Redis
-	@test -f dev/gcs-fake-credentials.json || (cd backend && uv run python ../scripts/gen_fake_gcs_credentials.py)
-	docker compose -f dev/docker-compose.yml up -d
-	@echo "Waiting for the recordings bucket in fake-gcs..."
-	@# Checked before created, because fake-gcs keeps its volume across `down` and answers
-	@# 409 for a bucket that is already there -- which curl -f reads as failure, so
-	@# creating first looped forever on every run after the first.
-	@until curl -sf -o /dev/null 'http://localhost:4443/storage/v1/b/local-recordings' \
-		|| curl -sf -o /dev/null -X POST 'http://localhost:4443/storage/v1/b?project=local-dev' \
-			-H 'Content-Type: application/json' -d '{"name":"local-recordings"}'; do sleep 1; done
-	@echo "LiveKit ws://localhost:7880 | fake-GCS http://localhost:4443"
+vas-stack: ## Start the local room containers: LiveKit and Redis, plus Egress and fake-GCS where recording is on
+	@if [ "$$(scripts/recording_enabled.sh)" = 1 ]; then \
+		test -f dev/gcs-fake-credentials.json || (cd backend && uv run python ../scripts/gen_fake_gcs_credentials.py); \
+		docker compose -f dev/docker-compose.yml --profile recording up -d; \
+		echo "Waiting for the recordings bucket in fake-gcs..."; \
+		until curl -sf -o /dev/null 'http://localhost:4443/storage/v1/b/local-recordings' \
+			|| curl -sf -o /dev/null -X POST 'http://localhost:4443/storage/v1/b?project=local-dev' \
+				-H 'Content-Type: application/json' -d '{"name":"local-recordings"}'; do sleep 1; done; \
+		echo "LiveKit ws://localhost:7880 | fake-GCS http://localhost:4443"; \
+	else \
+		docker compose -f dev/docker-compose.yml up -d; \
+		echo "LiveKit ws://localhost:7880 (recording is off -- no Egress, no fake-GCS)"; \
+	fi
 
-vas-stack-down: ## Stop and remove the local vas containers
-	docker compose -f dev/docker-compose.yml down
+# The bucket is checked before it is created, because fake-gcs keeps its volume across
+# `down` and answers 409 for a bucket that is already there -- which curl -f reads as
+# failure, so creating first looped forever on every run after the first.
+
+vas-stack-down: ## Stop and remove the local room containers
+	docker compose -f dev/docker-compose.yml --profile recording down
 
 vas: ## Run the vas process (recording/storage) on its own port -- separate deployable, same DB
 	cd backend && uv run uvicorn config.vas_asgi:application --host 0.0.0.0 --port 8001 --reload

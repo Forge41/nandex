@@ -49,6 +49,10 @@ system reads it and writes an interview plan, and an AI interviewer joins a live
   `apps.core.clients.runner_client`.
 - **`vas_*`** — the video artifact service: recording, storage, playback, retention. Its own
   process, its own boundary, reached only over HTTP through `apps.core.clients.vas_client`.
+  **Off by default.** Recording is the single most expensive thing here — Egress runs a
+  headless browser per recording, and the file needs somewhere to live — so nothing records
+  unless `INTERVIEW_RECORDING_ENABLED` is set, and where it is not, neither the `vas` process
+  nor its worker needs to run. The code is all still here; one setting brings it back.
 - **`agent/`** — a separate LiveKit agent process that joins the room, speaks, and listens.
 
 **The plan is generated in about five seconds.** The model is not asked to reproduce the
@@ -146,7 +150,7 @@ speaks. Cartesia speaks, Deepgram hears.
 | `make ingest-worker` | Run the Temporal worker for `ingest`'s parse/chunk/embed workflows |
 | `make interview-worker` | Run the Temporal worker that reads a resume and writes the interview plan |
 | `make interviewer-agent` | Run the LiveKit agent that joins the room and talks to the candidate |
-| `make vas-stack` | Start the containers `vas` needs: LiveKit, Egress, fake-GCS, Redis |
+| `make vas-stack` | Start the room containers: LiveKit and Redis, plus Egress and fake-GCS where recording is on |
 | `make runner` | Run the code-execution sandbox on :8002 — loopback only, and it needs Docker |
 | `make runner-images` | Build the four sandbox images: Python, Java, C/C++, SQL |
 | `make import-tasks SLUGS=acronym,luhn` | Add Exercism exercises to the coding bank's JSON |
@@ -157,7 +161,8 @@ speaks. Cartesia speaks, Deepgram hears.
 | `make tps-migrate` / `importer-migrate` / `ingest-migrate` | Migrate just that one app |
 
 `make up` is the cold-start command: it reports what your `.env` is missing, brings up the
-containers (LiveKit, Egress, fake-GCS, Redis) and creates the recordings bucket, applies every
+containers (LiveKit and Redis, plus Egress, fake-GCS and the recordings bucket where recording
+is on), applies every
 migration, loads the task banks, and then hands over to `serve-all`. Run it the first time, after pulling a change that
 adds a migration, or any time the containers are down. Day to day, `make serve-all` is the one you
 want — the prerequisites are already in place and it starts in seconds.

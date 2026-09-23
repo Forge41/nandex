@@ -72,7 +72,9 @@ export function WrapStage() {
           <ul className="t-small mt-3 flex flex-col gap-2 text-content-subtle">
             <li>The transcript of everything said.</li>
             <li>The code you wrote, every run of it, and what those runs reported.</li>
-            {session.consent.recording && <li>The recording you agreed to at the start.</li>}
+            {session.recordingEnabled && session.consent.recording && (
+              <li>The recording you agreed to at the start.</li>
+            )}
           </ul>
           {elapsed !== null && (
             <p className="t-xs mt-3 text-content-muted">

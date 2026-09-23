@@ -49,7 +49,7 @@ def fake_tps_grpc(monkeypatch):
 
 
 def test_arming_a_recording_reaches_vas_with_auto_record_set(
-    client, session, fake_vas_http, fake_tps_grpc
+    client, session, fake_vas_http, fake_tps_grpc, recording_on
 ):
     client.patch(
         f"/interview/sessions/{session['id']}",
@@ -76,7 +76,7 @@ def test_the_chain_is_not_walked_at_all_without_consent(
 
 
 def test_ending_the_session_stops_recording_through_the_real_chain(
-    client, session, fake_vas_http, fake_tps_grpc
+    client, session, fake_vas_http, fake_tps_grpc, recording_on
 ):
     client.patch(
         f"/interview/sessions/{session['id']}",

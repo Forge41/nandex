@@ -91,7 +91,9 @@ def _consent_to_recording(client, session_id: str) -> None:
     )
 
 
-def test_recording_is_armed_not_started_when_consent_was_given(client, session, fake_room):
+def test_recording_is_armed_not_started_when_consent_was_given(
+    client, session, fake_room, recording_on
+):
     """The design has no record button and its consent text promises integrity monitoring
     during timed tasks, so a click-driven trigger would let a candidate silently decline.
 
@@ -109,14 +111,14 @@ def test_recording_is_armed_not_started_when_consent_was_given(client, session, 
     assert fake_room["starts"] == []
 
 
-def test_recording_is_not_armed_without_consent(client, session, fake_room):
+def test_recording_is_not_armed_without_consent(client, session, fake_room, recording_on):
     response = client.post(f"/interview/sessions/{session['id']}/token")
 
     assert response.json()["recording_state"] == "off"
     assert fake_room["sessions"] == []
 
 
-def test_a_second_token_does_not_re_arm(client, session, fake_room):
+def test_a_second_token_does_not_re_arm(client, session, fake_room, recording_on):
     _consent_to_recording(client, session["id"])
     client.post(f"/interview/sessions/{session['id']}/token")
     client.post(f"/interview/sessions/{session['id']}/token")
@@ -124,7 +126,9 @@ def test_a_second_token_does_not_re_arm(client, session, fake_room):
     assert len(fake_room["sessions"]) == 1
 
 
-def test_a_video_service_failure_still_returns_a_token(client, session, monkeypatch, fake_room):
+def test_a_video_service_failure_still_returns_a_token(
+    client, session, monkeypatch, fake_room, recording_on
+):
     """A candidate locked out of their interview is worse than an unrecorded one."""
     from apps.core.clients.vas_client import VasUnavailable
     from apps.core.services import room_service
@@ -144,3 +148,16 @@ def test_a_video_service_failure_still_returns_a_token(client, session, monkeypa
         InterviewSession.objects.get(id=session["id"]).recording_state
         == InterviewSession.RecordingState.FAILED
     )
+
+
+def test_nothing_reaches_vas_where_recording_is_off(client, session, fake_room):
+    """The deployment default. Consent is on the record, and still nothing is registered
+    with the video service -- which is what lets vas not run at all."""
+    _consent_to_recording(client, session["id"])
+
+    response = client.post(f"/interview/sessions/{session['id']}/token")
+
+    assert response.status_code == 200
+    assert response.json()["token"]
+    assert response.json()["recording_state"] == "off"
+    assert fake_room["sessions"] == []

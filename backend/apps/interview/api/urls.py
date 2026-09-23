@@ -6,6 +6,7 @@ from apps.interview.api import agent, callbacks, coding_views, views
 app_name = "interview"
 
 urlpatterns = [
+    path("interview/config", views.config),
     path("interview/sessions", views.sessions),
     # GET and PATCH share one path; Django dispatches by URL, not verb, so these cannot
     # be two entries.

@@ -337,4 +337,7 @@ export interface InterviewSession {
   /** The server's view of whether this interview is still running. An ended one
    * is refused a join token, so nothing may try to hold a room open for it. */
   status?: "created" | "active" | "ended";
+  /** Whether this deployment records at all. Absent on a draft session, which
+   * asks the server for it directly. */
+  recordingEnabled?: boolean;
 }

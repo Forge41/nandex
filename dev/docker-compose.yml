@@ -1,6 +1,10 @@
 # The pieces of the local stack that have to be containers: a LiveKit server, its Egress
 # recorder, a fake GCS, and the Redis they coordinate through.
 #
+# Egress and fake-gcs sit behind the `recording` profile, so they start only where
+# recording is turned on. A room needs LiveKit and the Redis it coordinates through; a
+# recorder and somewhere to put the file are only needed if a file is being made.
+#
 # Postgres and Temporal are deliberately absent -- this repo already runs both (see
 # scripts/dev_serve.sh), and a second copy of either would be a second source of truth
 # for the same data.
@@ -18,6 +22,7 @@ services:
       retries: 10
 
   fake-gcs:
+    profiles: ["recording"]
     image: fsouza/fake-gcs-server:latest
     command: -scheme http -port 4443 -public-host localhost:4443
     ports:
@@ -54,6 +59,7 @@ services:
       start_period: 10s
 
   livekit-egress:
+    profiles: ["recording"]
     image: livekit/egress:latest
     privileged: true
     environment:

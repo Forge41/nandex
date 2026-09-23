@@ -39,6 +39,19 @@ def session(client):
 
 
 @pytest.fixture
+def recording_on(monkeypatch):
+    """Turns recording on for one test.
+
+    Off is the default, so every test that asserts a room is registered with vas or a
+    recording is armed has to say so -- which is also what keeps the off path honest:
+    a test that forgets this fixture fails rather than silently exercising nothing.
+    """
+    from apps.interview.config import settings
+
+    monkeypatch.setattr(settings, "recording_enabled", True)
+
+
+@pytest.fixture
 def fake_room(monkeypatch):
     """Stands in for tps and vas. Records what it was asked for, so a test can assert the
     identity and grants rather than trusting them."""
