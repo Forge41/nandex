@@ -1,7 +1,8 @@
 """What the interviewer does when it cannot speak.
 
-Both halves of the conversation run on one Deepgram key now. The failure that matters is
-the one in between: a key that authenticates and an account that cannot synthesise.
+The failure that matters is not a missing key -- that is handled before the session
+starts. It is the one in between: a key that authenticates against an account that
+cannot synthesise, which is what an exhausted Cartesia balance looks like.
 """
 
 from interviewer import voice
@@ -52,12 +53,17 @@ def test_dropping_to_text_twice_is_harmless():
     assert session.output.audio_enabled is False
 
 
-def test_one_key_carries_both_halves(monkeypatch):
-    """Deepgram does transcription and speech, so they stand or fall together."""
+def test_half_a_conversation_is_not_offered(monkeypatch):
+    """Two providers: Deepgram hears, Cartesia speaks.
+
+    Hearing without speaking listens in silence; speaking without hearing talks over the
+    candidate. Either is worse than text both sides can read, so both keys or neither.
+    """
     monkeypatch.setenv("DEEPGRAM_API_KEY", "k")
+    monkeypatch.setenv("CARTESIA_API_KEY", "k")
     assert voice.available().voice
 
-    monkeypatch.delenv("DEEPGRAM_API_KEY")
+    monkeypatch.delenv("CARTESIA_API_KEY")
     modality = voice.available()
     assert not modality.voice
-    assert "DEEPGRAM_API_KEY" in modality.describe()
+    assert "CARTESIA_API_KEY" in modality.describe()

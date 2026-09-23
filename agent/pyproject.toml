@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "The LiveKit agent that joins an interview room and talks to the candidate"
 requires-python = ">=3.12"
 dependencies = [
-    "livekit-agents[anthropic,deepgram,silero,turn-detector]>=1.0",
+    "livekit-agents[anthropic,cartesia,deepgram,silero,turn-detector]>=1.0",
     "httpx>=0.28.1",
     "pydantic-settings>=2.4",
     "python-dotenv>=1.2.0",

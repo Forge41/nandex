@@ -101,10 +101,11 @@ def test_a_missing_speech_key_leaves_a_working_interviewer(monkeypatch):
     from interviewer import voice
 
     monkeypatch.delenv("DEEPGRAM_API_KEY", raising=False)
+    monkeypatch.delenv("CARTESIA_API_KEY", raising=False)
     modality = voice.available()
 
     assert modality.voice is False
-    assert "DEEPGRAM_API_KEY" in modality.describe()
+    assert "DEEPGRAM_API_KEY and CARTESIA_API_KEY" in modality.describe()
 
     room_input, room_output = voice.room_options(modality)
     # Still heard from, in writing: the transcript panel renders these.
@@ -114,11 +115,12 @@ def test_a_missing_speech_key_leaves_a_working_interviewer(monkeypatch):
     assert room_input.text_enabled is True
 
 
-def test_the_speech_key_gives_a_spoken_interview(monkeypatch):
-    """One key, both halves: Deepgram transcribes and speaks."""
+def test_both_speech_keys_give_a_spoken_interview(monkeypatch):
+    """Deepgram transcribes, Cartesia speaks."""
     from interviewer import voice
 
     monkeypatch.setenv("DEEPGRAM_API_KEY", "set")
+    monkeypatch.setenv("CARTESIA_API_KEY", "set")
     modality = voice.available()
 
     assert modality.voice is True

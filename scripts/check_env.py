@@ -17,7 +17,8 @@ EXAMPLE = ROOT / "backend" / ".env.example"
 # whoever is reading the warning rather than for whoever wrote the variable.
 EXTERNAL = {
     "AI_ANTHROPIC_API_KEY": "no interview plan can be generated from a resume",
-    "DEEPGRAM_API_KEY": "the interviewer cannot hear or speak",
+    "DEEPGRAM_API_KEY": "the interviewer cannot hear the candidate",
+    "CARTESIA_API_KEY": "the interviewer cannot speak",
 }
 
 GREEN, YELLOW, RED, DIM, OFF = "\033[32m", "\033[33m", "\033[31m", "\033[2m", "\033[0m"
@@ -59,7 +60,7 @@ def main() -> int:
         print(f"{YELLOW}Not set — these are yours to obtain, nothing can default them:{OFF}")
         for key in external:
             print(f"    {key:<24} {DIM}without it, {EXTERNAL[key]}{OFF}")
-        speech = {"DEEPGRAM_API_KEY"}
+        speech = {"DEEPGRAM_API_KEY", "CARTESIA_API_KEY"}
         if speech & set(external):
             print(
                 f"    {DIM}The interviewer still runs and still says everything — as text,"

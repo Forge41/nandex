@@ -1,14 +1,14 @@
-"""Asks Deepgram whether the key in backend/.env can actually hear and speak.
+"""Asks whether the speech keys in backend/.env can actually hear and speak.
 
-**The endpoint that bills, not one that merely authenticates.** This used to probe
+**The endpoints that bill, not ones that merely authenticate.** This used to probe
 Cartesia's `GET /voices`, which answers 200 on an account with no credit left, while
 every attempt to synthesise answered 402 -- so it reported an interviewer that would
 speak, against an account that could not say a word. A check that cannot fail the way
 the product fails is not a check.
 
-So each probe does the real work: one word through text-to-speech, one clip of that
-audio back through transcription. `make doctor` can only see that something is set; this
-is the difference between set, authenticating, and working.
+So each probe does the real work: one word synthesised through Cartesia, one clip of
+real speech transcribed by Deepgram. `make doctor` can only see that something is set;
+this is the difference between set, authenticating, and working.
 
 Never prints a key. The whole point of checking them here is that they do not have to be
 echoed anywhere to be tested.
@@ -24,12 +24,14 @@ ENV = Path(__file__).resolve().parents[1] / "backend" / ".env"
 
 GREEN, YELLOW, RED, DIM, OFF = "\033[32m", "\033[33m", "\033[31m", "\033[2m", "\033[0m"
 
-CONSOLE = "https://console.deepgram.com/"
+DEEPGRAM_CONSOLE = "https://console.deepgram.com/"
+CARTESIA_CONSOLE = "https://play.cartesia.ai/keys"
 
 # Kept in step with agent/interviewer/config.py by hand, which is the usual reason two
 # copies drift -- but the agent must not be importable from here, and a check against a
 # different model than the one that runs is worse than this.
-TTS_MODEL = "aura-2-thalia-en"
+CARTESIA_MODEL = "sonic-2"
+CARTESIA_VOICE = "6f84f4b8-58a2-430c-8c79-688dad597532"
 STT_MODEL = "nova-3"
 
 SPEAK = "Good to meet you."
@@ -47,12 +49,8 @@ def load() -> dict[str, str]:
     return values
 
 
-def post(url: str, key: str, body: bytes, content_type: str) -> tuple[bytes | None, str]:
-    request = Request(
-        url,
-        data=body,
-        headers={"Authorization": f"Token {key}", "Content-Type": content_type},
-    )
+def post(url: str, headers: dict[str, str], body: bytes) -> tuple[bytes | None, str]:
+    request = Request(url, data=body, headers=headers)
     try:
         with urlopen(request, timeout=30) as response:
             return response.read(), f"HTTP {response.status}"
@@ -69,11 +67,26 @@ def post(url: str, key: str, body: bytes, content_type: str) -> tuple[bytes | No
 
 
 def check_speaking(key: str) -> tuple[bytes | None, str]:
+    """Synthesis itself, because that is what an exhausted account refuses."""
     audio, detail = post(
-        f"https://api.deepgram.com/v1/speak?model={TTS_MODEL}",
-        key,
-        json.dumps({"text": SPEAK}).encode(),
-        "application/json",
+        "https://api.cartesia.ai/tts/bytes",
+        {
+            "X-API-Key": key,
+            "Cartesia-Version": "2024-06-10",
+            "Content-Type": "application/json",
+        },
+        json.dumps(
+            {
+                "model_id": CARTESIA_MODEL,
+                "transcript": SPEAK,
+                "voice": {"mode": "id", "id": CARTESIA_VOICE},
+                "output_format": {
+                    "container": "wav",
+                    "encoding": "pcm_s16le",
+                    "sample_rate": 24000,
+                },
+            }
+        ).encode(),
     )
     if audio is None:
         return None, detail
@@ -83,12 +96,11 @@ def check_speaking(key: str) -> tuple[bytes | None, str]:
 
 
 def check_hearing(key: str, audio: bytes) -> tuple[bool, str]:
-    """Its own speech, read back. An end-to-end check needs no fixture audio."""
+    """The other provider's speech, read back. An end-to-end check needs no fixture."""
     body, detail = post(
         f"https://api.deepgram.com/v1/listen?model={STT_MODEL}&smart_format=true",
-        key,
+        {"Authorization": f"Token {key}", "Content-Type": "audio/wav"},
         audio,
-        "audio/mpeg",
     )
     if body is None:
         return False, detail
@@ -103,37 +115,47 @@ def check_hearing(key: str, audio: bytes) -> tuple[bool, str]:
 
 
 def main() -> int:
-    key = load().get("DEEPGRAM_API_KEY", "")
-    if not key:
-        print(f"{YELLOW}○ Deepgram{OFF}  DEEPGRAM_API_KEY is not set")
-        print(f"    {DIM}get one at {CONSOLE}{OFF}")
-        print()
-        print(
-            f"{DIM}The interviewer still runs without it -- it says everything it would"
-            f" have said, as text in the transcript panel.{OFF}"
-        )
-        return 0
+    env = load()
+    speaking_key = env.get("CARTESIA_API_KEY", "")
+    hearing_key = env.get("DEEPGRAM_API_KEY", "")
 
-    audio, detail = check_speaking(key)
-    if audio is None:
-        print(f"{RED}✗ Speaking{OFF}  {detail}")
-        print(f"    {DIM}check it at {CONSOLE}{OFF}")
-        print()
-        print(f"{DIM}The interviewer will join and write, but not speak.{OFF}")
-        return 0
-    print(f"{GREEN}✓ Speaking{OFF}  {TTS_MODEL} returned {detail}")
+    audio = None
+    if not speaking_key:
+        print(f"{YELLOW}○ Speaking{OFF}  CARTESIA_API_KEY is not set")
+        print(f"    {DIM}get one at {CARTESIA_CONSOLE}{OFF}")
+    else:
+        audio, detail = check_speaking(speaking_key)
+        if audio is None:
+            print(f"{RED}✗ Speaking{OFF}  {detail}")
+            print(f"    {DIM}check it at {CARTESIA_CONSOLE}{OFF}")
+        else:
+            print(f"{GREEN}✓ Speaking{OFF}  {CARTESIA_MODEL} returned {detail}")
 
-    ok, detail = check_hearing(key, audio)
-    if not ok:
-        print(f"{RED}✗ Hearing{OFF}  {detail}")
-        print(f"    {DIM}check it at {CONSOLE}{OFF}")
-        print()
-        print(f"{DIM}The interviewer will speak, but not hear the candidate.{OFF}")
-        return 0
-    print(f"{GREEN}✓ Hearing{OFF}  {STT_MODEL} {detail}")
+    if not hearing_key:
+        print(f"{YELLOW}○ Hearing{OFF}  DEEPGRAM_API_KEY is not set")
+        print(f"    {DIM}get one at {DEEPGRAM_CONSOLE}{OFF}")
+    elif audio is None:
+        # Nothing was synthesised, so there is nothing to read back. Saying so beats
+        # passing a check that never ran.
+        print(f"{YELLOW}○ Hearing{OFF}  not checked -- it reads back what was spoken")
+    else:
+        ok, detail = check_hearing(hearing_key, audio)
+        if ok:
+            print(f"{GREEN}✓ Hearing{OFF}  {STT_MODEL} {detail}")
+        else:
+            print(f"{RED}✗ Hearing{OFF}  {detail}")
+            print(f"    {DIM}check it at {DEEPGRAM_CONSOLE}{OFF}")
 
     print()
-    print(f"{GREEN}The interviewer will speak and listen.{OFF}")
+    # The interviewer needs both: hearing without speaking listens in silence, speaking
+    # without hearing talks over the candidate. build_session refuses either half.
+    if audio is not None and hearing_key:
+        print(f"{GREEN}The interviewer will speak and listen.{OFF}")
+    else:
+        print(
+            f"{DIM}The interviewer still runs -- it says everything it would have said,"
+            f" as text in the transcript panel.{OFF}"
+        )
     # Zero either way: text-only is a working configuration, not a broken one.
     return 0
 

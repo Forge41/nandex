@@ -804,7 +804,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },
-    { name = "livekit-agents", extra = ["anthropic", "deepgram", "silero", "turn-detector"] },
+    { name = "livekit-agents", extra = ["anthropic", "cartesia", "deepgram", "silero", "turn-detector"] },
     { name = "pydantic-settings" },
     { name = "python-dotenv" },
 ]
@@ -818,7 +818,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
-    { name = "livekit-agents", extras = ["anthropic", "deepgram", "silero", "turn-detector"], specifier = ">=1.0" },
+    { name = "livekit-agents", extras = ["anthropic", "cartesia", "deepgram", "silero", "turn-detector"], specifier = ">=1.0" },
     { name = "pydantic-settings", specifier = ">=2.4" },
     { name = "python-dotenv", specifier = ">=1.2.0" },
 ]
@@ -1010,6 +1010,9 @@ wheels = [
 anthropic = [
     { name = "livekit-plugins-anthropic" },
 ]
+cartesia = [
+    { name = "livekit-plugins-cartesia" },
+]
 codecs = [
     { name = "numpy" },
 ]
@@ -1100,6 +1103,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/a8/0f/afa6cf67c79b30f2082cff2e2fbc4a10b23ff34f3269d772e5e4d0dc978a/livekit_plugins_anthropic-1.8.1.tar.gz", hash = "sha256:94fdc4f93b56efbdfb616e46db27df697f3433588df689476f0eb2a6f9597c39", size = 9370, upload-time = "2026-09-10T18:58:56.064Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/4d/44/4bf8d9be299725ee5ac326263b692d00258e20726d832263356af4032d4a/livekit_plugins_anthropic-1.8.1-py3-none-any.whl", hash = "sha256:df386be19212733c87ea4b319c2e3ef3355c33171b72eed44cddad3fe30a5b28", size = 11131, upload-time = "2026-09-10T18:58:54.28Z" },
+]
+
+[[package]]
+name = "livekit-plugins-cartesia"
+version = "1.8.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "livekit-agents" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/fb/57/0eae646a426f60eb971823f7fca881d2bf98b063a3e7e461ec415c4c37fd/livekit_plugins_cartesia-1.8.1.tar.gz", hash = "sha256:f8d31671dcf14912820d47a262cc9d984ac06fbf34af56f2665b96bcf5a8b159", size = 19652, upload-time = "2026-09-10T18:59:17.563Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/33/4d/5c4973bfee7763448040c22f28b6ff05c2176500a5c50ed68da7791f9be3/livekit_plugins_cartesia-1.8.1-py3-none-any.whl", hash = "sha256:5bf4f3f4c8ec3d9e2ff6cb60a091f125791d39261473789a9aca8444f7add22b", size = 27218, upload-time = "2026-09-10T18:59:16.461Z" },
 ]
 
 [[package]]

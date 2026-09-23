@@ -63,7 +63,7 @@ temporal-down: ## Stop a local Temporal dev server, whoever started it
 doctor: ## Say what backend/.env is missing, and what stops working without it
 	@uv run python scripts/check_env.py
 
-check-speech: ## Make Deepgram actually speak and listen, not just authenticate
+check-speech: ## Make the speech providers actually speak and listen, not just authenticate
 	@uv run python scripts/check_speech.py
 
 # ---------------------------------------------------------------------------
