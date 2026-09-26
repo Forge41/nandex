@@ -11,6 +11,7 @@ from livekit.agents import Agent, JobContext, function_tool
 
 from interviewer import core_client, voice
 from interviewer.briefing import load_prompt
+from interviewer.config import settings
 from interviewer.dispatch import Dispatch
 
 logger = logging.getLogger("interviewer.portfolio")
@@ -41,7 +42,9 @@ async def run(ctx: JobContext, dispatch: Dispatch) -> None:
     modality = voice.available()
     if not modality.voice:
         logger.warning("Portfolio guide in %s", modality.describe())
-    session = voice.build_session(ctx.proc.userdata["vad"], modality)
+    session = voice.build_session(
+        ctx.proc.userdata["vad"], modality, voice_id=settings.portfolio_voice_id
+    )
 
     room_input, room_output = voice.room_options(modality)
     await session.start(

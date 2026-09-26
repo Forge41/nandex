@@ -54,7 +54,7 @@ def available() -> Modality:
     )
 
 
-def build_session(vad, modality: Modality) -> AgentSession:
+def build_session(vad, modality: Modality, voice_id: str = "") -> AgentSession:
     """Both halves or neither.
 
     Hearing without speaking is an interviewer that listens in silence; speaking without
@@ -80,7 +80,7 @@ def build_session(vad, modality: Modality) -> AgentSession:
         # uses, and it was tried -- one provider, one balance. Aura's voices were not
         # good enough, so this stays a second account to keep topped up, which is the
         # cost of the better voice rather than an oversight.
-        tts=cartesia.TTS(voice=settings.voice_id),
+        tts=cartesia.TTS(voice=voice_id or settings.voice_id),
         # Interruptions from the local VAD rather than LiveKit Cloud's adaptive service,
         # which a self-hosted deployment has no credentials for: left to choose, the
         # session tries it three times per job and logs a 401 each time before falling
