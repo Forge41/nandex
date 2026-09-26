@@ -19,7 +19,7 @@ env:
   TF_WORKSPACE: ${{ vars.TF_WORKSPACE }}
   TF_IN_AUTOMATION: "true"
   RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-  NETLIFY_TOKEN: ${{ secrets.NETLIFY_TOKEN }}
+  NETLIFY_API_TOKEN: ${{ secrets.NETLIFY_API_TOKEN }}
 
 jobs:
   plan:
