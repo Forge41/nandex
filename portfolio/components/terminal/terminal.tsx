@@ -19,6 +19,7 @@ import { ghost as ghostFor, suggest } from "@/lib/terminal/suggest";
 import { clockLabel, uptime } from "@/lib/terminal/time";
 import type { DebugInfo, EntryBody, MessageDraft, PromptMode } from "@/lib/terminal/types";
 import type { Source } from "@/lib/types";
+import type { VoiceTurn } from "@/lib/voice/transcripts";
 import { ApiContext, ViewContext, type TerminalApi, type TerminalView } from "./context";
 import { EntryList } from "./entry-list";
 import { GuiView } from "./gui-view";
@@ -391,6 +392,19 @@ export default function Terminal({
     after(50, focus);
   }
 
+  function voiceEnded(note: string) {
+    dispatch({ type: "VOICE", on: false });
+    after(0, () => push(prose([L(note, "muted")])));
+    after(50, focus);
+  }
+
+  function voiceTranscript(turns: VoiceTurn[]) {
+    for (const t of turns) {
+      if (t.who === "you") push({ kind: "voiceTurn", text: t.text });
+      else push(prose([LS([["◆ ", "accent"], [t.text, "base"]])]));
+    }
+  }
+
   function voiceAsk(text: string) {
     push({ kind: "voiceTurn", text });
     return ask(text);
@@ -729,7 +743,18 @@ export default function Terminal({
               />
             </section>
 
-            {s.voice && <VoiceMode theme={s.theme} thinking={s.thinking} onAsk={voiceAsk} onExit={exitVoice} />}
+            {s.voice && (
+              <VoiceMode
+                theme={s.theme}
+                thinking={s.thinking}
+                verbose={s.verbose}
+                onAsk={voiceAsk}
+                onExit={exitVoice}
+                onEnded={voiceEnded}
+                onStatus={(msg) => dispatch({ type: "STATUS", msg })}
+                onTranscript={voiceTranscript}
+              />
+            )}
 
             {s.viewerId && <SourceViewer sources={sources} viewerId={s.viewerId} isMobile={isMobile} onClose={closeViewer} onCopy={copyLink} />}
 

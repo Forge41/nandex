@@ -2,211 +2,87 @@
 
 import { AudioBars } from "@nandex/ui/audio-bars";
 import { TypingCaret } from "@nandex/ui/indicators";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 
-import { recognitionCtor, speechText, waveLevels, type Recognition } from "@/lib/voice/speech";
+import { requestVoiceToken } from "@/lib/api/portfolio";
+import { engineLabel, planFromToken, type VoicePlan } from "@/lib/voice/plan";
+import type { VoiceTurn } from "@/lib/voice/transcripts";
+import { useNow } from "./hooks";
 import { HangUpIcon, MicIcon, MicOffIcon, StopIcon } from "./icons";
 import { PhosphorPortrait } from "./phosphor-portrait";
+import { BARS, useBrowserVoice } from "./use-browser-voice";
+import { useLivekitVoice } from "./use-livekit-voice";
 
-const BARS = 56;
-const GREETING = "Hi, I'm Nandisha's agent. Ask me anything about his work — RAG, agents, voice, MCP.";
-const NOT_IN_DOCS = "That's not in my documents, so I won't guess. Leave a message with slash message.";
-
-type Turn = { who: "you" | "agent"; text: string };
+const pad = (n: number) => String(n).padStart(2, "0");
 
 export function VoiceMode({
   theme,
   thinking,
+  verbose,
   onAsk,
   onExit,
+  onEnded,
+  onStatus,
+  onTranscript,
 }: {
   theme: string;
   thinking: boolean;
+  verbose: boolean;
   onAsk: (text: string) => Promise<string | null>;
   onExit: () => void;
+  onEnded: (note: string) => void;
+  onStatus: (msg: string) => void;
+  onTranscript: (turns: VoiceTurn[]) => void;
 }) {
-  const [turns, setTurns] = useState<Turn[]>([]);
-  const [listening, setListening] = useState(false);
-  const [speaking, setSpeaking] = useState(false);
-  const [muted, setMuted] = useState(false);
-  const [live, setLive] = useState("");
-  const [micError, setMicError] = useState(() =>
-    recognitionCtor() ? "" : "Speech recognition isn't available in this browser. Type in the terminal — I'll still read answers aloud.",
-  );
-  const [levels, setLevels] = useState<number[]>(() => Array(BARS).fill(0));
-
-  const active = useRef(true);
-  const mutedRef = useRef(false);
-  const speakingRef = useRef(false);
-  const liveRef = useRef("");
-  const rec = useRef<Recognition | null>(null);
-  const waveTimer = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
-  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const [plan, setPlan] = useState<VoicePlan | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const api = useRef<{ say: (text: string, done?: () => void) => void; listen: () => void }>({ say: () => {}, listen: () => {} });
+  const now = useNow();
 
-  const after = (ms: number, fn: () => void) => timers.current.push(setTimeout(fn, ms));
-  const wave = (energy: () => number, ms: number) => {
-    clearInterval(waveTimer.current);
-    waveTimer.current = setInterval(() => setLevels(waveLevels(BARS, energy())), ms);
+  const choose = (next: VoicePlan) => {
+    if (next.engine === "text") return onEnded(next.reason);
+    setPlan(next);
+    onStatus(next.engine === "browser" ? `voice: browser fallback — ${next.reason} · esc to end` : "voice: live agent · esc to end");
   };
-  const flat = () => {
-    clearInterval(waveTimer.current);
-    setLevels(Array(BARS).fill(0));
-  };
-  const stopRec = () => {
-    const r = rec.current;
-    rec.current = null;
-    if (!r) return;
-    r.onend = null;
-    try {
-      r.stop();
-    } catch {}
-  };
-
-  const turn = (who: Turn["who"], text: string) => setTurns((t) => [...t, { who, text }]);
-
-  const say = (text: string, done?: () => void) => {
-    const plain = speechText(text);
-    turn("agent", plain);
-    speakingRef.current = true;
-    setSpeaking(true);
-    setListening(false);
-    wave(() => 0.7, 110);
-    let finished = false;
-    const finish = () => {
-      if (finished) return;
-      finished = true;
-      speakingRef.current = false;
-      setSpeaking(false);
-      flat();
-      if (active.current && done) done();
-    };
-    const synth = typeof window !== "undefined" ? window.speechSynthesis : undefined;
-    if (!synth) {
-      after(Math.min(6000, 1200 + plain.length * 28), finish);
-      return;
-    }
-    synth.cancel();
-    const u = new SpeechSynthesisUtterance(plain);
-    u.rate = 1.03;
-    u.pitch = 1;
-    const v = synth.getVoices().find((x) => /en-(GB|IN|US)/.test(x.lang) && !/female/i.test(x.name));
-    if (v) u.voice = v;
-    u.onend = finish;
-    u.onerror = finish;
-    synth.speak(u);
-    after(Math.min(12000, 1500 + plain.length * 60), finish);
-  };
-
-  const listen = () => {
-    if (!active.current || mutedRef.current || speakingRef.current) return;
-    const SR = recognitionCtor();
-    if (!SR) return;
-    stopRec();
-    const r = new SR();
-    rec.current = r;
-    r.lang = "en-US";
-    r.interimResults = true;
-    r.continuous = false;
-    let finalText = "";
-    r.onstart = () => {
-      setListening(true);
-      liveRef.current = "";
-      setLive("");
-      wave(() => (liveRef.current ? 0.9 : 0.25), 100);
-    };
-    r.onresult = (ev) => {
-      let interim = "";
-      for (let i = ev.resultIndex; i < ev.results.length; i++) {
-        const res = ev.results[i];
-        if (res.isFinal) finalText += res[0].transcript;
-        else interim += res[0].transcript;
-      }
-      liveRef.current = (finalText + " " + interim).trim();
-      setLive(liveRef.current);
-    };
-    r.onerror = (ev) => {
-      if (ev.error === "not-allowed" || ev.error === "service-not-allowed") {
-        setMicError("Microphone blocked. Allow the mic for this page, or type in the terminal — I'll read answers aloud.");
-        mutedRef.current = true;
-        setMuted(true);
-      }
-      if (ev.error === "network") {
-        setMicError("Speech service unreachable. Type in the terminal — I'll read answers aloud.");
-        mutedRef.current = true;
-        setMuted(true);
-      }
-    };
-    r.onend = () => {
-      const t = (finalText || liveRef.current).trim();
-      setListening(false);
-      liveRef.current = "";
-      setLive("");
-      flat();
-      if (rec.current !== r) return;
-      rec.current = null;
-      if (t) {
-        turn("you", t);
-        void onAsk(t).then((answer) => {
-          if (active.current) say(answer ?? NOT_IN_DOCS, () => api.current.listen());
-        });
-      } else if (active.current && !mutedRef.current && !speakingRef.current) after(250, () => api.current.listen());
-    };
-    try {
-      r.start();
-    } catch {
-      after(400, () => api.current.listen());
-    }
-  };
+  const chooseFromToken = useEffectEvent(choose);
 
   useEffect(() => {
-    api.current = { say, listen };
-  });
-
-  useEffect(() => {
-    active.current = true;
-    const t = setTimeout(() => api.current.say(GREETING, () => api.current.listen()), 500);
-    const pending = timers.current;
+    let live = true;
+    void requestVoiceToken().then((res) => live && chooseFromToken(planFromToken(res)));
     return () => {
-      active.current = false;
-      clearTimeout(t);
-      pending.forEach(clearTimeout);
-      clearInterval(waveTimer.current);
-      stopRec();
-      window.speechSynthesis?.cancel();
+      live = false;
     };
   }, []);
 
+  const lk = useLivekitVoice(plan?.engine === "livekit" ? plan.token : null, {
+    onFail: (next) => choose(next),
+    onEnded: () => onEnded("voice ended — keep typing"),
+  });
+  const browser = useBrowserVoice(plan?.engine === "browser", onAsk);
+  const engine = plan?.engine === "livekit" ? lk : browser;
+  const { turns, listening, speaking, muted, levels, live, micError, toggleMute, interrupt } = engine;
+
+  const turnsRef = useRef<VoiceTurn[]>([]);
   useEffect(() => {
+    turnsRef.current = turns;
     const c = scrollRef.current;
     if (c) c.scrollTop = c.scrollHeight;
   }, [turns]);
 
-  const interrupt = () => {
-    window.speechSynthesis?.cancel();
-    speakingRef.current = false;
-    setSpeaking(false);
-    flat();
-    listen();
-  };
+  const handOff = useEffectEvent(() => {
+    if (plan?.engine === "livekit") onTranscript(turnsRef.current.filter((t) => t.final));
+  });
+  useEffect(() => () => handOff(), []);
 
-  const toggleMute = () => {
-    const m = !mutedRef.current;
-    mutedRef.current = m;
-    setMuted(m);
-    if (m) {
-      stopRec();
-      flat();
-      setListening(false);
-      liveRef.current = "";
-      setLive("");
-    } else listen();
-  };
+  const remaining =
+    plan?.engine === "livekit" && lk.connectedAt && plan.token.maxMinutes
+      ? Math.max(0, lk.connectedAt + plan.token.maxMinutes * 60000 - now)
+      : null;
+  const limitLabel =
+    remaining != null ? `${Math.floor(remaining / 60000)}:${pad(Math.floor(remaining / 1000) % 60)} left` : "";
 
   const tone = listening ? "var(--t-green)" : speaking ? "var(--t-accent)" : "var(--t-dim)";
   const animated = listening || speaking;
-  const state = listening ? (live ? "hearing you…" : "listening") : speaking ? "speaking" : thinking ? "thinking" : muted ? "mic muted" : "idle";
+  const state = !plan ? "connecting…" : listening ? (live ? "hearing you…" : "listening") : speaking ? "speaking" : thinking ? "thinking" : muted ? "mic muted" : "idle";
   const ring = (inset: string, width: number, delay: string, idleColor: string): React.CSSProperties => ({
     position: "absolute",
     inset,
@@ -222,9 +98,14 @@ export function VoiceMode({
       aria-label="voice mode"
       className="absolute inset-0 z-[25] flex items-stretch justify-center bg-tm-bg"
       style={{ animation: "tFade .25s ease-out" }}
+      onClick={lk.startAudio}
     >
       <div className="flex min-h-0 w-full max-w-[680px] flex-col" style={{ animation: "tReveal .35s cubic-bezier(.2,.8,.2,1)" }}>
-        <div className="flex h-[30px] flex-none items-center gap-2 border-b border-tm-border px-3 text-[11px] uppercase tracking-[.08em] text-tm-muted" />
+        <div className="flex h-[30px] flex-none items-center gap-2 border-b border-tm-border px-3 text-[11px] uppercase tracking-[.08em] text-tm-muted">
+          <span className="tabular-nums">{limitLabel}</span>
+          <span className="flex-1" />
+          {verbose && <span className="truncate normal-case tracking-normal text-tm-dim">{engineLabel(plan)}</span>}
+        </div>
         <div className="flex flex-none flex-col items-center gap-3.5 px-4 pb-[18px] pt-[34px] max-[859px]:pt-5">
           <div className="relative flex size-[236px] items-center justify-center max-[859px]:size-[180px]">
             <span style={ring("0", 2, "0s", "var(--t-border)")} />
@@ -253,12 +134,15 @@ export function VoiceMode({
           />
         </div>
         <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-auto px-7 pb-3 pt-2 text-[13px] max-[859px]:px-4">
-          {turns.map((t, i) => (
-            <div key={i} className="flex gap-2.5">
+          {turns.map((t) => (
+            <div key={t.id} className="flex gap-2.5" style={t.final ? undefined : { color: "var(--t-muted)" }}>
               <span className="w-11 flex-none" style={{ color: t.who === "you" ? "var(--t-green)" : "var(--t-accent)" }}>
                 {t.who}
               </span>
-              <span className="leading-[1.6] [overflow-wrap:anywhere]">{t.text}</span>
+              <span className="leading-[1.6] [overflow-wrap:anywhere]">
+                {t.text}
+                {!t.final && <TypingCaret height={13} className="ml-[3px]" style={{ background: "var(--t-green)" }} />}
+              </span>
             </div>
           ))}
           {live && (
@@ -294,8 +178,9 @@ export function VoiceMode({
             type="button"
             title="stop talking"
             aria-label="stop talking"
-            className="t-reset inline-flex size-[38px] items-center justify-center border border-tm-border text-tm-sub hover:border-tm-accent hover:text-tm-accent"
-            onClick={interrupt}
+            disabled={!interrupt}
+            className="t-reset inline-flex size-[38px] items-center justify-center border border-tm-border text-tm-sub hover:border-tm-accent hover:text-tm-accent disabled:cursor-default disabled:opacity-40"
+            onClick={() => interrupt?.()}
           >
             <StopIcon />
           </button>

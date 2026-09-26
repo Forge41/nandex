@@ -1,3 +1,5 @@
+import { parseToken, type TokenResult } from "@/lib/voice/plan";
+
 import { createSSEParser, parseEvent, type PortfolioEvent } from "./sse";
 
 export type { PortfolioEvent, RetrievedSource } from "./sse";
@@ -129,5 +131,19 @@ export async function pingHealth(fetchImpl: typeof fetch = fetch, timeoutMs = 60
     return res.ok;
   } catch {
     return false;
+  }
+}
+
+export async function requestVoiceToken(fetchImpl: typeof fetch = fetch): Promise<TokenResult> {
+  try {
+    const res = await fetchImpl("/api/portfolio/voice/token", { method: "POST", signal: AbortSignal.timeout(15000) });
+    if (res.status !== 201) {
+      const { detail } = await readDetail(res);
+      return { ok: false, status: res.status, detail };
+    }
+    const token = parseToken(await res.json().catch(() => null));
+    return token ? { ok: true, token } : { ok: false, status: res.status, detail: "malformed voice token" };
+  } catch {
+    return { ok: false, status: null, detail: "voice service unreachable" };
   }
 }
