@@ -15,29 +15,32 @@ describe("voice mode decision", () => {
       engine: "livekit",
       token: { token: "t", wsUrl: "wss://lk", roomName: "r", identity: "visitor-1", expiresIn: 600, maxMinutes: 5 },
     });
-    expect(engineLabel(plan)).toBe("engine: livekit agent");
+    expect(engineLabel(plan)).toBe("engine: livekit agent · r");
   });
 
-  it("falls back to the browser on 503, 429 and network errors, carrying the detail", async () => {
+  it("offers no stand-in voice on 503, 429 or network errors, and says why", async () => {
     expect(planFromToken(await requestVoiceToken(respond(503, { detail: "voice is disabled", fallback: true })))).toEqual({
-      engine: "browser",
-      reason: "voice is disabled",
+      engine: "text",
+      reason: "voice unavailable: voice is disabled — keep typing.",
     });
-    expect(planFromToken(await requestVoiceToken(respond(429, { detail: "slow down", fallback: true })))).toMatchObject({ engine: "browser" });
+    expect(planFromToken(await requestVoiceToken(respond(429, { detail: "Too many.", fallback: true })))).toEqual({
+      engine: "text",
+      reason: "voice unavailable: Too many — keep typing.",
+    });
     const offline = (async () => {
       throw new TypeError("Failed to fetch");
     }) as unknown as typeof fetch;
     const plan = planFromToken(await requestVoiceToken(offline));
-    expect(plan).toEqual({ engine: "browser", reason: "voice service unreachable" });
-    expect(engineLabel(plan)).toBe("engine: browser (fallback: voice service unreachable)");
+    expect(plan).toEqual({ engine: "text", reason: "voice unavailable: voice service unreachable — keep typing." });
+    expect(engineLabel(plan)).toBe("engine: none (voice unavailable: voice service unreachable — keep typing.)");
   });
 
-  it("drops to text when the mic is denied, and to the browser on other connect errors", () => {
+  it("returns to typing when the mic is denied or the agent can't be reached", () => {
     const denied = Object.assign(new Error("Permission denied"), { name: "NotAllowedError" });
     expect(planFromConnectError(denied)).toEqual({ engine: "text", reason: MIC_DENIED });
-    expect(planFromConnectError(new Error("could not establish signal connection"))).toEqual({
-      engine: "browser",
-      reason: "could not establish signal connection",
+    expect(planFromConnectError(new Error("could not establish pc connection"))).toEqual({
+      engine: "text",
+      reason: "voice unavailable: could not establish pc connection — keep typing.",
     });
   });
 });

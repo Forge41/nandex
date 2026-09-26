@@ -4,11 +4,25 @@ import { Room, RoomEvent, Track, type RemoteParticipant, type RemoteTrack } from
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 
 import { planFromConnectError, type VoicePlan, type VoiceToken } from "@/lib/voice/plan";
-import { waveLevels } from "@/lib/voice/speech";
-import { segmentFromStream, segmentsToTurns, upsertSegment, type Segment } from "@/lib/voice/transcripts";
-import { BARS, flatLevels, type VoiceEngineState } from "./use-browser-voice";
+import { waveLevels } from "@/lib/voice/levels";
+import { segmentFromStream, segmentsToTurns, upsertSegment, type Segment, type VoiceTurn } from "@/lib/voice/transcripts";
 
 const TOPIC = "lk.transcription";
+
+export const BARS = 56;
+const flatLevels = () => Array<number>(BARS).fill(0);
+
+export type VoiceEngineState = {
+  turns: VoiceTurn[];
+  listening: boolean;
+  speaking: boolean;
+  muted: boolean;
+  levels: number[];
+  live: string;
+  micError: string;
+  toggleMute: () => void;
+  interrupt: (() => void) | null;
+};
 
 export type LivekitHandlers = {
   /** Connecting failed before the conversation started; the caller picks the next engine. */

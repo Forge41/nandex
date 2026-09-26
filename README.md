@@ -359,6 +359,11 @@ tells the page to answer from its offline matcher instead. Editing a file in
 `portfolio/content/sources/` and re-seeding stores a new version; the core container seeds on
 every boot.
 
+`/voice` talks to the same LiveKit agent as the interview room (`agent/`), dispatched with mode
+`portfolio`, so it speaks with the same STT/TTS. It is on only when `PORTFOLIO_VOICE_ENABLED=true`
+and the worker is running (`make serve-all`); otherwise the page says voice is unavailable and
+the visitor keeps typing -- there is no stand-in voice.
+
 ## Contributing
 
 Read [AGENTS.md](AGENTS.md) first — it's the canonical source for this repo's hard rules

@@ -9,15 +9,15 @@ export type VoiceToken = {
 
 export type TokenResult = { ok: true; token: VoiceToken } | { ok: false; status: number | null; detail: string };
 
-export type VoicePlan =
-  | { engine: "livekit"; token: VoiceToken }
-  | { engine: "browser"; reason: string }
-  | { engine: "text"; reason: string };
+export type VoicePlan = { engine: "livekit"; token: VoiceToken } | { engine: "text"; reason: string };
+
+const unavailable = (why: string) => `voice unavailable: ${why.replace(/\.+$/, "")} — keep typing.`;
 
 export const MIC_DENIED = "microphone blocked — allow the mic to talk, or keep typing.";
 
+// Voice is the agent or nothing: a stand-in voice would misrepresent what a visitor is talking to.
 export function planFromToken(res: TokenResult): VoicePlan {
-  return res.ok ? { engine: "livekit", token: res.token } : { engine: "browser", reason: res.detail };
+  return res.ok ? { engine: "livekit", token: res.token } : { engine: "text", reason: unavailable(res.detail) };
 }
 
 export function isMicDenied(err: unknown): boolean {
@@ -25,17 +25,15 @@ export function isMicDenied(err: unknown): boolean {
   return err.name === "NotAllowedError" || err.name === "PermissionDeniedError" || /permission|not allowed|denied/i.test(err.message);
 }
 
-/** The browser sim needs the mic too, so a denied mic goes straight to typing. */
 export function planFromConnectError(err: unknown): VoicePlan {
   if (isMicDenied(err)) return { engine: "text", reason: MIC_DENIED };
-  return { engine: "browser", reason: err instanceof Error && err.message ? err.message : "could not reach the voice agent" };
+  const why = err instanceof Error && err.message ? err.message : "could not reach the voice agent";
+  return { engine: "text", reason: unavailable(why) };
 }
 
 export function engineLabel(plan: VoicePlan | null): string {
   if (!plan) return "engine: connecting…";
-  if (plan.engine === "livekit") return "engine: livekit agent";
-  if (plan.engine === "browser") return `engine: browser (fallback: ${plan.reason})`;
-  return `engine: text (${plan.reason})`;
+  return plan.engine === "livekit" ? `engine: livekit agent · ${plan.token.roomName}` : `engine: none (${plan.reason})`;
 }
 
 export function parseToken(body: unknown): VoiceToken | null {

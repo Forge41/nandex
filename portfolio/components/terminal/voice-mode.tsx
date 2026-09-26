@@ -10,8 +10,7 @@ import type { VoiceTurn } from "@/lib/voice/transcripts";
 import { useNow } from "./hooks";
 import { HangUpIcon, MicIcon, MicOffIcon, StopIcon } from "./icons";
 import { PhosphorPortrait } from "./phosphor-portrait";
-import { BARS, useBrowserVoice } from "./use-browser-voice";
-import { useLivekitVoice } from "./use-livekit-voice";
+import { BARS, useLivekitVoice } from "./use-livekit-voice";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -19,7 +18,6 @@ export function VoiceMode({
   theme,
   thinking,
   verbose,
-  onAsk,
   onExit,
   onEnded,
   onStatus,
@@ -28,7 +26,6 @@ export function VoiceMode({
   theme: string;
   thinking: boolean;
   verbose: boolean;
-  onAsk: (text: string) => Promise<string | null>;
   onExit: () => void;
   onEnded: (note: string) => void;
   onStatus: (msg: string) => void;
@@ -41,7 +38,7 @@ export function VoiceMode({
   const choose = (next: VoicePlan) => {
     if (next.engine === "text") return onEnded(next.reason);
     setPlan(next);
-    onStatus(next.engine === "browser" ? `voice: browser fallback — ${next.reason} · esc to end` : "voice: live agent · esc to end");
+    onStatus("voice: live agent · esc to end");
   };
   const chooseFromToken = useEffectEvent(choose);
 
@@ -57,9 +54,7 @@ export function VoiceMode({
     onFail: (next) => choose(next),
     onEnded: () => onEnded("voice ended — keep typing"),
   });
-  const browser = useBrowserVoice(plan?.engine === "browser", onAsk);
-  const engine = plan?.engine === "livekit" ? lk : browser;
-  const { turns, listening, speaking, muted, levels, live, micError, toggleMute, interrupt } = engine;
+  const { turns, listening, speaking, muted, levels, live, micError, toggleMute, interrupt } = lk;
 
   const turnsRef = useRef<VoiceTurn[]>([]);
   useEffect(() => {
@@ -68,9 +63,7 @@ export function VoiceMode({
     if (c) c.scrollTop = c.scrollHeight;
   }, [turns]);
 
-  const handOff = useEffectEvent(() => {
-    if (plan?.engine === "livekit") onTranscript(turnsRef.current.filter((t) => t.final));
-  });
+  const handOff = useEffectEvent(() => onTranscript(turnsRef.current.filter((t) => t.final)));
   useEffect(() => () => handOff(), []);
 
   const remaining =
@@ -93,7 +86,7 @@ export function VoiceMode({
 
   return (
     <div
-      data-screen-label="Voice simulator"
+      data-screen-label="Voice"
       role="dialog"
       aria-label="voice mode"
       className="absolute inset-0 z-[25] flex items-stretch justify-center bg-tm-bg"

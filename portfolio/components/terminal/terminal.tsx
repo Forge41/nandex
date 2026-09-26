@@ -405,11 +405,6 @@ export default function Terminal({
     }
   }
 
-  function voiceAsk(text: string) {
-    push({ kind: "voiceTurn", text });
-    return ask(text);
-  }
-
   function share() {
     const cmds = shareableCommands(latest.current.entries);
     if (!cmds.length) {
@@ -748,7 +743,6 @@ export default function Terminal({
                 theme={s.theme}
                 thinking={s.thinking}
                 verbose={s.verbose}
-                onAsk={voiceAsk}
                 onExit={exitVoice}
                 onEnded={voiceEnded}
                 onStatus={(msg) => dispatch({ type: "STATUS", msg })}
