@@ -122,9 +122,16 @@ resource "aws_instance" "app" {
   # hostname arrives with the first deploy.
   user_data = file("${path.module}/user_data.sh")
 
-  # user_data only runs on first boot. Changing it should replace the instance rather
-  # than leave a box running a script it never executed.
-  user_data_replace_on_change = true
+  # user_data runs on first boot only, and the database lives in a docker volume on
+  # this instance's root disk -- so replacing the box to pick up a bootstrap change
+  # would destroy the data to update a script that has already run. Changes here are
+  # for the *next* instance; rebuilding is deliberate (`terraform taint`, after moving
+  # the data or taking a dump).
+  #
+  # Remove this once pgdata is on its own EBS volume and replacement is survivable.
+  lifecycle {
+    ignore_changes = [user_data, ami]
+  }
 
   tags = { Name = "nandex-app" }
 }
