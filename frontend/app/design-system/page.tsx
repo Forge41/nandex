@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tag } from "@/components/ui/tag";
+import { Badge } from "@nandex/ui/badge";
+import { Tag } from "@nandex/ui/tag";
 import { Banner } from "@/components/ui/banner";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,8 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { IconButton } from "@/components/ui/icon-button";
-import { AudioBars } from "@/components/ui/audio-bars";
-import { LiveDot, StatusDot, TypingCaret } from "@/components/ui/indicators";
+import { AudioBars } from "@nandex/ui/audio-bars";
+import { LiveDot, StatusDot, TypingCaret } from "@nandex/ui/indicators";
 import { SegmentedProgress } from "@/components/ui/segmented-progress";
 import { SkeletonLines } from "@/components/ui/skeleton-lines";
 import { Segmented, SegmentedItem } from "@/components/ui/segmented";

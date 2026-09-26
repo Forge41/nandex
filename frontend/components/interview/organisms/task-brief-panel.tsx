@@ -1,4 +1,4 @@
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@nandex/ui/badge";
 import { Eyebrow, Mono } from "@/components/ui/typography";
 import { SegmentedProgress } from "@/components/ui/segmented-progress";
 import { attemptSegments } from "@/lib/interview/coding";

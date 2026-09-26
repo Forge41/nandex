@@ -1,5 +1,5 @@
 import * as React from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "./utils";
 
 /** Bar equaliser matching LiveKit's BarVisualizer geometry: uniform bars, gap
  * equal to bar width, scaled from the centre.

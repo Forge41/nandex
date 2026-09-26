@@ -100,8 +100,8 @@ make migrate
 # once: load the coding and SQL task banks into the database
 make load-tasks
 
-# once: frontend dependencies + env (defaults are enough for local dev)
-cd frontend && pnpm install && cp .env.example .env && cd ..
+# once: web dependencies (one pnpm workspace: frontend, portfolio, packages/ui) + env
+pnpm install && cp frontend/.env.example frontend/.env
 ```
 
 `importer`'s sync workflows and `ingest`'s ingestion workflows both run on
@@ -258,8 +258,8 @@ a local Temporal dev server itself (reusing one that's already running instead o
 starts every application process, and tears the whole group down together — on Ctrl-C, or the
 moment any single one of them exits on its own, so a crashed worker can't silently leave the rest
 running half-broken. It does still need a local Postgres already running (see Setup above), and
-`frontend/.env`/`frontend/node_modules` already set up (`cd frontend && pnpm install && cp
-.env.example .env` once — see [Running the frontend](#running-the-frontend) below) — it checks
+`frontend/.env`/`frontend/node_modules` already set up (`pnpm install && cp
+frontend/.env.example frontend/.env` once — see [Running the frontend](#running-the-frontend) below) — it checks
 for both up front and fails with a clear message rather than a stack trace if either is missing.
 For working on one piece at a time, run its target (`make asgi`, `make tps-grpc`, etc.) in its
 own terminal instead.

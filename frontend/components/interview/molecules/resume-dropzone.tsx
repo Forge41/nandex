@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@nandex/ui/badge";
 import { Eyebrow } from "@/components/ui/typography";
 
 const ACCEPTED = [

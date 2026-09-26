@@ -3,7 +3,7 @@
 import { VideoTrack } from "@livekit/components-react";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
-import { LiveDot } from "@/components/ui/indicators";
+import { LiveDot } from "@nandex/ui/indicators";
 import { Mono } from "@/components/ui/typography";
 import { CollapseIcon } from "@/components/interview/icons";
 import { TranscriptTurn } from "@/components/interview/molecules/transcript-turn";

@@ -82,9 +82,9 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: frontend/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
-        working-directory: frontend
+      - run: pnpm --filter @nandex/ui typecheck
       - run: pnpm exec tsc --noEmit
         working-directory: frontend
       - run: pnpm exec eslint

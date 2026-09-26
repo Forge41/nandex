@@ -1,7 +1,7 @@
 "use client";
 
 import { Eyebrow } from "@/components/ui/typography";
-import { StatusDot } from "@/components/ui/indicators";
+import { StatusDot } from "@nandex/ui/indicators";
 import { AgendaTick } from "@/components/interview/molecules/agenda-tick";
 import { AgendaItem } from "@/components/interview/molecules/agenda-item";
 import { ThemeToggle } from "@/components/interview/molecules/theme-toggle";

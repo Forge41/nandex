@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { Eyebrow } from "@/components/ui/typography";
-import { LiveDot } from "@/components/ui/indicators";
+import { LiveDot } from "@nandex/ui/indicators";
 import type { DesignEdge, DesignNode } from "@/lib/interview/types";
 
 const NODE_VARIANT = {

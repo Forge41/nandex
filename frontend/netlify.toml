@@ -1,0 +1,18 @@
+# Built from the repository root, not from frontend/: the pnpm workspace (lockfile,
+# packages/ui) lives there. Netlify reads this file because the site's package
+# directory is frontend, and every path below is relative to the repository root.
+[build]
+  command = "pnpm --filter frontend build"
+  publish = "frontend/.next"
+  # Exit 0 skips the build. The portfolio shares this repository, and its changes
+  # should not redeploy nandex.
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- frontend packages/ui pnpm-lock.yaml pnpm-workspace.yaml package.json"
+
+# Next.js on Netlify needs this to serve anything that is not a static file --
+# server components, the route handlers, and the streaming the plan screen depends on.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[build.environment]
+  NODE_VERSION = "22"
+  PNPM_VERSION = "11"

@@ -1,5 +1,5 @@
 import { Eyebrow, Mono } from "@/components/ui/typography";
-import { TypingCaret } from "@/components/ui/indicators";
+import { TypingCaret } from "@nandex/ui/indicators";
 import type { TerminalLine } from "@/lib/interview/types";
 
 /** Always dark, in both themes: a terminal that follows the app's light theme

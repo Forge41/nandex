@@ -11,8 +11,11 @@ resource "netlify_site_build_settings" "frontend" {
 
   site_id           = var.netlify_site_id
   production_branch = var.branch
-  base_directory    = "frontend"
-  build_command     = "pnpm build"
+  # Built from the repository root so the pnpm workspace resolves; frontend/ holds
+  # the site's netlify.toml.
+  base_directory    = ""
+  package_directory = "frontend"
+  build_command     = "pnpm --filter frontend build"
   publish_directory = "frontend/.next"
 
   # Off deliberately: a preview deploy of this frontend would point at the one

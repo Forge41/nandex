@@ -2,7 +2,7 @@
  *
  * Names mirror the Harvey design system export 1:1 so design markup ports
  * mechanically and a future design update diffs against this file directly.
- * Tailwind-facing aliases live in the @theme block in app/globals.css -- add
+ * Tailwind-facing aliases live in the @theme block in theme.css -- add
  * new tokens here first, then alias them there. */
 
 :root,

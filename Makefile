@@ -16,7 +16,7 @@ help: ## List available targets
 install: ## Install dependencies and git hooks
 	uv sync --all-groups
 	cd agent && uv sync --all-groups
-	cd frontend && pnpm install
+	pnpm install
 	$(MAKE) link-agents
 	$(MAKE) hooks
 

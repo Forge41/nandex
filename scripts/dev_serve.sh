@@ -38,7 +38,7 @@ if [ ! -f backend/.env ]; then
 fi
 
 if [ ! -f frontend/.env ] || [ ! -d frontend/node_modules ]; then
-    echo "error: frontend isn't set up -- see README Setup (cd frontend && pnpm install && cp .env.example .env)." >&2
+    echo "error: frontend isn't set up -- see README Setup (pnpm install && cp frontend/.env.example frontend/.env)." >&2
     exit 1
 fi
 

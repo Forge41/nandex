@@ -1,6 +1,6 @@
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@nandex/ui/badge";
 import { Eyebrow, Mono } from "@/components/ui/typography";
-import { StatusDot } from "@/components/ui/indicators";
+import { StatusDot } from "@nandex/ui/indicators";
 import { testDot, testLabel, testSummary } from "@/lib/interview/coding";
 import type { CodingTask, TestCase } from "@/lib/interview/types";
 

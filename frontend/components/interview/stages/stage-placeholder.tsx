@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@nandex/ui/badge";
 import { Eyebrow } from "@/components/ui/typography";
 import { useInterviewSession } from "@/lib/interview/session-provider";
 

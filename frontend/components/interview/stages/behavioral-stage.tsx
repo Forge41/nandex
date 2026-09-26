@@ -1,7 +1,7 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
-import { Tag } from "@/components/ui/tag";
+import { Badge } from "@nandex/ui/badge";
+import { Tag } from "@nandex/ui/tag";
 import { Eyebrow } from "@/components/ui/typography";
 import { RoundHeader } from "@/components/interview/molecules/round-header";
 import { TranscriptTurn } from "@/components/interview/molecules/transcript-turn";

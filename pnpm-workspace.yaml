@@ -1,0 +1,8 @@
+packages:
+  - frontend
+  - portfolio
+  - packages/*
+
+allowBuilds:
+  sharp: false
+  unrs-resolver: false
