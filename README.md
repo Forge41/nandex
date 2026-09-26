@@ -360,8 +360,8 @@ tells the page to answer from its offline matcher instead. Editing a file in
 every boot.
 
 `/voice` talks to the same LiveKit agent as the interview room (`agent/`), dispatched with mode
-`portfolio`, so it speaks with the same STT/TTS. It is on only when `PORTFOLIO_VOICE_ENABLED=true`
-and the worker is running (`make serve-all`); otherwise the page says voice is unavailable and
+`portfolio`, so it speaks with the same STT/TTS. `make serve-all` turns it on, since it runs the worker;
+elsewhere it needs `PORTFOLIO_VOICE_ENABLED=true` and a running worker; otherwise the page says voice is unavailable and
 the visitor keeps typing -- there is no stand-in voice.
 
 ## Contributing
