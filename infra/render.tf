@@ -9,6 +9,19 @@
 # Every one of them needs a Dockerfile that does not exist in this repo yet. See
 # .claude/plans/docs/terraform.md -- these paths are the contract, not a discovery.
 
+# Free for 30 days, then it expires -- Render's free tier is a trial, not a plan.
+# pgvector is available on Render Postgres and apps.ingest's migration creates the
+# extension itself, so nothing here has to enable it.
+resource "render_postgres" "main" {
+  name    = "nandex-db"
+  plan    = "free"
+  region  = var.render_region
+  version = "17"
+
+  database_name = "nandex"
+  database_user = "nandex"
+}
+
 resource "render_web_service" "core" {
   name   = "nandex-core"
   plan   = var.web_plan
@@ -37,6 +50,8 @@ resource "render_web_service" "core" {
     DJANGO_DEBUG                  = { value = "false" }
     INTERVIEW_RECORDING_ENABLED   = { value = "false" }
     INTERVIEW_TEMPORAL_TASK_QUEUE = { value = "interview" }
+    # Internal, so the database is never exposed to the public internet.
+    DATABASE_URL = { value = render_postgres.main.connection_info.internal_connection_string }
   }
 }
 
@@ -57,6 +72,7 @@ resource "render_background_worker" "temporal" {
   env_vars = {
     DJANGO_DEBUG                = { value = "false" }
     INTERVIEW_RECORDING_ENABLED = { value = "false" }
+    DATABASE_URL                = { value = render_postgres.main.connection_info.internal_connection_string }
   }
 }
 
