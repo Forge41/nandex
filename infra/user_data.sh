@@ -17,6 +17,14 @@ curl -fsSL https://github.com/docker/compose/releases/latest/download/docker-com
     -o /usr/libexec/docker/cli-plugins/docker-compose
 chmod +x /usr/libexec/docker/cli-plugins/docker-compose
 
+# buildx too. Amazon Linux's docker package does not ship it, and Compose v2 refuses to
+# build without it -- "compose build requires buildx 0.17.0 or later".
+BUILDX_VERSION=$(curl -fsSL https://api.github.com/repos/docker/buildx/releases/latest \
+    | grep -o '"tag_name": "[^"]*' | cut -d'"' -f4)
+curl -fsSL "https://github.com/docker/buildx/releases/download/${BUILDX_VERSION}/buildx-${BUILDX_VERSION}.linux-arm64" \
+    -o /usr/libexec/docker/cli-plugins/docker-buildx
+chmod +x /usr/libexec/docker/cli-plugins/docker-buildx
+
 install -d -m 0755 /opt/nandex
 git clone --depth 1 https://github.com/Forge41/nandex.git /opt/nandex/app
 
