@@ -64,6 +64,9 @@ never writes it, and the call emits a fraction of the tokens it used to.
 
 ```
 frontend/          Next.js app: chat UI + integrations marketplace
+portfolio/         Next.js app: the terminal portfolio, deployed as its own Netlify site
+  content/sources/  the portfolio's citable sources, seeded into retrieval
+packages/ui/       @nandex/ui: tokens, Tailwind theme and primitives both apps share
 backend/
   config/           Django project (settings, urls, asgi)
   ai/               Anthropic client, model registry, prompts as .md files -- no Django import
@@ -73,6 +76,7 @@ backend/
     ingest/         parse -> chunk -> embed -> index pipeline, Temporal-orchestrated
     retrieval/      hybrid search (pgvector + Postgres FTS) -> RRF fusion -> rerank
     chat/           Conversation/Message models; streams an ai/-generated, cited answer
+    portfolio/      anonymous ask/fit/message endpoints for the portfolio, over retrieval
     core/           users, workspaces, projects; the clients to every leaf service
     interview/      sessions, rounds, the resume plan, the task banks, code runs
     runner/         the code-execution sandbox; its own ASGI app on :8002
@@ -337,6 +341,23 @@ Every `tps` endpoint requires an `X-TPS-Secret` header (`TPS_TPS_SECRET` in your
 ```bash
 curl -H "X-TPS-Secret: <value>" http://localhost:8000/apps
 ```
+
+## Running the portfolio
+
+The portfolio shares the backend, the database and `@nandex/ui` with nandex, and deploys on its
+own (`portfolio/netlify.toml`, `infra/netlify.tf`). Locally:
+
+```bash
+make seed-portfolio   # store + index portfolio/content/sources (idempotent)
+make portfolio        # http://localhost:3001, proxies /api/* to BACKEND_ORIGIN
+```
+
+`POST /portfolio/ask` and `/portfolio/fit` stream answers over SSE (run the backend under
+`make asgi`), citing sources inline as `[source-id]`. They need no session, are rate limited per
+IP and capped per day (`PORTFOLIO_*` settings in `apps/portfolio/config.py`), and every refusal
+tells the page to answer from its offline matcher instead. Editing a file in
+`portfolio/content/sources/` and re-seeding stores a new version; the core container seeds on
+every boot.
 
 ## Contributing
 

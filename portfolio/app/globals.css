@@ -1,0 +1,193 @@
+@import "tailwindcss";
+@import "@nandex/ui/styles/tokens.css";
+@import "@nandex/ui/styles/theme.css";
+
+@theme inline {
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --color-tm-bg: var(--t-bg);
+  --color-tm-panel: var(--t-panel);
+  --color-tm-raise: var(--t-raise);
+  --color-tm-fg: var(--t-fg);
+  --color-tm-sub: var(--t-sub);
+  --color-tm-muted: var(--t-muted);
+  --color-tm-dim: var(--t-dim);
+  --color-tm-border: var(--t-border);
+  --color-tm-accent: var(--t-accent);
+  --color-tm-green: var(--t-green);
+  --color-tm-red: var(--t-red);
+  --color-tm-blue: var(--t-blue);
+  --color-tm-violet: var(--t-violet);
+  --color-tm-sel: var(--t-sel);
+  --color-tm-hl: var(--t-hl);
+}
+
+/* Terminal palette; /theme overrides these inline on the root. */
+.terminal-root {
+  --t-bg: hsl(30 7% 5%);
+  --t-panel: hsl(40 6% 8%);
+  --t-raise: hsl(40 6% 12%);
+  --t-fg: hsl(34 11% 88%);
+  --t-sub: hsl(38 5% 71%);
+  --t-muted: hsl(40 4% 60%);
+  --t-dim: hsl(38 4% 42%);
+  --t-border: hsl(0 0% 100% / 0.1);
+  --t-accent: hsl(41 76% 52%);
+  --t-green: hsl(151 51% 49%);
+  --t-red: hsl(355 85% 69%);
+  --t-blue: hsl(222 84% 69%);
+  --t-violet: hsl(256 83% 74%);
+  --t-sel: hsl(0 0% 100% / 0.07);
+  --t-hl: hsl(41 76% 52% / 0.14);
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: hsl(30 7% 5%);
+  overflow: hidden;
+}
+
+@layer components {
+  .terminal-root a {
+    color: inherit;
+  }
+  .terminal-root a:hover {
+    color: hsl(41 76% 48%);
+  }
+  .terminal-root input,
+  .terminal-root textarea,
+  .terminal-root button {
+    font-family: inherit;
+  }
+  .terminal-root input:focus,
+  .terminal-root textarea:focus {
+    outline: none;
+  }
+  .terminal-root ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .terminal-root ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.14);
+    border-radius: 4px;
+  }
+  .terminal-root ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  /* The design's `all: unset` buttons; in a layer so utilities still win. */
+  .t-reset {
+    all: unset;
+    box-sizing: border-box;
+    cursor: pointer;
+  }
+  .t-reset:focus-visible {
+    outline: 1px solid var(--t-accent);
+    outline-offset: 2px;
+  }
+}
+
+@keyframes tCaret {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes tPulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes tReveal {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes tFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes tFlicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 0.85;
+  }
+  94% {
+    opacity: 1;
+  }
+  97% {
+    opacity: 0.9;
+  }
+}
+@keyframes tScan {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 0 6px;
+  }
+}
+@keyframes tSlideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes tSlideUp {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes tRing {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .terminal-root *,
+  .terminal-root *::before,
+  .terminal-root *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
