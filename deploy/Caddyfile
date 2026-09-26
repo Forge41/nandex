@@ -1,0 +1,13 @@
+# TLS for the API. Netlify proxies /api/* here, and that hop crosses the public
+# internet, so it needs a real certificate -- Caddy gets one from Let's Encrypt for
+# the nip.io hostname automatically.
+
+{$APP_HOST} {
+	encode zstd gzip
+
+	# The plan screen streams; buffering it would defeat the point of the checklist
+	# arriving step by step.
+	reverse_proxy core:8000 {
+		flush_interval -1
+	}
+}

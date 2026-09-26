@@ -56,3 +56,26 @@ variable "enable_workers" {
   type        = bool
   default     = false
 }
+
+variable "aws_profile" {
+  type    = string
+  default = "personal"
+}
+
+variable "aws_region" {
+  description = "The only region SCP p-u5qwnset permits for compute. us-east-1 denies EC2 outright."
+  type        = string
+  default     = "ap-southeast-2"
+}
+
+variable "instance_type" {
+  description = "2 vCPU / 8 GB. A 4 GB box cannot hold the runner's own concurrency limit."
+  type        = string
+  default     = "t4g.large"
+}
+
+variable "secret_name" {
+  description = "Secrets Manager secret holding the runtime environment, written by make aws-secrets."
+  type        = string
+  default     = "nandex/app-env"
+}

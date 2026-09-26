@@ -1,0 +1,102 @@
+# The deployed stack. One EC2 instance in ap-southeast-2 runs all of this; the
+# frontend is on Netlify, Temporal and LiveKit are managed.
+#
+# Brought up by infra/user_data.sh on first boot and by SSM Run Command thereafter:
+#   docker compose -f deploy/docker-compose.prod.yml --env-file /opt/nandex/.env up -d --build
+
+name: nandex
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      # <public-ip>.nip.io, written by user_data. Caddy gets a Let's Encrypt
+      # certificate for it, which is what lets Netlify proxy to this over HTTPS.
+      APP_HOST: ${APP_HOST}
+    depends_on:
+      - core
+
+  postgres:
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-ragdb}
+      POSTGRES_USER: ${DB_USER:-ragdb}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-ragdb}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  core:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.core
+    restart: unless-stopped
+    env_file: /opt/nandex/.env
+    environment:
+      PORT: "8000"
+      DB_HOST: postgres
+      DJANGO_DEBUG: "false"
+      # tps reaches itself over loopback inside this container; nothing external does.
+      CORE_TPS_GRPC_ADDRESS: localhost:50051
+      CORE_RUNNER_BASE_URL: http://runner:8002
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.worker
+    restart: unless-stopped
+    env_file: /opt/nandex/.env
+    environment:
+      DB_HOST: postgres
+      DJANGO_DEBUG: "false"
+      CORE_RUNNER_BASE_URL: http://runner:8002
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  agent:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.agent
+    restart: unless-stopped
+    env_file: /opt/nandex/.env
+    environment:
+      # Reaches core inside the compose network rather than back out through Caddy.
+      INTERVIEW_CORE_BASE_URL: http://core:8000
+    depends_on:
+      - core
+
+  # The only container with the Docker socket. It starts one throwaway container per
+  # submission, which is why it exists and why it is never published: anything that
+  # reaches it with its bearer token can start containers on this host.
+  runner:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.runner
+    restart: unless-stopped
+    env_file: /opt/nandex/.env
+    environment:
+      PORT: "8002"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
