@@ -6,6 +6,7 @@ import { LINKS, RECRUITER_TAGS } from "@/lib/terminal/constants";
 import type { Source } from "@/lib/types";
 import { GreenDot } from "./entries/whoami";
 import { PhosphorPortrait } from "./phosphor-portrait";
+import { ResumePage, useResumePageCount } from "./resume-page";
 
 const SHARE_TEXT = "Nandisha D — Generative AI Engineer. Talk to his terminal portfolio: ask about RAG, agents, MCP, voice.";
 
@@ -186,36 +187,8 @@ export function experience(byId: Record<string, Source>): Row[] {
   ];
 }
 
-export function ResumeModal({
-  byId,
-  skills,
-  onClose,
-}: {
-  byId: Record<string, Source>;
-  skills: { k: string; items: string[] }[];
-  onClose: () => void;
-}) {
-  const projects: Row[] = [
-    { when: "2026", title: "Harvey.ai POC — Voice-Native Legal RAG Assistant", text: byId["resume-voice"]?.text ?? "" },
-    { when: "2025 – Present", title: "GenAlpha CLI — API-to-MCP Server Generator", text: byId["resume-genalpha"]?.text ?? "" },
-    { when: "2025 – Present", title: "TPS — Embedded iPaaS Platform", text: byId["resume-tps"]?.text ?? "" },
-  ];
-  const section = (title: string, rows: Row[]) => (
-    <section>
-      <h2 className="t-eyebrow mb-2.5 border-b border-line pb-1.5 text-content-muted">{title}</h2>
-      <div className="flex flex-col gap-3">
-        {rows.map((x) => (
-          <div key={x.title} className="grid gap-x-4 gap-y-1 sm:grid-cols-[140px_1fr]">
-            <div className="t-small text-content-muted">{x.when}</div>
-            <div>
-              <div className="font-medium">{x.title}</div>
-              <div className="t-small mt-[3px] text-pretty text-content-subtle">{x.text}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
+export function ResumeModal({ onClose }: { onClose: () => void }) {
+  const pages = useResumePageCount();
   return (
     <div
       data-screen-label="Résumé modal"
@@ -232,7 +205,9 @@ export function ResumeModal({
         onClick={(ev) => ev.stopPropagation()}
       >
         <div className="flex flex-none items-center gap-2.5 border-b border-line px-4 py-2.5">
-          <span className="t-eyebrow text-content-muted">résumé · 1 page</span>
+          <span className="t-eyebrow text-content-muted">
+            résumé · {pages} page{pages === 1 ? "" : "s"}
+          </span>
           <span className="flex-1" />
           <a href={LINKS.resume} target="_blank" className="rounded-sm bg-btn-inverted px-2.5 py-1 text-xs font-medium text-content-on-interactive no-underline hover:bg-btn-inverted-hover">
             Download PDF
@@ -241,35 +216,10 @@ export function ResumeModal({
             esc · close
           </button>
         </div>
-        <div className="flex min-h-0 flex-1 flex-col gap-[22px] overflow-auto px-12 pb-14 pt-10 text-[13px] leading-[1.5] max-[859px]:px-5 max-[859px]:pt-6">
-          <header>
-            <h1 className="t-title">Nandisha D</h1>
-            <div className="t-body-md mt-1 text-content-subtle">Generative AI Engineer · LLM Systems, RAG Pipelines &amp; Agentic AI</div>
-            <div className="t-small mt-1.5 text-content-muted">
-              Bangalore, India · naik.nandishd@gmail.com · linkedin.com/in/nandishd · github.com/NandishNaik01 · nandishnaik.netlify.app
-            </div>
-          </header>
-          <p className="text-pretty">{byId["resume-summary"]?.text}</p>
-          {section("Experience", experience(byId))}
-          {section("Projects · open-source AI infrastructure", projects)}
-          <section>
-            <h2 className="t-eyebrow mb-2.5 border-b border-line pb-1.5 text-content-muted">Technical skills</h2>
-            <div className="flex flex-col gap-1.5">
-              {skills.map((g) => (
-                <div key={g.k} className="grid gap-x-4 gap-y-1 sm:grid-cols-[140px_1fr]">
-                  <div className="t-small text-content-muted">{g.k}</div>
-                  <div className="t-small">{g.items.join(", ")}</div>
-                </div>
-              ))}
-            </div>
-          </section>
-          <section>
-            <h2 className="t-eyebrow mb-2.5 border-b border-line pb-1.5 text-content-muted">Education &amp; certifications</h2>
-            <div className="t-small text-content-subtle">B.E. Computer Science &amp; Engineering, 2020 – 2024 · Shivamogga, Karnataka</div>
-            <div className="t-small mt-1 text-content-subtle">
-              Anthropic Academy (Jul 2026): Intro to MCP · Intro to Agent Skills · Claude Code in Action · Building with the Claude API
-            </div>
-          </section>
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto bg-surface-subtle p-4 max-[859px]:p-0">
+          {Array.from({ length: pages }, (_, i) => (
+            <ResumePage key={i} page={i + 1} className="w-full flex-none shadow-sm" />
+          ))}
         </div>
       </div>
     </div>

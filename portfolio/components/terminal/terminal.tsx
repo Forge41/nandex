@@ -771,7 +771,6 @@ export default function Terminal({
 
             {showInfoPane && (
               <InfoPane
-                sources={byId}
                 isMobile={isMobile}
                 onClose={() => dispatch({ type: "SHEET", open: false })}
                 onRun={(cmd) => submit(cmd)}
@@ -801,7 +800,7 @@ export default function Terminal({
             />
           )}
           {s.shareOpen && <ShareModal url={`${location.origin}${location.pathname}`} copyText={copyText} onClose={() => closePanel("shareOpen")} />}
-          {s.resumeOpen && <ResumeModal byId={byId} skills={SKILL_ROWS} onClose={() => closePanel("resumeOpen")} />}
+          {s.resumeOpen && <ResumeModal onClose={() => closePanel("resumeOpen")} />}
           {s.gui && <GuiView byId={byId} skills={SKILL_ROWS} onExit={() => closePanel("gui")} />}
         </div>
       </ViewContext.Provider>

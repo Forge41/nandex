@@ -5,10 +5,10 @@ import { useState } from "react";
 
 import { LINKS, SKILL_GRID, ICONS } from "@/lib/terminal/constants";
 import { industry } from "@/lib/terminal/time";
-import type { Source } from "@/lib/types";
 import { useNow } from "./hooks";
 import { FileIcon, GithubIcon, LinkedinIcon, MailIcon } from "./icons";
 import { GreenDot } from "./entries/whoami";
+import { ResumePage } from "./resume-page";
 
 const MONO: Record<string, string> = { SQL: "SQ" };
 
@@ -95,13 +95,11 @@ const linkTile =
   "flex items-center gap-2 border border-tm-border bg-tm-bg px-2.5 py-[7px] text-[11.5px] text-tm-sub no-underline transition-all duration-150 hover:border-tm-accent hover:bg-tm-hl hover:text-tm-accent";
 
 export function InfoPane({
-  sources,
   isMobile,
   onClose,
   onRun,
   onOpenResume,
 }: {
-  sources: Record<string, Source>;
   isMobile: boolean;
   onClose: () => void;
   onRun: (cmd: string) => void;
@@ -157,28 +155,13 @@ export function InfoPane({
         <button
           type="button"
           title="open résumé"
-          className="t-reset relative box-border flex aspect-[210/297] w-full flex-none flex-col items-stretch justify-start overflow-hidden border border-tm-border px-3.5 pt-3.5 text-left font-sans transition-[box-shadow,border-color] duration-200 hover:border-tm-accent hover:shadow-[0_0_28px_var(--t-hl)]"
-          style={{ background: "hsl(40 16% 96%)", color: "hsl(40 6% 10%)" }}
+          className="t-reset relative box-border block w-full flex-none overflow-hidden border border-tm-border text-left transition-[box-shadow,border-color] duration-200 hover:border-tm-accent hover:shadow-[0_0_28px_var(--t-hl)]"
           onClick={(ev) => {
             ev.stopPropagation();
             onOpenResume();
           }}
         >
-          <div className="font-serif text-[13px] leading-[1.1]">Nandisha D</div>
-          <div className="mt-0.5 text-[6px]" style={{ color: "hsl(36 5% 40%)" }}>
-            Generative AI Engineer · LLM Systems, RAG Pipelines &amp; Agentic AI
-          </div>
-          <div className="text-[5px]" style={{ color: "hsl(38 4% 50%)" }}>
-            Bangalore, India · naik.nandishd@gmail.com · linkedin.com/in/nandishd · github.com/NandishNaik01
-          </div>
-          <div className="mb-[5px] mt-1.5 h-px" style={{ background: "hsl(34 11% 88%)" }} />
-          <div className="text-justify text-[5px] leading-[1.5]">{sources["resume-summary"]?.text}</div>
-          <div className="mt-1.5 text-[6px] font-semibold">Experience</div>
-          <div className="text-[5px] leading-[1.5]">Think41 — Intern → SDE-I → SDE-II · Jun 2024 – Present</div>
-          <div className="text-justify text-[5px] leading-[1.5]" style={{ color: "hsl(36 5% 40%)" }}>
-            {sources["resume-sde2"]?.text}
-          </div>
-          <div className="absolute inset-x-0 bottom-0 h-14" style={{ background: "linear-gradient(to bottom,transparent,hsl(40 16% 96%) 70%)" }} />
+          <ResumePage />
           <div className="absolute inset-x-0 bottom-2 flex justify-center">
             <span className="border bg-white px-2 py-0.5 font-mono text-[10px] uppercase tracking-[.08em]" style={{ color: "hsl(36 5% 40%)", borderColor: "hsl(34 11% 88%)" }}>
               résumé · click to enlarge
