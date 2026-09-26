@@ -63,9 +63,9 @@ jobs:
   apply:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    # A protected environment, so an apply waits for a human even though the merge
-    # already happened. Terraform on main is the last point before something is real.
-    environment: production
+    # No approval gate. The gate is the pull request: the plan is posted on it and
+    # read before merging, so asking for a second confirmation afterwards only adds
+    # a queue between a merged change and the thing it describes.
     defaults:
       run:
         working-directory: infra

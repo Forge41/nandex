@@ -50,3 +50,9 @@ variable "netlify_team_id" {
   type    = string
   default = ""
 }
+
+variable "enable_workers" {
+  description = "Create the Temporal worker and the interviewer agent. Needs a card on the Render account, and a Temporal and a LiveKit endpoint for them to reach."
+  type        = bool
+  default     = false
+}

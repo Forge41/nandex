@@ -33,10 +33,40 @@ resource "render_web_service" "core" {
       branch          = var.branch
       dockerfile_path = "./deploy/Dockerfile.core"
       auto_deploy     = true
+      # A merge to main deploys the app. Terraform describes the service; Render's
+      # own git integration ships the code.
+      auto_deploy_trigger = "commit"
     }
   }
 
   health_check_path = "/health"
+
+  # Pinned to what the API already reports. Left unset, the provider plans them as
+  # "known after apply" on every run, and a free-tier service cannot be updated at
+  # all -- the provider sends maintenance_mode, which free rejects. So an unset
+  # optional field here is a permanently red apply rather than a cosmetic diff.
+  root_directory = ""
+
+  previews = {
+    generation = "off"
+  }
+
+  notification_override = {
+    notifications_to_send         = "default"
+    preview_notifications_enabled = "default"
+  }
+
+  lifecycle {
+    # Computed by the provider on every plan and not settable here --
+    # pull_request_previews_enabled cannot be combined with previews.generation, and
+    # slug is read-only. Left alone they make every plan dirty, and a dirty plan
+    # against a free-tier service is an apply that fails rather than one that drifts.
+    # pre_deploy_command is here for a different reason: Render accepted the field
+    # on a free service and silently dropped it, and the provider never reads it
+    # back, so state holds a value that was never real. Migrations run in the
+    # entrypoint instead, so nothing wants this attribute either way.
+    ignore_changes = [pull_request_previews_enabled, slug, pre_deploy_command]
+  }
 
   # Only values that are not secrets. Every credential is set once in the Render
   # dashboard and deliberately left out of here, because anything Terraform sets it
@@ -59,6 +89,11 @@ resource "render_web_service" "core" {
 }
 
 resource "render_background_worker" "temporal" {
+  # Background workers have no free instance type, so creating one needs a payment
+  # method on the Render account. Off by default: a plan that always fails teaches
+  # nobody anything, and this is one variable away from being on.
+  count = var.enable_workers ? 1 : 0
+
   name   = "nandex-worker"
   plan   = var.worker_plan
   region = var.render_region
@@ -80,6 +115,8 @@ resource "render_background_worker" "temporal" {
 }
 
 resource "render_background_worker" "agent" {
+  count = var.enable_workers ? 1 : 0
+
   name   = "nandex-agent"
   plan   = var.agent_plan
   region = var.render_region
