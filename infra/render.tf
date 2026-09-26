@@ -23,7 +23,7 @@ resource "render_web_service" "core" {
     }
   }
 
-  health_check_path = "/healthz"
+  health_check_path = "/health"
 
   # Migrations run here rather than in a CI job: Render blocks the deploy until this
   # exits zero, so a failed migration never becomes a running container against a

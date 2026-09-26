@@ -1,0 +1,36 @@
+# core ASGI and tps's gRPC server in one container.
+#
+# Two processes rather than two services because nothing outside reaches gRPC: core
+# calls tps over loopback. The rule in AGENTS.md is that tps must not import anything
+# above it, which is about imports and stays true here.
+
+FROM python:3.13-slim
+
+COPY --from=ghcr.io/astral-sh/uv:0.9.7 /uv /usr/local/bin/uv
+
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PROJECT_ENVIRONMENT=/usr/local \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app/backend
+
+# Dependencies resolve from the lock file alone, so this layer survives every change
+# that does not touch them.
+# Read by apps.tps.catalog as parents[3]/integrations.yaml -- one level above the
+# Django project, which is where it lives in the repo too.
+COPY integrations.yaml /app/integrations.yaml
+
+COPY backend/pyproject.toml backend/uv.lock ./
+RUN uv sync --frozen --no-dev --no-install-project
+
+COPY backend/ ./
+
+# Baked in at build time: an ASGI server serves no static files, and doing this at
+# boot would repeat the work on every restart and every replica.
+RUN DJANGO_SECRET_KEY=build-only python manage.py collectstatic --noinput
+
+COPY deploy/start-core.sh /usr/local/bin/start-core
+RUN chmod +x /usr/local/bin/start-core
+
+CMD ["start-core"]
