@@ -51,6 +51,18 @@ variable "netlify_team_id" {
   default = ""
 }
 
+variable "temporal_address" {
+  description = "host:port of the Temporal frontend the worker polls. Empty leaves the worker restarting until one exists."
+  type        = string
+  default     = ""
+}
+
+variable "livekit_url" {
+  description = "wss:// URL of the LiveKit server the agent registers with. Empty leaves the agent restarting until one exists."
+  type        = string
+  default     = ""
+}
+
 variable "enable_workers" {
   description = "Create the Temporal worker and the interviewer agent. Needs a card on the Render account, and a Temporal and a LiveKit endpoint for them to reach."
   type        = bool

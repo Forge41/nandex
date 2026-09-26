@@ -111,6 +111,11 @@ resource "render_background_worker" "temporal" {
     DJANGO_DEBUG                = { value = "false" }
     INTERVIEW_RECORDING_ENABLED = { value = "false" }
     DATABASE_URL                = { value = render_postgres.main.connection_info.internal_connection_string }
+    # All three queues live on one Temporal. Empty until an endpoint exists, which
+    # leaves the worker restarting rather than quietly doing nothing.
+    IMPORTER_TEMPORAL_ADDRESS  = { value = var.temporal_address }
+    INGEST_TEMPORAL_ADDRESS    = { value = var.temporal_address }
+    INTERVIEW_TEMPORAL_ADDRESS = { value = var.temporal_address }
   }
 }
 
@@ -133,5 +138,6 @@ resource "render_background_worker" "agent" {
   env_vars = {
     # `url` is already absolute; prefixing a scheme would produce https://https://...
     INTERVIEW_CORE_BASE_URL = { value = render_web_service.core.url }
+    LIVEKIT_URL             = { value = var.livekit_url }
   }
 }
