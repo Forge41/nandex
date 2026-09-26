@@ -52,7 +52,6 @@ export type EntryBody =
       assessment: AnswerBody | null;
       assessmentError: string;
     }
-  | { kind: "form"; initial: MessageDraft }
   | { kind: "book"; url: string; host: string }
   | { kind: "sudo"; mask: string }
   | { kind: "voiceTurn"; text: string };

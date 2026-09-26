@@ -26,6 +26,7 @@ import { GuiView } from "./gui-view";
 import { useIsMobile, useIsNarrow } from "./hooks";
 import { ChevronIcon } from "./icons";
 import { InfoPane } from "./info-pane";
+import { MessageModal } from "./entries/contact-entries";
 import { RecruiterView, ResumeModal, ShareModal } from "./overlays";
 import { Prompt } from "./prompt";
 import { RaceLoader } from "./race-loader";
@@ -361,7 +362,8 @@ export default function Terminal({
       push(err("message: email and text are required"));
       return;
     }
-    dispatch({ type: "REMOVE_FORMS" });
+    dispatch({ type: "MESSAGE_CLOSE" });
+    after(50, focus);
     const res = await postMessage(draft);
     if (res.ok) {
       push(prose([LS([["✓ sent", "green"], [` — I'll reply to ${draft.email} within a day.`, "base"]])]));
@@ -369,7 +371,7 @@ export default function Terminal({
     }
     if (res.status === 400) {
       push(err(`message: ${res.detail}`));
-      push({ kind: "form", initial: draft });
+      dispatch({ type: "MESSAGE_OPEN", initial: draft });
       return;
     }
     push(prose([L(`${res.status === 429 ? res.detail : "endpoint unreachable"} — opening your mail client instead.`, "muted")]));
@@ -468,6 +470,9 @@ export default function Terminal({
           break;
         case "reload":
           restartFromLoader();
+          break;
+        case "message":
+          dispatch({ type: "MESSAGE_OPEN", initial: fx.initial });
           break;
         case "sudo":
           dispatch({ type: "SUDO_START", id: nextId.current++ });
@@ -605,6 +610,10 @@ export default function Terminal({
     }
     if (s.resumeOpen) {
       if (esc) closePanel("resumeOpen");
+      return;
+    }
+    if (s.message) {
+      if (esc) dispatch({ type: "MESSAGE_CLOSE" });
       return;
     }
     if (s.gui) {
@@ -817,6 +826,7 @@ export default function Terminal({
           )}
           {s.shareOpen && <ShareModal url={`${location.origin}${location.pathname}`} copyText={copyText} onClose={() => closePanel("shareOpen")} />}
           {s.resumeOpen && <ResumeModal onClose={() => closePanel("resumeOpen")} />}
+          {s.message && <MessageModal initial={s.message} />}
           {s.gui && <GuiView byId={byId} skills={SKILL_ROWS} onExit={() => closePanel("gui")} />}
         </div>
       </ViewContext.Provider>
