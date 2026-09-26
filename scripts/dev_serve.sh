@@ -110,8 +110,10 @@ RECORDING_ENABLED=$(scripts/recording_enabled.sh)
 (cd backend && uv run manage.py seed_portfolio) || echo "warning: seed_portfolio failed; portfolio answers stay offline" >&2
 
 # The agent worker starts below, so the portfolio's voice has someone to dispatch.
-# `PORTFOLIO_VOICE_ENABLED=false make serve-all` turns it off.
+# `PORTFOLIO_VOICE_ENABLED=false make serve-all` turns it off. Locally every session
+# comes from one IP, so the public per-visitor limit would lock out the developer.
 (cd backend && PORTFOLIO_VOICE_ENABLED="${PORTFOLIO_VOICE_ENABLED:-true}" \
+    PORTFOLIO_VOICE_SESSIONS_PER_IP_PER_DAY="${PORTFOLIO_VOICE_SESSIONS_PER_IP_PER_DAY:-1000}" \
     uv run uvicorn config.asgi:application --reload; kill 0) &
 (cd backend && uv run manage.py rungrpc; kill 0) &
 if [ "$RECORDING_ENABLED" = 1 ]; then

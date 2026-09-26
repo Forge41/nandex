@@ -5,7 +5,7 @@ import { TypingCaret } from "@nandex/ui/indicators";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 import { requestVoiceToken } from "@/lib/api/portfolio";
-import { engineLabel, planFromToken, type VoicePlan } from "@/lib/voice/plan";
+import { engineLabel, planFromToken, type TokenResult, type VoicePlan } from "@/lib/voice/plan";
 import type { VoiceTurn } from "@/lib/voice/transcripts";
 import { useNow } from "./hooks";
 import { HangUpIcon, MicIcon, MicOffIcon, StopIcon } from "./icons";
@@ -42,9 +42,13 @@ export function VoiceMode({
   };
   const chooseFromToken = useEffectEvent(choose);
 
+  // One request per open even when React runs this effect twice: each token is a room
+  // and counts against the visitor's daily voice limit.
+  const tokenRequest = useRef<Promise<TokenResult> | null>(null);
   useEffect(() => {
     let live = true;
-    void requestVoiceToken().then((res) => live && chooseFromToken(planFromToken(res)));
+    tokenRequest.current ??= requestVoiceToken();
+    void tokenRequest.current.then((res) => live && chooseFromToken(planFromToken(res)));
     return () => {
       live = false;
     };
