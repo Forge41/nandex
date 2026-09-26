@@ -9,6 +9,9 @@ provider "netlify" {}
 # region the organization's SCP permits, and an apply must not reach whichever account
 # happens to be in the caller's environment.
 provider "aws" {
-  profile = var.aws_profile
+  # Empty in CI, where credentials come from GitHub's OIDC token and there is no
+  # shared config file to read a profile from. Set locally so an apply cannot reach
+  # whichever account happens to be in the caller's environment.
+  profile = var.aws_profile != "" ? var.aws_profile : null
   region  = var.aws_region
 }
