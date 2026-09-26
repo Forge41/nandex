@@ -87,6 +87,34 @@ def _create_sync(
     )
 
 
+def store_versioned_document_sync(
+    *,
+    project_id: str,
+    provider_document_id: str,
+    provider_version: str,
+    content_type: str,
+    payload: bytes,
+    display_name: str,
+) -> tuple[RawDocument, bool]:
+    """Stores a file the caller identifies itself, for content that is re-uploaded as a
+    whole on every change (a seeded corpus) rather than chosen by a person.
+
+    Idempotent on RawDocument's uniqueness tuple: storing an unchanged version again
+    returns the existing row, and a changed one becomes a new row beside the old.
+    """
+    return RawDocument.objects.get_or_create(
+        connection_id=UPLOAD_CONNECTION_ID,
+        provider_document_id=provider_document_id,
+        provider_version=provider_version,
+        defaults={
+            "project_id": project_id,
+            "content_type": content_type,
+            "display_name": display_name,
+            "payload": payload,
+        },
+    )
+
+
 async def _trigger_ingest(raw_document_id: str) -> None:
     """Starts IngesterWorkflow by its registered name, never importing apps.ingest --
     same plain-identifier convention as connection_id/raw_document_id everywhere else in

@@ -10,19 +10,31 @@ logger = logging.getLogger(__name__)
 
 
 async def stream_answer(
-    *, system_prompt: str, messages: list[dict], model: str = "claude-sonnet-4-5"
+    *,
+    system_prompt: str,
+    messages: list[dict],
+    model: str = "claude-sonnet-4-5",
+    max_tokens: int | None = None,
+    usage: dict | None = None,
 ) -> AsyncIterator[str]:
-    """Yields text deltas only -- caller owns prompt assembly, citations, and persistence."""
+    """Yields text deltas only -- caller owns prompt assembly, citations, and persistence.
+
+    `max_tokens` can only lower the model's ceiling. `usage`, when given, receives
+    `output_tokens` once the stream has finished.
+    """
     client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
     model_config = MODEL_REGISTRY[model]
     async with client.messages.stream(
         model=model_config["id"],
-        max_tokens=model_config["max_tokens"],
+        max_tokens=min(max_tokens or model_config["max_tokens"], model_config["max_tokens"]),
         system=system_prompt,
         messages=messages,
     ) as stream:
         async for text in stream.text_stream:
             yield text
+        if usage is not None:
+            final = await stream.get_final_message()
+            usage["output_tokens"] = final.usage.output_tokens
 
 
 async def complete(
