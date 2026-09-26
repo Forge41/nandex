@@ -6,7 +6,7 @@ output "core_url" {
 output "service_ids" {
   value = {
     core   = render_web_service.core.id
-    worker = render_background_worker.temporal.id
-    agent  = render_background_worker.agent.id
+    worker = one(render_background_worker.temporal[*].id)
+    agent  = one(render_background_worker.agent[*].id)
   }
 }
