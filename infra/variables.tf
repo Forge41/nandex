@@ -25,7 +25,7 @@ variable "branch" {
 # after 15 minutes -- a sleeping worker does not pick up work.
 variable "web_plan" {
   type    = string
-  default = "starter"
+  default = "free"
 }
 
 variable "worker_plan" {
