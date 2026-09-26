@@ -5,7 +5,7 @@ import { memo, useEffect, useState } from "react";
 import { SPINNER, VERBS } from "@/lib/terminal/constants";
 import type { Entry } from "@/lib/terminal/types";
 import { AiAnswer } from "./entries/ai-answer";
-import { BookCard, MessageForm } from "./entries/contact-entries";
+import { BookCard } from "./entries/contact-entries";
 import { FitPrompt, FitResult } from "./entries/fit-entries";
 import { CommandEcho, LinesBlock, PhotoEntry, ProseBlock, SudoPrompt, VoiceTurn } from "./entries/text-entries";
 import { Whoami } from "./entries/whoami";
@@ -51,8 +51,6 @@ const EntryView = memo(function EntryView({ entry }: { entry: Entry }) {
       return <FitPrompt entry={entry} />;
     case "fit":
       return <FitResult entry={entry} />;
-    case "form":
-      return <MessageForm entry={entry} />;
     case "book":
       return <BookCard entry={entry} />;
     case "sudo":

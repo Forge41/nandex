@@ -44,8 +44,14 @@ export type EntryBody =
   | { kind: "photo" }
   | { kind: "ai"; answer: AnswerBody; debug: DebugInfo | null; showDebug: boolean; inlineId: string | null }
   | { kind: "fitPrompt"; status: string }
-  | { kind: "fit"; card: FitCard; noteOpen: boolean; noteText: string; assessment: AnswerBody | null }
-  | { kind: "form"; initial: MessageDraft }
+  | {
+      kind: "fit";
+      card: FitCard | null;
+      noteOpen: boolean;
+      noteText: string;
+      assessment: AnswerBody | null;
+      assessmentError: string;
+    }
   | { kind: "book"; url: string; host: string }
   | { kind: "sudo"; mask: string }
   | { kind: "voiceTurn"; text: string };
