@@ -314,9 +314,15 @@ function LiveRoomState({
         // useSession retries a failing token source for as long as it is mounted,
         // so without this the browser asks forever -- a 409 per second, each one
         // an unhandled rejection. Tell the provider to take the room down instead.
+        //
+        // Then hand back the credentials we already have rather than rethrowing.
+        // Ending a session is the ordinary way out of a room, and the rethrow made
+        // it surface as a runtime error over the wrap screen -- "This interview has
+        // ended" presented as a crash, on the one path where it is expected. The
+        // stale token is never used: onEnded takes the room down on the next render.
         if (error instanceof ApiError && error.status === 409) {
-          cache.minted = null;
           onEnded();
+          if (cache.minted) return cache.minted;
           throw error;
         }
         // useSession force-refetches a token on every disconnect and does not

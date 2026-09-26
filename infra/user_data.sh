@@ -47,7 +47,11 @@ chmod 600 /opt/nandex/.env
 # <ip>.nip.io to <ip>, is a real public domain, and Let's Encrypt issues for it -- so
 # this works with no domain registered and no DNS to manage.
 echo "APP_HOST=${PUBLIC_IP}.nip.io" >> /opt/nandex/.env
-echo "DJANGO_ALLOWED_HOSTS=${PUBLIC_IP}.nip.io,localhost,127.0.0.1" >> /opt/nandex/.env
+# core and runner are the compose service names, and they are Host headers too: the
+# agent calls http://core:8000 and core calls http://runner:8002, so Django sees
+# "core" and "runner" and rejects both with a bare 400 if they are not listed. That
+# failure reads as the agent declining the job, not as a configuration error.
+echo "DJANGO_ALLOWED_HOSTS=${PUBLIC_IP}.nip.io,core,runner,localhost,127.0.0.1" >> /opt/nandex/.env
 echo "INTERVIEW_CORE_BASE_URL=https://${PUBLIC_IP}.nip.io" >> /opt/nandex/.env
 
 cd /opt/nandex/app
