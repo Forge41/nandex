@@ -48,3 +48,10 @@ crash.log
 
 # Local Netlify folder
 .netlify
+
+# Certificates and private keys. The Temporal Cloud CA key can mint client certs for
+# the namespace, so it must never be committed -- this repository is public.
+*.key
+*.pem
+*.crt
+*.p12

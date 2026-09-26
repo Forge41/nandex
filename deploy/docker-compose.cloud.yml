@@ -1,0 +1,19 @@
+# Points the local stack at Temporal Cloud instead of the containerised dev server.
+#
+#   docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.cloud.yml up -d
+#
+# The namespace and API key come from backend/.env via env_file. Only the addresses
+# need overriding, because the base file points them at the local container.
+
+services:
+  core:
+    environment:
+      INTERVIEW_TEMPORAL_ADDRESS: ap-southeast-1.aws.api.temporal.io:7233
+      IMPORTER_TEMPORAL_ADDRESS: ap-southeast-1.aws.api.temporal.io:7233
+      INGEST_TEMPORAL_ADDRESS: ap-southeast-1.aws.api.temporal.io:7233
+
+  worker:
+    environment:
+      INTERVIEW_TEMPORAL_ADDRESS: ap-southeast-1.aws.api.temporal.io:7233
+      IMPORTER_TEMPORAL_ADDRESS: ap-southeast-1.aws.api.temporal.io:7233
+      INGEST_TEMPORAL_ADDRESS: ap-southeast-1.aws.api.temporal.io:7233

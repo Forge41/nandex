@@ -11,8 +11,8 @@ import logging
 from dataclasses import dataclass
 from datetime import timedelta
 
+from config import temporal
 from temporalio import workflow
-from temporalio.client import Client
 from temporalio.common import RetryPolicy
 
 # The activities reach httpx and the ORM, which the workflow sandbox forbids importing.
@@ -91,7 +91,7 @@ class ArtifactDeletionWorkflow:
 
 async def _start(workflow_name: str, payload, workflow_id: str) -> None:
     try:
-        client = await Client.connect(settings.temporal_address)
+        client = await temporal.connect(settings.temporal_address)
         await client.start_workflow(
             workflow_name,
             payload,

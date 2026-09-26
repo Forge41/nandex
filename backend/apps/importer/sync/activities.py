@@ -8,10 +8,10 @@ import asyncio
 import logging
 
 from asgiref.sync import sync_to_async
+from config import temporal
 from django.db import transaction
 from django.db.models import F, Q
 from temporalio import activity
-from temporalio.client import Client
 
 from apps.importer.clients.tps_client import get_token as _tps_get_token
 from apps.importer.clients.tps_client import mark_reauth_required as _tps_mark_reauth_required
@@ -177,7 +177,7 @@ async def _trigger_ingest(raw_document_id: str) -> None:
     docstring for the same caveat) -- a future manual re-ingest is the recourse.
     """
     try:
-        client = await Client.connect(settings.temporal_address)
+        client = await temporal.connect(settings.temporal_address)
         await client.start_workflow(
             "IngesterWorkflow",
             raw_document_id,

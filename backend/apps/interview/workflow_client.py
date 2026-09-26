@@ -12,6 +12,7 @@ add detail to it.
 import asyncio
 import logging
 
+from config import temporal
 from temporalio.client import Client, WorkflowHandle
 from temporalio.service import RPCError
 
@@ -34,7 +35,7 @@ async def _connect() -> Client | None:
     async with _connecting:
         if _client is None:
             try:
-                _client = await Client.connect(settings.temporal_address)
+                _client = await temporal.connect(settings.temporal_address)
             except Exception:
                 logger.warning("Couldn't reach Temporal at %s", settings.temporal_address)
                 return None
