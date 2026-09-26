@@ -12,8 +12,8 @@ has no work. `run_vas_worker` still exists for a deployment that turns recording
 
 import asyncio
 
+from config import temporal
 from django.core.management.base import BaseCommand
-from temporalio.client import Client
 from temporalio.worker import Worker
 
 from apps.importer.config import settings as importer_settings
@@ -59,7 +59,7 @@ class Command(BaseCommand):
         # All three apps point at the same Temporal by default. Connecting once and
         # sharing the client is not an optimisation here -- a second connection to the
         # same namespace is just a second thing to lose.
-        client = await Client.connect(interview_settings.temporal_address)
+        client = await temporal.connect(interview_settings.temporal_address)
 
         workers = [
             Worker(

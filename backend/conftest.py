@@ -22,6 +22,14 @@ os.environ.setdefault("VAS_CALLBACK_SIGNING_SECRET", "test-vas-callback-secret-3
 os.environ.setdefault("CORE_VAS_SERVICE_BEARER_TOKEN", "test-vas-bearer-token")
 os.environ.setdefault("CORE_VAS_CALLBACK_SIGNING_SECRET", "test-vas-callback-secret-32-bytes-min")
 
+# Cleared, not defaulted. config/settings.py calls load_dotenv, so a developer's real
+# Temporal Cloud credentials land in os.environ before any test runs -- and
+# config/temporal.py would then authenticate every in-test connection against the real
+# namespace, including the ones that start workflows. Tests get a local server or
+# nothing.
+os.environ.pop("TEMPORAL_API_KEY", None)
+os.environ.pop("TEMPORAL_NAMESPACE", None)
+
 
 import anthropic
 import pytest

@@ -1,0 +1,25 @@
+# The code-execution sandbox. Same Django project as core, different entrypoint: it
+# serves config.runner_asgi and is the only process that talks to the Docker daemon.
+
+FROM python:3.13-slim
+
+COPY --from=ghcr.io/astral-sh/uv:0.9.7 /uv /usr/local/bin/uv
+
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PROJECT_ENVIRONMENT=/usr/local \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app/backend
+
+# Read by apps.tps.catalog as parents[3]/integrations.yaml.
+COPY integrations.yaml /app/integrations.yaml
+
+COPY backend/pyproject.toml backend/uv.lock ./
+RUN uv sync --frozen --no-dev --no-install-project
+
+COPY backend/ ./
+
+# Binds every interface inside the compose network, never published to the host.
+# core reaches it at runner:8002; nothing outside the network can.
+CMD ["sh", "-c", "uvicorn config.runner_asgi:application --host 0.0.0.0 --port ${PORT:-8002}"]

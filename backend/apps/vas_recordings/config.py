@@ -5,6 +5,7 @@ The LiveKit credentials here are not a duplicate of tps's: Egress is itself a Li
 call, so the recorder needs its own client even though tps is the only token issuer.
 """
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings
 
 
@@ -12,9 +13,23 @@ class Settings(BaseSettings):
     egress_provider: str = "livekit"
     storage_provider: str = "gcs"
 
-    livekit_host: str = "ws://localhost:7880"
-    livekit_api_key: str = ""
-    livekit_api_secret: str = ""
+    # LiveKit, the realtime room provider. These read the unprefixed LIVEKIT_* names --
+    # one credential, one place to rotate. tps signs join tokens with them, the agent
+    # connects with them, and vas would use them for Egress; three prefixed copies of
+    # one secret was three chances to rotate two of them. The app boundary is kept by
+    # each app declaring its own setting, not by each app having its own env var.
+    livekit_host: str = Field(
+        "ws://localhost:7880",
+        validation_alias=AliasChoices("LIVEKIT_URL", "VAS_LIVEKIT_HOST"),
+    )
+    livekit_api_key: str = Field(
+        "",
+        validation_alias=AliasChoices("LIVEKIT_API_KEY", "VAS_LIVEKIT_API_KEY"),
+    )
+    livekit_api_secret: str = Field(
+        "",
+        validation_alias=AliasChoices("LIVEKIT_API_SECRET", "VAS_LIVEKIT_API_SECRET"),
+    )
 
     gcs_bucket_name: str = "local-recordings"
     # Points at fake-gcs locally. Non-empty also switches signed URLs to direct ones,

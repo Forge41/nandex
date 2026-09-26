@@ -1,0 +1,27 @@
+# Points the local stack at Temporal Cloud instead of the containerised dev server.
+#
+#   docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.cloud.yml up -d
+#
+# The namespace and API key come from backend/.env via env_file. Only the addresses
+# need overriding, because the base file points them at the local container.
+#
+# LIVEKIT_URL is restated rather than left to env_file: the base file overrides it to
+# the local container, and an override file cannot unset a key -- only replace it.
+
+services:
+  core:
+    environment:
+      LIVEKIT_URL: wss://spardhaai-q2ee809e.livekit.cloud
+      INTERVIEW_TEMPORAL_ADDRESS: ap-southeast-1.aws.api.temporal.io:7233
+      IMPORTER_TEMPORAL_ADDRESS: ap-southeast-1.aws.api.temporal.io:7233
+      INGEST_TEMPORAL_ADDRESS: ap-southeast-1.aws.api.temporal.io:7233
+
+  agent:
+    environment:
+      LIVEKIT_URL: wss://spardhaai-q2ee809e.livekit.cloud
+
+  worker:
+    environment:
+      INTERVIEW_TEMPORAL_ADDRESS: ap-southeast-1.aws.api.temporal.io:7233
+      IMPORTER_TEMPORAL_ADDRESS: ap-southeast-1.aws.api.temporal.io:7233
+      INGEST_TEMPORAL_ADDRESS: ap-southeast-1.aws.api.temporal.io:7233

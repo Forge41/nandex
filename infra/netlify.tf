@@ -33,7 +33,7 @@ resource "netlify_environment_variable" "api_base" {
   scopes = ["builds", "functions", "runtime"]
 
   values = [{
-    value   = render_web_service.core.url
+    value   = "https://${aws_eip.app.public_ip}.nip.io"
     context = "production"
   }]
 }

@@ -7,10 +7,10 @@ since that's the only place authorization can happen.
 import logging
 
 from asgiref.sync import sync_to_async
+from config import temporal
 from django.conf import settings as django_settings
 from django.http import HttpRequest, HttpResponseRedirect, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from temporalio.client import Client
 
 from apps.core.api.views import _parse_body, _require_user
 from apps.core.clients import tps_client
@@ -44,7 +44,7 @@ async def _trigger_sync(connection_id: str) -> None:
     is the recourse, the same way a stuck upload's ingest would need one today.
     """
     try:
-        client = await Client.connect(settings.temporal_address)
+        client = await temporal.connect(settings.temporal_address)
         await client.start_workflow(
             "ImportInitiatorWorkflow",
             {"connection_id": connection_id, "app_name": None, "trigger": "manual"},

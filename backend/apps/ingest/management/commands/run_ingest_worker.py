@@ -1,7 +1,7 @@
 import asyncio
 
+from config import temporal
 from django.core.management.base import BaseCommand
-from temporalio.client import Client
 from temporalio.worker import Worker
 
 from apps.ingest.config import settings
@@ -18,7 +18,7 @@ class Command(BaseCommand):
         asyncio.run(self._run())
 
     async def _run(self) -> None:
-        client = await Client.connect(settings.temporal_address)
+        client = await temporal.connect(settings.temporal_address)
         worker = Worker(
             client,
             task_queue=settings.temporal_task_queue,

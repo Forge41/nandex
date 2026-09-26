@@ -9,8 +9,8 @@ than a fact.
 import logging
 
 from asgiref.sync import sync_to_async
+from config import temporal
 from django.core.files.uploadedfile import UploadedFile
-from temporalio.client import Client
 
 from apps.importer.config import settings
 from apps.importer.models import RawDocument, generate_id
@@ -95,7 +95,7 @@ async def _trigger_ingest(raw_document_id: str) -> None:
     etc.) -- there is no sweep to fall back on, so a failure here is a real, logged gap.
     """
     try:
-        client = await Client.connect(settings.temporal_address)
+        client = await temporal.connect(settings.temporal_address)
         await client.start_workflow(
             "IngesterWorkflow",
             raw_document_id,

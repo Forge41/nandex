@@ -1,11 +1,17 @@
 # Every provider reads its credential from the environment. Nothing authenticates from
 # a file in this repo, and no key reaches Terraform state by way of a variable default.
 #
-#   RENDER_API_KEY   render dashboard -> account settings -> API keys
 #   NETLIFY_API_TOKEN    netlify user settings -> applications -> personal access tokens
 
-provider "render" {
-  owner_id = var.render_owner_id
-}
-
 provider "netlify" {}
+
+# Pinned to the profile and the region rather than inherited: ap-southeast-2 is the only
+# region the organization's SCP permits, and an apply must not reach whichever account
+# happens to be in the caller's environment.
+provider "aws" {
+  # Empty in CI, where credentials come from GitHub's OIDC token and there is no
+  # shared config file to read a profile from. Set locally so an apply cannot reach
+  # whichever account happens to be in the caller's environment.
+  profile = var.aws_profile != "" ? var.aws_profile : null
+  region  = var.aws_region
+}

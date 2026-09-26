@@ -1,12 +1,9 @@
-output "core_url" {
-  description = "Point the frontend and the agent at this."
-  value       = render_web_service.core.url
+output "app_url" {
+  description = "The API, behind Caddy on the EC2 instance. nip.io resolves this to the Elastic IP."
+  value       = "https://${aws_eip.app.public_ip}.nip.io"
 }
 
-output "service_ids" {
-  value = {
-    core   = render_web_service.core.id
-    worker = one(render_background_worker.temporal[*].id)
-    agent  = one(render_background_worker.agent[*].id)
-  }
+output "instance_id" {
+  description = "For SSM -- there is no SSH."
+  value       = aws_instance.app.id
 }
