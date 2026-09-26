@@ -38,11 +38,6 @@ resource "render_web_service" "core" {
 
   health_check_path = "/health"
 
-  # Migrations run here rather than in a CI job: Render blocks the deploy until this
-  # exits zero, so a failed migration never becomes a running container against a
-  # schema it does not match. A CI job cannot offer that ordering.
-  pre_deploy_command = "uv run manage.py migrate --noinput"
-
   # Only values that are not secrets. Every credential is set once in the Render
   # dashboard and deliberately left out of here, because anything Terraform sets it
   # also stores -- and state is readable by anyone who can read the workspace.
