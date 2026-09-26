@@ -3,7 +3,7 @@
 	up down doctor check-speech serve-all temporal temporal-down tps tps-migrate tps-grpc grpc-gen migrate importer-migrate \
 	ingest-migrate importer-worker ingest-worker interview-worker interviewer-agent \
 	vas vas-worker vas-stack vas-stack-down asgi frontend runner runner-images \
-	import-tasks build-sql-bank load-tasks gh-secrets
+	import-tasks build-sql-bank load-tasks gh-secrets docker-up docker-down
 
 help: ## List available targets
 	@grep -hE '^[a-z][a-zA-Z0-9_-]*:.*?## ' $(MAKEFILE_LIST) \
@@ -93,6 +93,14 @@ ingest-migrate: ## Apply pending database migrations for the ingest app
 
 importer-worker: ## Run importer's Temporal worker (needs a Temporal server already running)
 	cd backend && uv run manage.py run_importer_worker
+
+docker-up: ## Run the three deployment images locally (reuses your Postgres and LiveKit)
+	docker compose -f deploy/docker-compose.yml up -d --build
+	@echo "core http://localhost:8000 | temporal UI http://localhost:8233"
+	@echo "the frontend is not containerised -- run 'make frontend' for it"
+
+docker-down: ## Stop the deployment images
+	docker compose -f deploy/docker-compose.yml down
 
 gh-secrets: ## Push the CI credentials in backend/.env to GitHub Actions secrets
 	scripts/push_gh_secrets.sh

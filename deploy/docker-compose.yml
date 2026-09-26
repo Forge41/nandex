@@ -1,0 +1,85 @@
+# Runs the three deployment images locally, the way Render will run them.
+#
+#   make docker-up
+#
+# Postgres and LiveKit are deliberately not here: this reuses the ones the normal dev
+# stack already uses, so a test against these images sees the same data and the same
+# room server. Temporal is containerised because `temporal server start-dev` binds
+# loopback and is unreachable from a container.
+#
+# The runner is absent -- it needs a Docker daemon of its own, which is the whole
+# reason it has no home in the deployment either. Coding and SQL rounds will show
+# their missing-content state.
+
+name: nandex-app
+
+services:
+  temporal:
+    image: temporalio/temporal:latest
+    command: server start-dev --ip 0.0.0.0
+    ports:
+      - "7233:7233"
+      - "8233:8233"
+    healthcheck:
+      test: ["CMD", "temporal", "operator", "cluster", "health", "--address", "127.0.0.1:7233"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  core:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.core
+    env_file: ../backend/.env
+    environment:
+      PORT: "8000"
+      DJANGO_ALLOWED_HOSTS: "*"
+      DJANGO_DEBUG: "false"
+      DB_HOST: hostmachine
+      INTERVIEW_TEMPORAL_ADDRESS: temporal:7233
+      IMPORTER_TEMPORAL_ADDRESS: temporal:7233
+      INGEST_TEMPORAL_ADDRESS: temporal:7233
+      # tps runs inside this same container, as it will on Render.
+      CORE_TPS_GRPC_ADDRESS: localhost:50051
+      # The browser gets this value back as ws_url, so it must resolve in the
+      # browser -- not inside the container. tps only signs tokens with it; nothing
+      # server-side dials it.
+      TPS_LIVEKIT_HOST: ws://localhost:7880
+      CORE_RUNNER_BASE_URL: http://hostmachine:8002
+    extra_hosts:
+      - "hostmachine:host-gateway"
+    ports:
+      - "8000:8000"
+    depends_on:
+      temporal:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.worker
+    env_file: ../backend/.env
+    environment:
+      DB_HOST: hostmachine
+      INTERVIEW_TEMPORAL_ADDRESS: temporal:7233
+      IMPORTER_TEMPORAL_ADDRESS: temporal:7233
+      INGEST_TEMPORAL_ADDRESS: temporal:7233
+      CORE_RUNNER_BASE_URL: http://hostmachine:8002
+    extra_hosts:
+      - "hostmachine:host-gateway"
+    depends_on:
+      temporal:
+        condition: service_healthy
+
+  agent:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.agent
+    env_file: ../backend/.env
+    environment:
+      LIVEKIT_URL: ws://hostmachine:7880
+      INTERVIEW_CORE_BASE_URL: http://core:8000
+    extra_hosts:
+      - "hostmachine:host-gateway"
+    depends_on:
+      - core
