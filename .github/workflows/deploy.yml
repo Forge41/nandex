@@ -1,0 +1,147 @@
+# Ships main once CI has passed on it: the EC2 stack over SSM, and each Netlify site
+# with the Netlify CLI. Only what the merge touched is deployed; a manual run deploys all.
+#
+# The Netlify sites are not linked to the repository, so Netlify never builds on its own
+# and this is the only thing that deploys them.
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+# Never two deploys racing on the one box; a newer merge waits for the running one.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+  NETLIFY_SITE_ID: c32e2008-85eb-4629-987e-96a763818c82
+  NETLIFY_PORTFOLIO_SITE_ID: 85010f58-0132-4f97-8c74-5807831488af
+
+jobs:
+  changes:
+    # workflow_run fires for CI on pull requests and the merge queue too; only a
+    # successful run on a push to main is a deploy.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.diff.outputs.backend }}
+      frontend: ${{ steps.diff.outputs.frontend }}
+      portfolio: ${{ steps.diff.outputs.portfolio }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SHA }}
+          fetch-depth: 2
+      - id: diff
+        run: |
+          if [ "${{ github.event_name }}" = workflow_dispatch ]; then
+            printf 'backend=true\nfrontend=true\nportfolio=true\n' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # main only takes squash merges, so the merge is exactly one commit.
+          changed=$(git diff --name-only HEAD~1 HEAD)
+          echo "$changed"
+          touched() { echo "$changed" | grep -qE "$1" && echo true || echo false; }
+          shared='^(packages/ui/|pnpm-lock\.yaml|pnpm-workspace\.yaml|package\.json)'
+          {
+            echo "backend=$(touched '^(backend/|agent/|deploy/|integrations\.yaml|dev/runner/|portfolio/content/sources/)')"
+            echo "frontend=$(touched "^frontend/|$shared")"
+            echo "portfolio=$(touched "^portfolio/|$shared")"
+          } >> "$GITHUB_OUTPUT"
+
+  backend:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - id: instance
+        run: |
+          read -r id ip < <(aws ec2 describe-instances \
+            --filters Name=tag:Name,Values=nandex-app Name=instance-state-name,Values=running \
+            --query 'Reservations[0].Instances[0].[InstanceId,PublicIpAddress]' --output text)
+          [ "$id" != None ] || { echo "no running nandex-app instance" >&2; exit 1; }
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+          echo "ip=$ip" >> "$GITHUB_OUTPUT"
+      - name: Pull and rebuild over SSM
+        run: |
+          # The exact commit CI passed, not whatever main is by the time this runs.
+          params=$(jq -nc --arg sha "$SHA" '{commands: [
+            "set -euo pipefail",
+            "cd /opt/nandex/app",
+            "git fetch --depth 1 origin \($sha)",
+            "git reset --hard FETCH_HEAD",
+            "docker compose -f deploy/docker-compose.prod.yml --env-file /opt/nandex/.env up -d --build --remove-orphans",
+            "docker image prune -f"
+          ]}')
+          cmd=$(aws ssm send-command \
+            --instance-ids "${{ steps.instance.outputs.id }}" \
+            --document-name AWS-RunShellScript \
+            --comment "deploy ${SHA:0:7}" \
+            --timeout-seconds 2400 \
+            --parameters "$params" \
+            --query Command.CommandId --output text)
+          echo "command $cmd"
+          # The aws waiter gives up after ~8 minutes; an image rebuild can take longer.
+          for _ in $(seq 1 120); do
+            status=$(aws ssm get-command-invocation --command-id "$cmd" \
+              --instance-id "${{ steps.instance.outputs.id }}" --query Status --output text 2>/dev/null || echo Pending)
+            case "$status" in Success|Failed|Cancelled|TimedOut) break ;; esac
+            sleep 20
+          done
+          aws ssm get-command-invocation --command-id "$cmd" --instance-id "${{ steps.instance.outputs.id }}" \
+            --query '[StandardOutputContent,StandardErrorContent]' --output text | tail -60
+          [ "$status" = Success ] || { echo "deploy finished as $status" >&2; exit 1; }
+      - name: Wait for the API
+        run: |
+          url="https://${{ steps.instance.outputs.ip }}.nip.io/health"
+          for _ in $(seq 1 30); do
+            curl -fsS "$url" && exit 0
+            sleep 10
+          done
+          echo "$url never answered" >&2
+          exit 1
+
+  netlify:
+    needs: [changes, backend]
+    # After the backend, so a page is never live ahead of the API it calls; still runs
+    # when the backend had nothing to deploy.
+    if: >-
+      !cancelled() && needs.backend.result != 'failure' &&
+      (needs.changes.outputs.frontend == 'true' || needs.changes.outputs.portfolio == 'true')
+    runs-on: ubuntu-latest
+    env:
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SHA }}
+      # Version from packageManager in the root package.json.
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: npm install -g netlify-cli@27
+      - if: needs.changes.outputs.frontend == 'true'
+        run: netlify deploy --build --prod --site "$NETLIFY_SITE_ID" --filter frontend --message "${SHA:0:7}"
+      - if: needs.changes.outputs.portfolio == 'true'
+        run: netlify deploy --build --prod --site "$NETLIFY_PORTFOLIO_SITE_ID" --filter portfolio --message "${SHA:0:7}"
