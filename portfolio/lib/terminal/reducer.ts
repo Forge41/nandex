@@ -1,6 +1,6 @@
 import { parseAnswer } from "@/lib/answer/citations";
 import { READY_STATUS } from "./constants";
-import type { AnswerBody, DebugInfo, Entry, EntryBody, ThemeName } from "./types";
+import type { AnswerBody, DebugInfo, Entry, EntryBody, MessageDraft, ThemeName } from "./types";
 
 export type Connection = "checking" | "live" | "offline";
 export type Panel = "gui" | "recruiter" | "shareOpen" | "resumeOpen";
@@ -26,6 +26,7 @@ export type TerminalState = {
   recruiter: boolean;
   shareOpen: boolean;
   resumeOpen: boolean;
+  message: MessageDraft | null;
   voice: boolean;
   infoCollapsed: boolean;
   infoCollapsedBeforeVoice: boolean;
@@ -57,6 +58,7 @@ export const initialState: TerminalState = {
   recruiter: false,
   shareOpen: false,
   resumeOpen: false,
+  message: null,
   voice: false,
   infoCollapsed: false,
   infoCollapsedBeforeVoice: false,
@@ -70,7 +72,8 @@ export const initialState: TerminalState = {
 
 export type TerminalAction =
   | { type: "PUSH"; id: number; entry: EntryBody }
-  | { type: "REMOVE_FORMS" }
+  | { type: "MESSAGE_OPEN"; initial: MessageDraft }
+  | { type: "MESSAGE_CLOSE" }
   | { type: "CLEAR" }
   | { type: "INPUT"; value: string }
   | { type: "SUBMITTED"; text: string; silent: boolean }
@@ -90,7 +93,7 @@ export type TerminalAction =
   | { type: "STREAM_DELTA"; id: number; target: StreamTarget; delta: string }
   | { type: "STREAM_END"; id: number; target: StreamTarget; debug?: DebugInfo }
   | { type: "STREAM_REPLACE"; id: number; answer: AnswerBody; debug: DebugInfo | null }
-  | { type: "ASSESSMENT_DROP"; id: number }
+  | { type: "ASSESSMENT_FAIL"; id: number; message: string }
   | { type: "THEME"; name: ThemeName }
   | { type: "VERBOSE"; on: boolean }
   | { type: "OPEN_VIEWER"; id: string }
@@ -124,8 +127,11 @@ export function terminalReducer(state: TerminalState, action: TerminalAction): T
     case "PUSH":
       return { ...state, entries: [...state.entries, { ...action.entry, id: action.id } as Entry] };
 
-    case "REMOVE_FORMS":
-      return { ...state, entries: state.entries.filter((e) => e.kind !== "form") };
+    case "MESSAGE_OPEN":
+      return { ...state, message: action.initial };
+
+    case "MESSAGE_CLOSE":
+      return { ...state, message: null };
 
     case "CLEAR":
       return { ...state, entries: [], viewerId: null, landing: true, input: "", thinking: false, streamingId: null };
@@ -215,8 +221,10 @@ export function terminalReducer(state: TerminalState, action: TerminalAction): T
       return state.streamingId === action.id ? { ...next, streamingId: null } : next;
     }
 
-    case "ASSESSMENT_DROP":
-      return mapEntry(state, action.id, (e) => (e.kind === "fit" ? { ...e, assessment: null } : e));
+    case "ASSESSMENT_FAIL":
+      return mapEntry(state, action.id, (e) =>
+        e.kind === "fit" ? { ...e, assessment: null, assessmentError: action.message } : e,
+      );
 
     case "THEME":
       return { ...state, theme: action.name };

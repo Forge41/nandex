@@ -2,7 +2,7 @@ import { gitlog, history, manpage, projects, ps, skills, tree } from "@/content/
 import { isTheme, LINKS, THEMES } from "@/lib/terminal/constants";
 import { err, L, lines, LS, prose } from "@/lib/terminal/lines";
 import { uptime } from "@/lib/terminal/time";
-import type { EntryBody, Line, ThemeName } from "@/lib/terminal/types";
+import type { EntryBody, Line, MessageDraft, ThemeName } from "@/lib/terminal/types";
 import type { Source } from "@/lib/types";
 
 export const SHELL_COMMANDS: [string, string][] = [
@@ -73,9 +73,12 @@ export type Effect =
   | { type: "export" }
   | { type: "share" }
   | { type: "recruiter" }
+  | { type: "message"; initial: MessageDraft }
   | { type: "reload" };
 
 const push = (entry: EntryBody): Effect => ({ type: "push", entry });
+
+const EMPTY_DRAFT: MessageDraft = { name: "", email: "", text: "" };
 
 export function helpEntry(): EntryBody {
   return lines([
@@ -108,7 +111,7 @@ export function bookEffects(bookingUrl: string): Effect[] {
   if (!url) {
     return [
       push(prose([LS([["no calendar link yet — leave a message with a few times that suit you and I'll send an invite.", "muted"]])])),
-      push({ kind: "form", initial: { name: "", email: "", text: "" } }),
+      { type: "message", initial: EMPTY_DRAFT },
     ];
   }
   let host = "";
@@ -292,7 +295,7 @@ export function runSlash(name: string, arg: string, ctx: CommandContext): Effect
     case "book":
       return bookEffects(ctx.bookingUrl);
     case "message":
-      return [push({ kind: "form", initial: { name: "", email: "", text: "" } })];
+      return [{ type: "message", initial: EMPTY_DRAFT }];
     case "theme": {
       if (!arg)
         return [

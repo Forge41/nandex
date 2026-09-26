@@ -244,3 +244,6 @@ export const LINKS = {
 };
 
 export const BOOTED_KEY = "nandisha_portfolio_booted";
+
+// Matches PORTFOLIO_MAX_JD_CHARS on the backend; longer pastes are sent truncated.
+export const MAX_JD_CHARS = 12000;

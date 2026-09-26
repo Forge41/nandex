@@ -69,8 +69,12 @@ export const FitResult = memo(function FitResult({ entry }: { entry: EntryOf<"fi
     <div className="border border-tm-border bg-tm-panel px-3.5 py-3">
       <div className="flex flex-wrap items-baseline gap-3">
         <span className="font-semibold text-tm-accent">fit analysis</span>
-        <span className="text-[11.5px] text-tm-muted">{card.meta}</span>
+        <span className="text-[11.5px] text-tm-muted">
+          {card ? card.meta : "no listed skills matched — the agent reads the whole JD below"}
+        </span>
       </div>
+      {card && (
+        <>
       <div className="mb-3 mt-2 flex items-center gap-2.5">
         <div className="h-1.5 flex-1 overflow-hidden rounded-[3px] bg-tm-sel">
           <div
@@ -150,6 +154,8 @@ export const FitResult = memo(function FitResult({ entry }: { entry: EntryOf<"fi
           />
         </div>
       )}
+        </>
+      )}
       {entry.assessment && (
         <div className="mt-3 flex gap-2.5 border-t border-dashed border-tm-border pt-3">
           <span className="flex-none leading-[1.6] text-tm-accent">◆</span>
@@ -157,6 +163,11 @@ export const FitResult = memo(function FitResult({ entry }: { entry: EntryOf<"fi
             <div className="mb-1 text-[11px] uppercase tracking-[.08em] text-tm-muted">agent assessment</div>
             <AnswerText answer={entry.assessment} entryId={entry.id} />
           </div>
+        </div>
+      )}
+      {entry.assessmentError && (
+        <div className={`text-[11.5px] text-tm-muted ${card ? "mt-3 border-t border-dashed border-tm-border pt-3" : "mt-2"}`}>
+          {entry.assessmentError}
         </div>
       )}
     </div>

@@ -78,7 +78,7 @@ describe("runSlash", () => {
 
   it("routes /book to the message form without a calendar", () => {
     const kinds = runSlash("book", "", ctx).map((e) => (e.type === "push" ? e.entry.kind : e.type));
-    expect(kinds).toEqual(["prose", "form"]);
+    expect(kinds).toEqual(["prose", "message"]);
     const withCal = runSlash("book", "", { ...ctx, bookingUrl: "https://cal.com/nandisha/30min" });
     expect(withCal).toEqual([{ type: "push", entry: { kind: "book", url: "https://cal.com/nandisha/30min", host: "cal.com" } }]);
   });
