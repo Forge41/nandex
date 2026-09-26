@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     max_output_tokens: int = 600
     top_k: int = 6
     max_question_chars: int = 2000
-    max_jd_chars: int = 6000
+    max_jd_chars: int = 12000
 
     per_ip_per_minute: int = 10
     per_ip_per_day: int = 50

@@ -5,13 +5,13 @@ import { useEffect, useEffectEvent, useLayoutEffect, useMemo, useReducer, useRef
 import { skills } from "@/content/data";
 import { estimateTokens, numberCitations, parseAnswer, plainText } from "@/lib/answer/citations";
 import { answer as localAnswer } from "@/lib/answer/local";
-import { pingHealth, streamPortfolio, sendMessage as postMessage } from "@/lib/api/portfolio";
+import { PortfolioApiError, pingHealth, streamPortfolio, sendMessage as postMessage } from "@/lib/api/portfolio";
 import { modeOf, parseInput } from "@/lib/commands/parse";
 import { runShell, runSlash, shortcutsEntry, bookEffects, type CommandContext, type Effect } from "@/lib/commands/registry";
 import { analyzeFit } from "@/lib/fit/analyze";
 import { readJobDescription } from "@/lib/fit/read-file";
 import { loadContributions } from "@/lib/github";
-import { BOOTED_KEY, COMMITS, DEFAULT_BG, LINKS, READY_STATUS, THEMES, TOUR } from "@/lib/terminal/constants";
+import { BOOTED_KEY, COMMITS, DEFAULT_BG, LINKS, MAX_JD_CHARS, READY_STATUS, THEMES, TOUR } from "@/lib/terminal/constants";
 import { L, LS, err, lines, prose } from "@/lib/terminal/lines";
 import { emptyAnswer, initialState, terminalReducer, type TerminalState } from "@/lib/terminal/reducer";
 import { decodeReplay, encodeReplay, exportMarkdown, shareableCommands } from "@/lib/terminal/share";
@@ -309,14 +309,19 @@ export default function Terminal({
   }
 
   function runFit(jd: string) {
+    // The instant card only knows a fixed skill list; the agent reads the whole JD, so it
+    // is asked either way.
     const res = analyzeFit(jd);
-    if (!res) {
-      push(prose([L("fit: I couldn't find recognisable skills in that text. Paste the requirements section of a JD.", "muted")]));
-      return;
-    }
-    const id = push({ kind: "fit", card: res.card, noteOpen: false, noteText: res.noteText, assessment: emptyAnswer() });
+    const id = push({
+      kind: "fit",
+      card: res?.card ?? null,
+      noteOpen: false,
+      noteText: res?.noteText ?? "",
+      assessment: emptyAnswer(),
+      assessmentError: "",
+    });
     dispatch({ type: "STATUS", msg: READY_STATUS });
-    streamPortfolio("fit", { jd }, {
+    streamPortfolio("fit", { jd: jd.slice(0, MAX_JD_CHARS) }, {
       onEvent: (ev) => {
         if (ev.type === "retrieved")
           dispatch({ type: "STREAM_RETRIEVED", id, target: "assessment", valid: ev.sources.map((s) => s.id) });
@@ -327,9 +332,10 @@ export default function Terminal({
         dispatch({ type: "CONNECTION", state: "live" });
         dispatch({ type: "STREAM_END", id, target: "assessment" });
       })
-      .catch(() => {
-        dispatch({ type: "CONNECTION", state: "offline" });
-        dispatch({ type: "ASSESSMENT_DROP", id });
+      .catch((e: unknown) => {
+        const detail = e instanceof PortfolioApiError && e.message ? e.message : "the agent is unreachable right now";
+        if (!(e instanceof PortfolioApiError && e.status === 400)) dispatch({ type: "CONNECTION", state: "offline" });
+        dispatch({ type: "ASSESSMENT_FAIL", id, message: `live assessment unavailable: ${detail.replace(/\.+$/, "")}.` });
       });
   }
 
@@ -358,7 +364,7 @@ export default function Terminal({
     dispatch({ type: "REMOVE_FORMS" });
     const res = await postMessage(draft);
     if (res.ok) {
-      push(prose([LS([["✓ ", "green"], [`message from ${draft.name || "anonymous"} <${draft.email}> delivered. I'll reply within a day.`, "base"]])]));
+      push(prose([LS([["✓ sent", "green"], [` — I'll reply to ${draft.email} within a day.`, "base"]])]));
       return;
     }
     if (res.status === 400) {

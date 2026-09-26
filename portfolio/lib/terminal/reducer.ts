@@ -90,7 +90,7 @@ export type TerminalAction =
   | { type: "STREAM_DELTA"; id: number; target: StreamTarget; delta: string }
   | { type: "STREAM_END"; id: number; target: StreamTarget; debug?: DebugInfo }
   | { type: "STREAM_REPLACE"; id: number; answer: AnswerBody; debug: DebugInfo | null }
-  | { type: "ASSESSMENT_DROP"; id: number }
+  | { type: "ASSESSMENT_FAIL"; id: number; message: string }
   | { type: "THEME"; name: ThemeName }
   | { type: "VERBOSE"; on: boolean }
   | { type: "OPEN_VIEWER"; id: string }
@@ -215,8 +215,10 @@ export function terminalReducer(state: TerminalState, action: TerminalAction): T
       return state.streamingId === action.id ? { ...next, streamingId: null } : next;
     }
 
-    case "ASSESSMENT_DROP":
-      return mapEntry(state, action.id, (e) => (e.kind === "fit" ? { ...e, assessment: null } : e));
+    case "ASSESSMENT_FAIL":
+      return mapEntry(state, action.id, (e) =>
+        e.kind === "fit" ? { ...e, assessment: null, assessmentError: action.message } : e,
+      );
 
     case "THEME":
       return { ...state, theme: action.name };
