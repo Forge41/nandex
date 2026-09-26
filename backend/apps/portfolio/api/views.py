@@ -4,6 +4,7 @@ visitor auto-provisioning (settings.ANONYMOUS_AUTOPROVISION_EXEMPT_PREFIXES).
 Every refusal of ask/fit carries `fallback: true`, telling the page to answer from its
 offline matcher instead of showing an error."""
 
+import hmac
 import json
 import logging
 
@@ -15,7 +16,8 @@ from django.http import HttpRequest, HttpResponse, JsonResponse, StreamingHttpRe
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from apps.portfolio import limits, service
+from apps.core.services.room_service import RoomUnavailable
+from apps.portfolio import limits, service, voice
 from apps.portfolio.config import settings
 from apps.portfolio.models import ContactMessage, PortfolioQuery
 
@@ -118,3 +120,63 @@ async def message(request: HttpRequest) -> JsonResponse:
     except Exception:
         logger.exception("Stored contact message %s but could not email it", contact.id)
     return JsonResponse({"ok": True}, status=201)
+
+
+@csrf_exempt
+@require_POST
+async def voice_token(request: HttpRequest) -> JsonResponse:
+    if not settings.voice_enabled:
+        return _refuse("Voice isn't available right now.", 503)
+    reason = limits.voice_limit_reason(request)
+    if reason:
+        return _refuse(reason, 429)
+    if await limits.daily_cap_reached():
+        return _refuse("Live answers are paused for today.", 503)
+    try:
+        minted = await voice.mint_visitor_token()
+    except RoomUnavailable:
+        return _refuse("Voice isn't available right now.", 503)
+    return JsonResponse(minted, status=201)
+
+
+def _has_agent_token(request: HttpRequest) -> bool:
+    header = request.headers.get("Authorization", "")
+    # An unset secret rejects everything rather than accepting everything.
+    if not settings.agent_bearer_token or not header.startswith("Bearer "):
+        return False
+    return hmac.compare_digest(header.removeprefix("Bearer "), settings.agent_bearer_token)
+
+
+@csrf_exempt
+@require_POST
+async def agent_passages(request: HttpRequest) -> JsonResponse:
+    """Retrieval for the voice agent, which composes the spoken answer itself. Behind the
+    agent's bearer token rather than visitor limits: the room token was the rate-limited
+    step, and the agent ends the room at voice_max_minutes."""
+    if not _has_agent_token(request):
+        return JsonResponse({"detail": "Not authorised"}, status=401)
+    question = _body(request).get("question")
+    question = question.strip()[: settings.max_question_chars] if isinstance(question, str) else ""
+    if not question:
+        return JsonResponse({"detail": "Nothing to look up."}, status=400)
+
+    passages = await service.retrieve(question)
+    await PortfolioQuery.objects.acreate(
+        kind=PortfolioQuery.Kind.VOICE,
+        text=question,
+        retrieved=list(dict.fromkeys(p.source.id for p in passages)),
+        outcome=PortfolioQuery.Outcome.ANSWERED,
+    )
+    return JsonResponse(
+        {
+            "passages": [
+                {
+                    "id": p.source.id,
+                    "doc": p.source.doc,
+                    "title": p.source.title,
+                    "content": p.content,
+                }
+                for p in passages
+            ]
+        }
+    )

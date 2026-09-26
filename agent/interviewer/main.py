@@ -1,12 +1,12 @@
-"""The interviewer: a LiveKit agent that joins the room and talks about the plan.
+"""One LiveKit worker, two roles: the interviewer that talks a candidate through their
+plan, and the portfolio's voice guide.
 
-Dispatched explicitly. tps puts the agent's name and the session id in the join token's
-roomConfig, so a room only gets an interviewer when a candidate's token asked for one --
-this worker never joins a room on its own.
+Dispatched explicitly. tps puts the agent's name and metadata in the join token's
+roomConfig, so a room only gets this worker when a token asked for it -- it never joins a
+room on its own. The metadata decides the role (see interviewer.dispatch).
 """
 
 import asyncio
-import json
 import logging
 
 from dotenv import load_dotenv
@@ -21,7 +21,7 @@ from livekit.agents.tts import TTS
 from livekit.agents.voice import events
 from livekit.plugins import silero
 
-from interviewer import core_client, voice
+from interviewer import core_client, dispatch, portfolio, voice
 from interviewer.briefing import greeting_instruction, instructions_for
 from interviewer.config import settings
 from interviewer.transcript import TranscriptRecorder
@@ -41,30 +41,20 @@ def prewarm(proc: JobProcess) -> None:
     proc.userdata["vad"] = silero.VAD.load()
 
 
-def _session_id(ctx: JobContext) -> str | None:
-    """The session this room belongs to, from the dispatch core asked for.
-
-    Read off the job rather than the room name: the name's format is core's business, and
-    parsing it here would make a rename in core a silent break in the agent.
-    """
-    raw = ctx.job.metadata or ""
-    if not raw:
-        return None
-    try:
-        return json.loads(raw).get("session_id")
-    except json.JSONDecodeError:
-        logger.warning("Dispatch metadata was not JSON: %r", raw[:200])
-        return None
-
-
 async def entrypoint(ctx: JobContext) -> None:
     await ctx.connect()
 
-    session_id = _session_id(ctx)
-    if session_id is None:
-        logger.error("No session id in the dispatch; leaving room %s", ctx.room.name)
+    role = dispatch.parse(ctx.job.metadata or "")
+    if role is None:
+        logger.error("The dispatch named no role; leaving room %s", ctx.room.name)
         return
+    if role.mode == dispatch.PORTFOLIO:
+        await portfolio.run(ctx, role)
+        return
+    await interview(ctx, role.session_id)
 
+
+async def interview(ctx: JobContext, session_id: str) -> None:
     try:
         brief = await core_client.fetch_brief(session_id)
     except core_client.CoreUnavailable:

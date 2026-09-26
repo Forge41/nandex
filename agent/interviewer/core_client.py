@@ -1,7 +1,8 @@
 """The agent's only way to reach anything.
 
 Core is the orchestrator: the agent has no database connection, no tps client and no vas
-client. Everything it knows about a candidate it was told through these two calls.
+client. Everything it knows about a candidate or a portfolio it was told through these
+calls.
 """
 
 import logging
@@ -93,3 +94,16 @@ async def save_transcript(session_id: str, turns: list[dict]) -> int:
         except Exception:
             logger.exception("Couldn't save the transcript for %s", session_id)
             return 0
+
+
+async def portfolio_passages(question: str) -> list[dict]:
+    """What the portfolio's retrieval returns for a visitor's question. Never raises: in a
+    voice conversation "I don't have that to hand" is a better answer than dead air."""
+    async with _client() as client:
+        try:
+            response = await client.post("/portfolio/agent/passages", json={"question": question})
+            response.raise_for_status()
+            return response.json().get("passages", [])
+        except Exception:
+            logger.exception("Couldn't search the portfolio")
+            return []

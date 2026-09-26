@@ -52,6 +52,9 @@ services:
       # tps reaches itself over loopback inside this container; nothing external does.
       CORE_TPS_GRPC_ADDRESS: localhost:50051
       CORE_RUNNER_BASE_URL: http://runner:8002
+      # The agent service below always runs, so the portfolio's voice has a worker to
+      # dispatch.
+      PORTFOLIO_VOICE_ENABLED: "true"
     depends_on:
       postgres:
         condition: service_healthy

@@ -14,6 +14,7 @@ class PortfolioQuery(models.Model):
     class Kind(models.TextChoices):
         ASK = "ask", "ask"
         FIT = "fit", "fit"
+        VOICE = "voice", "voice"
 
     class Outcome(models.TextChoices):
         ANSWERED = "answered", "answered"

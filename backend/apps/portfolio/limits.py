@@ -49,6 +49,13 @@ def message_limit_reason(request: HttpRequest) -> str | None:
     return None
 
 
+def voice_limit_reason(request: HttpRequest) -> str | None:
+    key = client_key(request)
+    if _hit(f"portfolio:v:d:{key}", settings.voice_sessions_per_ip_per_day, timedelta(days=1)):
+        return "That's today's limit for voice. Typing still works."
+    return None
+
+
 async def daily_cap_reached() -> bool:
     since = timezone.now() - timedelta(days=1)
     return await PortfolioQuery.objects.filter(created_at__gte=since).acount() >= (
