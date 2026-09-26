@@ -25,8 +25,20 @@ resource "aws_iam_role" "github_actions" {
         }
         # Scoped to this repository, and within it to main and to pull requests.
         # Without this any GitHub workflow anywhere could assume the role.
+        #
+        # This organisation issues *immutable* subject claims, which carry the numeric
+        # org and repo ids: the real subject is
+        #   repo:Forge41@194065758/nandex@1355965819:pull_request
+        # not repo:Forge41/nandex:pull_request. Only CloudTrail says so -- the API
+        # answers "Not authorized to perform sts:AssumeRoleWithWebIdentity" either way.
+        #
+        # Both forms are listed so the role keeps working if that setting is turned
+        # off. Matching on ids is the stronger of the two: they survive a rename and
+        # cannot be squatted by recreating a repository under the same name.
         StringLike = {
           "token.actions.githubusercontent.com:sub" = [
+            "repo:Forge41@194065758/nandex@1355965819:ref:refs/heads/main",
+            "repo:Forge41@194065758/nandex@1355965819:pull_request",
             "repo:Forge41/nandex:ref:refs/heads/main",
             "repo:Forge41/nandex:pull_request",
           ]
