@@ -1,0 +1,26 @@
+# The LiveKit interviewer. Its own project and its own lock file -- it is not part of
+# the Django backend and must not grow a dependency on it.
+
+FROM python:3.13-slim
+
+COPY --from=ghcr.io/astral-sh/uv:0.9.7 /uv /usr/local/bin/uv
+
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PROJECT_ENVIRONMENT=/usr/local \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app/agent
+
+COPY agent/pyproject.toml agent/uv.lock ./
+RUN uv sync --frozen --no-dev --no-install-project
+
+COPY agent/ ./
+
+# Turn detection and VAD weights download on first use; fetching them at build time
+# keeps them out of the critical path when a candidate is already waiting in a room.
+RUN python -m interviewer.main download-files
+
+# `start`, not `dev`: dev watches files and reloads, which in production is a worker
+# that restarts mid-interview.
+CMD ["python", "-m", "interviewer.main", "start"]

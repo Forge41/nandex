@@ -1,0 +1,78 @@
+# Terraform for Render and Netlify. Deliberately not a deploy pipeline for the app:
+# both services build from git themselves (`auto_deploy = true`, and Netlify's own git
+# integration), so a workflow that pushed code to them would race their builds and win
+# nothing. What needs a gate is infrastructure -- plan it on the PR, apply it on main.
+name: Infra
+
+on:
+  pull_request:
+    paths: ["infra/**", ".github/workflows/infra.yml"]
+  push:
+    branches: [main]
+    paths: ["infra/**", ".github/workflows/infra.yml"]
+
+permissions:
+  contents: read
+
+env:
+  TF_CLOUD_ORGANIZATION: ${{ vars.TF_CLOUD_ORGANIZATION }}
+  TF_WORKSPACE: ${{ vars.TF_WORKSPACE }}
+  TF_IN_AUTOMATION: "true"
+  RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+  NETLIFY_API_TOKEN: ${{ secrets.NETLIFY_API_TOKEN }}
+
+jobs:
+  plan:
+    # This repository is public, and a pull request from a fork is given no secrets --
+    # the job would fail on an empty token and read as a broken pipeline rather than as
+    # the security boundary doing its job. Skipping says so plainly.
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+      - run: terraform fmt -check -recursive
+      - run: terraform init -input=false
+      - run: terraform validate
+      - id: plan
+        run: terraform plan -input=false -no-color
+        continue-on-error: true
+      - name: Comment the plan
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = `#### Terraform plan \`${{ steps.plan.outcome }}\`\n\n` +
+              '```terraform\n' + `${{ steps.plan.outputs.stdout }}`.slice(0, 60000) + '\n```';
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+            });
+      - if: steps.plan.outcome == 'failure'
+        run: exit 1
+
+  apply:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    # A protected environment, so an apply waits for a human even though the merge
+    # already happened. Terraform on main is the last point before something is real.
+    environment: production
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+      - run: terraform init -input=false
+      - run: terraform apply -input=false -auto-approve

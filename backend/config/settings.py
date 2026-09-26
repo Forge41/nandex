@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 import os
 from pathlib import Path
+from urllib.parse import unquote, urlparse
 
 from dotenv import load_dotenv
 
@@ -154,16 +155,38 @@ WSGI_APPLICATION = "config.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    "default": {
+
+def _database_from_env() -> dict:
+    """DATABASE_URL wins where it is set, because that is the one thing every managed
+    Postgres hands you -- Render, Neon, Supabase, Heroku. The discrete DB_* variables
+    stay the local path, so nothing about development changes.
+
+    Parsed rather than taken from dj-database-url: one stdlib call against a URL whose
+    shape is fixed by libpq is not worth a dependency.
+    """
+    url = os.environ.get("DATABASE_URL", "")
+    if not url:
+        return {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ.get("DB_NAME", "ragdb"),
+            "USER": os.environ.get("DB_USER", "ragdb"),
+            "PASSWORD": os.environ.get("DB_PASSWORD", "ragdb"),
+            "HOST": os.environ.get("DB_HOST", "localhost"),
+            "PORT": os.environ.get("DB_PORT", "5432"),
+        }
+
+    parsed = urlparse(url)
+    return {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get("DB_NAME", "ragdb"),
-        "USER": os.environ.get("DB_USER", "ragdb"),
-        "PASSWORD": os.environ.get("DB_PASSWORD", "ragdb"),
-        "HOST": os.environ.get("DB_HOST", "localhost"),
-        "PORT": os.environ.get("DB_PORT", "5432"),
+        "NAME": unquote(parsed.path.lstrip("/")),
+        "USER": unquote(parsed.username or ""),
+        "PASSWORD": unquote(parsed.password or ""),
+        "HOST": parsed.hostname or "",
+        "PORT": str(parsed.port or 5432),
     }
-}
+
+
+DATABASES = {"default": _database_from_env()}
 
 
 # Password validation
