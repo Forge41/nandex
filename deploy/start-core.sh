@@ -13,6 +13,12 @@ set -euo pipefail
 # healthy, so what a candidate sees is the same either way.
 python manage.py migrate --noinput
 
+# In the background and allowed to fail: an unseeded portfolio only falls back to its
+# offline answers, which is no reason to delay or kill the API. Purging on boot is often
+# enough because a free instance restarts whenever it wakes from sleep.
+(python manage.py seed_portfolio && python manage.py purge_portfolio_queries) \
+    || echo "portfolio seed/purge failed; portfolio answers stay offline until the next boot" &
+
 python manage.py rungrpc &
 grpc_pid=$!
 

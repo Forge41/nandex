@@ -24,6 +24,8 @@ htmlcov/
 .claude/plans/docs/
 .cursor/settings.local.json
 
+node_modules/
+
 .DS_Store
 .idea/
 .vscode/*

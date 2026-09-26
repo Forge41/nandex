@@ -2,8 +2,8 @@
 
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { AudioBars } from "@/components/ui/audio-bars";
+import { Badge } from "@nandex/ui/badge";
+import { AudioBars } from "@nandex/ui/audio-bars";
 import { StreamVideo } from "@/components/interview/molecules/device-preview";
 import { LIGHTING_COPY } from "@/lib/interview/media/use-camera-test";
 import { REQUIRED_SPEECH_SECONDS, type MediaTestStatus } from "@/lib/interview/media/use-mic-test";

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # dev_serve.sh -- starts the whole local nandex stack for `make serve-all`: a local Temporal
 # dev server (reused if one is already running), the backend under a real ASGI server, tps's
-# gRPC server, the vas process on its own port, every Temporal worker, and the frontend dev
-# server.
+# gRPC server, the vas process on its own port, every Temporal worker, the LiveKit agent, and
+# the frontend and portfolio dev servers.
 #
 # Every process this script starts shares one process group. `trap ... kill 0` tears the whole
 # group down together on Ctrl-C, and each service re-triggers that same cleanup the instant IT
@@ -19,6 +19,7 @@ VAS_PORT=8001
 RUNNER_PORT=8002
 GRPC_PORT=50051
 FRONTEND_PORT=3000
+PORTFOLIO_PORT=3001
 TEMPORAL_PORT=7233
 
 trap 'kill 0' EXIT INT TERM
@@ -38,7 +39,12 @@ if [ ! -f backend/.env ]; then
 fi
 
 if [ ! -f frontend/.env ] || [ ! -d frontend/node_modules ]; then
-    echo "error: frontend isn't set up -- see README Setup (cd frontend && pnpm install && cp .env.example .env)." >&2
+    echo "error: frontend isn't set up -- see README Setup (pnpm install && cp frontend/.env.example frontend/.env)." >&2
+    exit 1
+fi
+
+if [ ! -d portfolio/node_modules ]; then
+    echo "error: the portfolio isn't set up -- run 'pnpm install' at the repository root." >&2
     exit 1
 fi
 
@@ -59,7 +65,7 @@ fi
 # Clean up anything left bound to our ports from a previous crashed run
 # ---------------------------------------------------------------------------
 
-for port in "$HTTP_PORT" "$VAS_PORT" "$RUNNER_PORT" "$GRPC_PORT" "$FRONTEND_PORT"; do
+for port in "$HTTP_PORT" "$VAS_PORT" "$RUNNER_PORT" "$GRPC_PORT" "$FRONTEND_PORT" "$PORTFOLIO_PORT"; do
     lsof -ti ":$port" 2>/dev/null | xargs kill -9 2>/dev/null || true
 done
 
@@ -99,7 +105,16 @@ fi
 
 RECORDING_ENABLED=$(scripts/recording_enabled.sh)
 
-(cd backend && uv run uvicorn config.asgi:application --reload; kill 0) &
+# Idempotent and quick once indexed. Not fatal: an unseeded portfolio still answers
+# offline, and nothing else depends on it.
+(cd backend && uv run manage.py seed_portfolio) || echo "warning: seed_portfolio failed; portfolio answers stay offline" >&2
+
+# The agent worker starts below, so the portfolio's voice has someone to dispatch.
+# `PORTFOLIO_VOICE_ENABLED=false make serve-all` turns it off. Locally every session
+# comes from one IP, so the public per-visitor limit would lock out the developer.
+(cd backend && PORTFOLIO_VOICE_ENABLED="${PORTFOLIO_VOICE_ENABLED:-true}" \
+    PORTFOLIO_VOICE_SESSIONS_PER_IP_PER_DAY="${PORTFOLIO_VOICE_SESSIONS_PER_IP_PER_DAY:-1000}" \
+    uv run uvicorn config.asgi:application --reload; kill 0) &
 (cd backend && uv run manage.py rungrpc; kill 0) &
 if [ "$RECORDING_ENABLED" = 1 ]; then
     (cd backend && uv run uvicorn config.vas_asgi:application --host 0.0.0.0 --port "$VAS_PORT" --reload; kill 0) &
@@ -119,6 +134,7 @@ fi
 (cd agent && uv run python -m interviewer.main dev; \
     echo "!! the interviewer agent stopped. Everything else is still running.") &
 (cd frontend && pnpm dev; kill 0) &
+(cd portfolio && pnpm dev; kill 0) &
 
 # ---------------------------------------------------------------------------
 # Wait for the two HTTP-facing services to actually accept connections, then
@@ -127,7 +143,8 @@ fi
 # ---------------------------------------------------------------------------
 
 for _ in $(seq 1 30); do
-    nc -z localhost "$HTTP_PORT" 2>/dev/null && nc -z localhost "$FRONTEND_PORT" 2>/dev/null && break
+    nc -z localhost "$HTTP_PORT" 2>/dev/null && nc -z localhost "$FRONTEND_PORT" 2>/dev/null \
+        && nc -z localhost "$PORTFOLIO_PORT" 2>/dev/null && break
     sleep 1
 done
 
@@ -138,6 +155,7 @@ echo "┌───────────────────────�
 echo "│                   nandex -- all systems go                  │"
 echo "├─────────────────────────────────────────────────────────────┤"
 printf "│  %-16s →  %-39s│\n" "Frontend" "http://localhost:$FRONTEND_PORT"
+printf "│  %-16s →  %-39s│\n" "Portfolio" "http://localhost:$PORTFOLIO_PORT"
 printf "│  %-16s →  %-39s│\n" "Backend API" "http://localhost:$HTTP_PORT"
 if [ "$RECORDING_ENABLED" = 1 ]; then
     printf "│  %-16s →  %-39s│\n" "vas (video)" "http://localhost:$VAS_PORT"

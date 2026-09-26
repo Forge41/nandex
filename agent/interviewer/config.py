@@ -41,6 +41,10 @@ class Settings(BaseSettings):
     # transcribes, Cartesia speaks.
     stt_model: str = "nova-3"
     voice_id: str = "6f84f4b8-58a2-430c-8c79-688dad597532"
+    # The portfolio guide's own Cartesia voice ("George"); the interviewer keeps voice_id.
+    portfolio_voice_id: str = Field(
+        "4bc3cb8c-adb9-4bb8-b5d5-cbbef950b991", validation_alias="PORTFOLIO_VOICE_ID"
+    )
 
     model_config = {
         "env_file": str(_BACKEND_ENV),

@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@nandex/ui/badge";
 import { Mono } from "@/components/ui/typography";
 import type { DeviceStatus } from "@/lib/interview/types";
 

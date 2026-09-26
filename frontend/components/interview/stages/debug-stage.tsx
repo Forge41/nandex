@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@nandex/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Mono } from "@/components/ui/typography";
 import { CodeSurface } from "@/components/ui/code-surface";

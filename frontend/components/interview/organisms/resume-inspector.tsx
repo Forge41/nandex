@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@nandex/ui/badge";
 import { Eyebrow, Mono } from "@/components/ui/typography";
 import { ResumeFileCard } from "@/components/interview/molecules/resume-file-card";
 import type { ResumeFile } from "@/lib/interview/types";

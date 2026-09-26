@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { AudioBars } from "@/components/ui/audio-bars";
+import { AudioBars } from "@nandex/ui/audio-bars";
 import { Mono } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 

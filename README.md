@@ -64,6 +64,9 @@ never writes it, and the call emits a fraction of the tokens it used to.
 
 ```
 frontend/          Next.js app: chat UI + integrations marketplace
+portfolio/         Next.js app: the terminal portfolio, deployed as its own Netlify site
+  content/sources/  the portfolio's citable sources, seeded into retrieval
+packages/ui/       @nandex/ui: tokens, Tailwind theme and primitives both apps share
 backend/
   config/           Django project (settings, urls, asgi)
   ai/               Anthropic client, model registry, prompts as .md files -- no Django import
@@ -73,6 +76,7 @@ backend/
     ingest/         parse -> chunk -> embed -> index pipeline, Temporal-orchestrated
     retrieval/      hybrid search (pgvector + Postgres FTS) -> RRF fusion -> rerank
     chat/           Conversation/Message models; streams an ai/-generated, cited answer
+    portfolio/      anonymous ask/fit/message endpoints for the portfolio, over retrieval
     core/           users, workspaces, projects; the clients to every leaf service
     interview/      sessions, rounds, the resume plan, the task banks, code runs
     runner/         the code-execution sandbox; its own ASGI app on :8002
@@ -100,8 +104,8 @@ make migrate
 # once: load the coding and SQL task banks into the database
 make load-tasks
 
-# once: frontend dependencies + env (defaults are enough for local dev)
-cd frontend && pnpm install && cp .env.example .env && cd ..
+# once: web dependencies (one pnpm workspace: frontend, portfolio, packages/ui) + env
+pnpm install && cp frontend/.env.example frontend/.env
 ```
 
 `importer`'s sync workflows and `ingest`'s ingestion workflows both run on
@@ -258,8 +262,8 @@ a local Temporal dev server itself (reusing one that's already running instead o
 starts every application process, and tears the whole group down together — on Ctrl-C, or the
 moment any single one of them exits on its own, so a crashed worker can't silently leave the rest
 running half-broken. It does still need a local Postgres already running (see Setup above), and
-`frontend/.env`/`frontend/node_modules` already set up (`cd frontend && pnpm install && cp
-.env.example .env` once — see [Running the frontend](#running-the-frontend) below) — it checks
+`frontend/.env`/`frontend/node_modules` already set up (`pnpm install && cp
+frontend/.env.example frontend/.env` once — see [Running the frontend](#running-the-frontend) below) — it checks
 for both up front and fails with a clear message rather than a stack trace if either is missing.
 For working on one piece at a time, run its target (`make asgi`, `make tps-grpc`, etc.) in its
 own terminal instead.
@@ -337,6 +341,28 @@ Every `tps` endpoint requires an `X-TPS-Secret` header (`TPS_TPS_SECRET` in your
 ```bash
 curl -H "X-TPS-Secret: <value>" http://localhost:8000/apps
 ```
+
+## Running the portfolio
+
+The portfolio shares the backend, the database and `@nandex/ui` with nandex, and deploys on its
+own (`portfolio/netlify.toml`, `infra/netlify.tf`). Locally:
+
+```bash
+make seed-portfolio   # store + index portfolio/content/sources (idempotent)
+make portfolio        # http://localhost:3001, proxies /api/* to BACKEND_ORIGIN
+```
+
+`POST /portfolio/ask` and `/portfolio/fit` stream answers over SSE (run the backend under
+`make asgi`), citing sources inline as `[source-id]`. They need no session, are rate limited per
+IP and capped per day (`PORTFOLIO_*` settings in `apps/portfolio/config.py`), and every refusal
+tells the page to answer from its offline matcher instead. Editing a file in
+`portfolio/content/sources/` and re-seeding stores a new version; the core container seeds on
+every boot.
+
+`/voice` talks to the same LiveKit agent as the interview room (`agent/`), dispatched with mode
+`portfolio`, so it speaks with the same STT/TTS. `make serve-all` turns it on, since it runs the worker;
+elsewhere it needs `PORTFOLIO_VOICE_ENABLED=true` and a running worker; otherwise the page says voice is unavailable and
+the visitor keeps typing -- there is no stand-in voice.
 
 ## Contributing
 

@@ -11,8 +11,14 @@ keys:
 
 rtc:
   tcp_port: 7881
+  # Must match the UDP range dev/docker-compose.yml publishes: a port outside it is
+  # handed to the browser and never reaches the container.
   port_range_start: 50000
-  port_range_end: 60000
+  port_range_end: 50020
+  # Browsers and the agent run on this machine. Without these, LiveKit advertises the
+  # public IP STUN finds, which a browser behind the same NAT often cannot reach.
+  use_external_ip: false
+  node_ip: 127.0.0.1
 
 room:
   # Rooms are created by the first join with a room_join grant, so nothing pre-creates them.

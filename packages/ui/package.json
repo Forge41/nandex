@@ -1,0 +1,28 @@
+{
+  "name": "@nandex/ui",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./styles/*": "./styles/*",
+    "./utils": "./src/utils.ts",
+    "./*": "./src/*.tsx"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "radix-ui": "^1.6.7",
+    "tailwind-merge": "^3.6.0"
+  },
+  "peerDependencies": {
+    "react": "19.2.8"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "react": "19.2.8",
+    "typescript": "^5"
+  }
+}

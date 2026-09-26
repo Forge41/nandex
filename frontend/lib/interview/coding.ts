@@ -1,6 +1,6 @@
 import type { AttemptOutcome, TestCase } from "./types";
 import type { SegmentTone } from "@/components/ui/segmented-progress";
-import type { DotTone } from "@/components/ui/indicators";
+import type { DotTone } from "@nandex/ui/indicators";
 
 export type TestSummary =
   | { state: "not-run"; label: string }

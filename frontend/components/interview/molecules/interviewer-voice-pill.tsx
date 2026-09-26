@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { AudioBars } from "@/components/ui/audio-bars";
+import { AudioBars } from "@nandex/ui/audio-bars";
 import { VolumeOnIcon, VolumeOffIcon } from "@/components/interview/icons";
 
 const STATE_LABEL: Record<string, string> = {

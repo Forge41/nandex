@@ -21,6 +21,8 @@ The repo splits into a Next.js frontend and a Django backend, both under the roo
 | Path | Contents |
 | --- | --- |
 | `frontend/` | Next.js app: connect-app OAuth flows, import status, chat UI |
+| `portfolio/` | Next.js app: the terminal portfolio. Its own Netlify site; same backend and database |
+| `packages/ui/` | `@nandex/ui`: tokens, Tailwind theme and primitives shared by both web apps |
 | `backend/config/` | Django project (settings, urls, asgi, celery) |
 | `backend/apps/` | Django apps, one per pipeline stage (`tps`, `importer`, `ingest`, `retrieval`, `chat`) |
 | `backend/apps/vas_*` | Video artifact service: recording, storage, playback, retention. Same project and database, its own process (`config.vas_asgi` on :8001) |

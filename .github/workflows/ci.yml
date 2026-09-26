@@ -75,19 +75,43 @@ jobs:
       BACKEND_ORIGIN: http://localhost:8000
     steps:
       - uses: actions/checkout@v4
+      # Version from packageManager in the root package.json.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 11
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: frontend/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
-        working-directory: frontend
+      - run: pnpm --filter @nandex/ui typecheck
       - run: pnpm exec tsc --noEmit
         working-directory: frontend
       - run: pnpm exec eslint
         working-directory: frontend
+      - run: pnpm test
+        working-directory: frontend
       - run: pnpm build
         working-directory: frontend
+
+  portfolio:
+    runs-on: ubuntu-latest
+    env:
+      BACKEND_ORIGIN: http://localhost:8000
+    steps:
+      - uses: actions/checkout@v4
+      # Version from packageManager in the root package.json.
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec tsc --noEmit
+        working-directory: portfolio
+      - run: pnpm exec eslint
+        working-directory: portfolio
+      - run: pnpm test
+        working-directory: portfolio
+      - run: pnpm build
+        working-directory: portfolio

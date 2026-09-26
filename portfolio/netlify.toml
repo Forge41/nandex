@@ -1,0 +1,14 @@
+# Built from the repository root (the pnpm workspace); Netlify reads this file because
+# the site's package directory is portfolio. Paths are relative to the repository root.
+[build]
+  command = "pnpm --filter portfolio build"
+  publish = "portfolio/.next"
+  # Exit 0 skips the build, so nandex-only changes don't redeploy the portfolio.
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- portfolio packages/ui pnpm-lock.yaml pnpm-workspace.yaml package.json"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[build.environment]
+  NODE_VERSION = "22"
+  PNPM_VERSION = "11"

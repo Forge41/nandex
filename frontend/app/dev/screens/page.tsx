@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@nandex/ui/badge";
 import { Banner } from "@/components/ui/banner";
 import { Eyebrow } from "@/components/ui/typography";
 import { SCREENS } from "@/lib/dev/screens";

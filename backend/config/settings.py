@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     "apps.retrieval",
     "apps.chat",
     "apps.interview",
+    "apps.portfolio",
     # A second leaf beside apps.tps: no app imports these, and they import nothing above
     # them. Deployed as their own process (config.settings_vas) but sharing this database.
     # A third leaf: the only process that may talk to the Docker daemon. No app imports
@@ -106,6 +107,7 @@ CSRF_COOKIE_SECURE = os.environ.get("DJANGO_CSRF_COOKIE_SECURE", "false").lower(
 ANONYMOUS_AUTOPROVISION_EXEMPT_PREFIXES = (
     "/health",
     "/interview/callbacks/",
+    "/portfolio/",
     "/video/",
     "/webhooks/",
 )

@@ -5,6 +5,7 @@
 # a caller's choice, so a caller asking for speed on a model without it takes the
 # ordinary path instead of a 400.
 MODEL_REGISTRY = {
+    "claude-haiku-4-5": {"id": "claude-haiku-4-5-20251001", "max_tokens": 8192},
     "claude-sonnet-4-5": {"id": "claude-sonnet-4-5-20250929", "max_tokens": 8192},
     "claude-opus-5": {"id": "claude-opus-5", "max_tokens": 8192, "fast": True},
 }

@@ -1,8 +1,8 @@
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@nandex/ui/badge";
 import { Mono } from "@/components/ui/typography";
-import { TypingCaret } from "@/components/ui/indicators";
+import { TypingCaret } from "@nandex/ui/indicators";
 import { formatClock } from "@/lib/interview/format";
 import type { TranscriptTurn as Turn } from "@/lib/interview/types";
 

@@ -1,4 +1,4 @@
-import { LiveDot, StatusDot } from "@/components/ui/indicators";
+import { LiveDot, StatusDot } from "@nandex/ui/indicators";
 import { Mono } from "@/components/ui/typography";
 import { formatClock, formatMinutesAsClock } from "@/lib/interview/format";
 
