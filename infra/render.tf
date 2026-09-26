@@ -42,7 +42,15 @@ resource "render_web_service" "core" {
   # dashboard and deliberately left out of here, because anything Terraform sets it
   # also stores -- and state is readable by anyone who can read the workspace.
   env_vars = {
-    DJANGO_DEBUG                  = { value = "false" }
+    DJANGO_DEBUG = { value = "false" }
+    # Empty is not a default, it is a refusal: with DEBUG off and no hosts allowed,
+    # Django answers 400 to every request including Render's health check, which is
+    # exactly how the first deploy to main failed.
+    #
+    # Listed rather than "*" so a poisoned Host header still cannot reach this app.
+    # The names cover the public URL, the private-network service name and loopback;
+    # a custom domain is added here, not by widening this to a wildcard.
+    DJANGO_ALLOWED_HOSTS          = { value = ".onrender.com,nandex-core,localhost,127.0.0.1" }
     INTERVIEW_RECORDING_ENABLED   = { value = "false" }
     INTERVIEW_TEMPORAL_TASK_QUEUE = { value = "interview" }
     # Internal, so the database is never exposed to the public internet.
