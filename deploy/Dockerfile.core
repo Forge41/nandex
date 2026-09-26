@@ -20,6 +20,8 @@ WORKDIR /app/backend
 # Read by apps.tps.catalog as parents[3]/integrations.yaml -- one level above the
 # Django project, which is where it lives in the repo too.
 COPY integrations.yaml /app/integrations.yaml
+# Read by apps.portfolio.config at the same path relative to the repository root.
+COPY portfolio/content/sources /app/portfolio/content/sources
 
 COPY backend/pyproject.toml backend/uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project

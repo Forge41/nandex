@@ -41,3 +41,15 @@ variable "secret_name" {
   type        = string
   default     = "nandex/app-env"
 }
+
+variable "netlify_portfolio_site_id" {
+  description = "The portfolio's Netlify site, created outside Terraform like netlify_site_id (`netlify sites:create --name nandishnaik`). Empty until then."
+  type        = string
+  default     = ""
+}
+
+variable "portfolio_booking_url" {
+  description = "Scheduling link for the portfolio's /book. Empty sends /book to /message."
+  type        = string
+  default     = ""
+}

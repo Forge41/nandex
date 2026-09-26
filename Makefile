@@ -2,7 +2,7 @@
 .PHONY: help install hooks agent-permissions link-agents fmt lint lint-ci test check \
 	up down doctor check-speech serve-all temporal temporal-down tps tps-migrate tps-grpc grpc-gen migrate importer-migrate \
 	ingest-migrate importer-worker ingest-worker interview-worker interviewer-agent \
-	vas vas-worker vas-stack vas-stack-down asgi frontend runner runner-images \
+	vas vas-worker vas-stack vas-stack-down asgi frontend portfolio seed-portfolio runner runner-images \
 	import-tasks build-sql-bank load-tasks gh-secrets aws-secrets docker-up docker-down
 
 help: ## List available targets
@@ -149,6 +149,12 @@ asgi: ## Run the full API under a real ASGI server (needed for core/chat/marketp
 
 frontend: ## Run the Next.js dev server (proxies /api/* to the backend -- see frontend/.env)
 	cd frontend && pnpm dev
+
+portfolio: ## Run the portfolio's dev server on :3001 (same backend -- see portfolio/.env.example)
+	cd portfolio && pnpm dev
+
+seed-portfolio: ## Store and index the portfolio's sources (idempotent)
+	cd backend && uv run manage.py seed_portfolio
 
 grpc-gen: ## Regenerate apps/tps/grpc/tps_pb2*.py from tps.proto
 	cd backend && uv run python -m grpc_tools.protoc \
