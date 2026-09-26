@@ -40,6 +40,8 @@ export const SLASH_COMMANDS: [string, string][] = [
   ["share", "copy a link that replays this conversation"],
   ["recruiter", "one-screen summary for people who won't type"],
   ["tour", "run every command, one after another"],
+  ["interview", "try nandex's AI interview room"],
+  ["reload", "start over from the loading screen"],
 ];
 
 export const PRIVACY_NOTE = "questions are logged anonymously (no IP) for 90 days to improve answers.";
@@ -70,7 +72,8 @@ export type Effect =
   | { type: "gui" }
   | { type: "export" }
   | { type: "share" }
-  | { type: "recruiter" };
+  | { type: "recruiter" }
+  | { type: "reload" };
 
 const push = (entry: EntryBody): Effect => ({ type: "push", entry });
 
@@ -333,6 +336,13 @@ export function runSlash(name: string, arg: string, ctx: CommandContext): Effect
       return [{ type: "share" }];
     case "recruiter":
       return [{ type: "recruiter" }];
+    case "interview":
+      return [
+        push(prose([LS([["opening the interview room → ", "muted"], [LINKS.interview, "accent"]])])),
+        { type: "openUrl", url: LINKS.interview },
+      ];
+    case "reload":
+      return [{ type: "reload" }];
     default:
       return [push(prose([LS([[`unknown command: /${name}`, "red"], [". /help lists everything.", "muted"]])]))];
   }

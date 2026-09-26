@@ -240,6 +240,7 @@ export const LINKS = {
   linkedin: "https://linkedin.com/in/nandishd",
   email: "naik.nandishd@gmail.com",
   resume: "/resume.pdf",
+  interview: "https://nandex.netlify.app/",
 };
 
 export const BOOTED_KEY = "nandisha_portfolio_booted";

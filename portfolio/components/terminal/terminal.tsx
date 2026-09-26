@@ -77,6 +77,13 @@ function markBooted() {
   } catch {}
 }
 
+function restartFromLoader() {
+  try {
+    localStorage.removeItem(BOOTED_KEY);
+  } catch {}
+  location.assign(location.pathname + location.search);
+}
+
 function copyText(t: string): Promise<boolean> {
   const fallback = () => {
     try {
@@ -452,6 +459,9 @@ export default function Terminal({
           break;
         case "openUrl":
           window.open(fx.url, "_blank");
+          break;
+        case "reload":
+          restartFromLoader();
           break;
         case "sudo":
           dispatch({ type: "SUDO_START", id: nextId.current++ });

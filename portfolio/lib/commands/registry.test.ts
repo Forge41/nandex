@@ -93,4 +93,13 @@ describe("runSlash", () => {
     expect(out[0]).toBe("resume.pdf   9 sections · Nandisha D, Sep 2026");
     expect(out[1]).toBe("summary.md   2 sections · about + open-source notes");
   });
+  it("opens nandex's interview room on /interview", () => {
+    const fx = runSlash("interview", "", ctx);
+    expect(fx).toContainEqual({ type: "openUrl", url: "https://nandex.netlify.app/" });
+    expect(text(fx).join(" ")).toContain("https://nandex.netlify.app/");
+  });
+
+  it("restarts from the loading screen on /reload", () => {
+    expect(runSlash("reload", "", ctx)).toEqual([{ type: "reload" }]);
+  });
 });

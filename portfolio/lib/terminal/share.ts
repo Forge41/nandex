@@ -10,7 +10,7 @@ export function shareableCommands(entries: Entry[]): string[] {
   return entries
     .filter((e): e is Extract<Entry, { kind: "cmd" }> => e.kind === "cmd" && e.mode !== "sudo" && e.mode !== "fit")
     .map((e) => e.text)
-    .filter((t) => !/^\/(share|clear|export|tour)/.test(t))
+    .filter((t) => !/^\/(share|clear|export|tour|reload|interview)/.test(t))
     .slice(-12);
 }
 
