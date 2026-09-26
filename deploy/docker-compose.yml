@@ -42,9 +42,10 @@ services:
       # tps runs inside this same container, as it will on Render.
       CORE_TPS_GRPC_ADDRESS: localhost:50051
       # The browser gets this value back as ws_url, so it must resolve in the
-      # browser -- not inside the container. tps only signs tokens with it; nothing
-      # server-side dials it.
-      TPS_LIVEKIT_HOST: ws://localhost:7880
+      # browser -- not inside the container. Overridden here only for the local
+      # LiveKit container; with LiveKit Cloud the value in backend/.env is already
+      # browser-resolvable and this line should be removed.
+      LIVEKIT_URL: ws://localhost:7880
       CORE_RUNNER_BASE_URL: http://hostmachine:8002
     extra_hosts:
       - "hostmachine:host-gateway"
@@ -77,7 +78,6 @@ services:
       dockerfile: deploy/Dockerfile.agent
     env_file: ../backend/.env
     environment:
-      LIVEKIT_URL: ws://hostmachine:7880
       INTERVIEW_CORE_BASE_URL: http://core:8000
     extra_hosts:
       - "hostmachine:host-gateway"
