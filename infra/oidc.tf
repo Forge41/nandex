@@ -87,6 +87,22 @@ resource "aws_iam_role_policy" "github_actions_iam" {
         Action   = ["iam:ListOpenIDConnectProviders", "iam:GetOpenIDConnectProvider"]
         Resource = "*"
       },
+      {
+        # Read-only on itself and on the provider that lets it exist. Terraform manages
+        # both, so a plan has to refresh them -- without this the plan fails on
+        # GetRole 403 before it reaches anything else.
+        #
+        # Read only, deliberately: a role that can rewrite its own trust policy can
+        # grant itself to anyone. Changing the CI role is therefore a local apply by a
+        # human, and an apply on main that tries to change it will fail. That is the
+        # intended friction, not an oversight.
+        Effect = "Allow"
+        Action = [
+          "iam:GetRole", "iam:ListRolePolicies", "iam:GetRolePolicy",
+          "iam:ListAttachedRolePolicies", "iam:ListRoleTags",
+        ]
+        Resource = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/nandex-github-actions"
+      },
     ]
   })
 }
