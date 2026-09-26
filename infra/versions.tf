@@ -12,9 +12,5 @@ terraform {
       source  = "netlify/netlify"
       version = "0.4.4"
     }
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 6.66"
-    }
   }
 }

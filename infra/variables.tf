@@ -40,27 +40,6 @@ variable "agent_plan" {
   default = "starter"
 }
 
-variable "aws_profile" {
-  type    = string
-  default = "personal"
-}
-
-variable "aws_region" {
-  type    = string
-  default = "us-east-1"
-}
-
-variable "monthly_budget_usd" {
-  description = "Alerts at 80% and at 100% of this. It does not cap spend -- AWS has no such control."
-  type        = string
-  default     = "30"
-}
-
-variable "budget_alert_email" {
-  type    = string
-  default = "naik.nandishd@gmail.com"
-}
-
 variable "netlify_site_id" {
   description = "Created outside Terraform -- the provider has no netlify_site resource. Empty until `netlify sites:create` has run."
   type        = string

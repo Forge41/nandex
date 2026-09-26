@@ -9,10 +9,3 @@ provider "render" {
 }
 
 provider "netlify" {}
-
-# The profile is pinned rather than inherited: an apply must not reach whichever AWS
-# account happens to be in the caller's environment.
-provider "aws" {
-  profile = var.aws_profile
-  region  = var.aws_region
-}
