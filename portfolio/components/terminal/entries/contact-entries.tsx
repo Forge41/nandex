@@ -51,7 +51,7 @@ export const MessageModal = memo(function MessageModal({ initial }: { initial: M
         role="dialog"
         aria-modal="true"
         aria-label="message Nandisha"
-        className="w-full max-w-[560px] border border-tm-border bg-tm-panel shadow-[0_30px_80px_rgba(0,0,0,.6)] max-[859px]:max-w-none max-[859px]:border-x-0 max-[859px]:border-b-0"
+        className="w-full max-w-[640px] border border-tm-border bg-tm-panel shadow-[0_30px_80px_rgba(0,0,0,.6)] max-[859px]:max-w-none max-[859px]:border-x-0 max-[859px]:border-b-0"
         style={{ animation: "tReveal .3s cubic-bezier(.2,.8,.2,1)" }}
         noValidate
         onClick={(ev) => ev.stopPropagation()}
@@ -110,7 +110,7 @@ export const MessageModal = memo(function MessageModal({ initial }: { initial: M
               value={draft.text}
               onChange={set("text")}
               placeholder="What are you building, and where would I fit in?"
-              rows={Math.min(12, Math.max(4, draft.text.split("\n").length + 1))}
+              rows={Math.min(16, Math.max(8, draft.text.split("\n").length + 1))}
               aria-invalid={!!shown.text}
               aria-describedby={shown.text ? "message-text-error" : undefined}
               className={`${input} resize-none leading-[1.6] ${shown.text ? "border-tm-red" : ""}`}
