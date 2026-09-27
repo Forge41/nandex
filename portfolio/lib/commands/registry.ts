@@ -328,7 +328,7 @@ export function runSlash(name: string, arg: string, ctx: CommandContext): Effect
         push(
           prose([
             LS([["resume.pdf", "accent"], ["   " + count("resume.pdf") + " sections · Nandisha D, Sep 2026", "sub"]]),
-            LS([["summary.md", "accent"], ["   " + count("summary.md") + " sections · about + open-source notes", "sub"]]),
+            LS([["summary.md", "accent"], ["   " + count("summary.md") + " sections · about, work notes + open-source", "sub"]]),
             L('the agent answers only from these. anything else → "not in my docs".', "dim"),
           ]),
         ),

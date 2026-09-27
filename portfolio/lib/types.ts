@@ -17,5 +17,4 @@ export type Skills = {
   agentic: string[];
   voice: string[];
   eval_infra: string[];
-  finetune: string[];
 };

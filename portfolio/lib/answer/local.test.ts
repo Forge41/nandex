@@ -9,12 +9,12 @@ describe("local answer", () => {
   it("picks the authored answer with the best keyword score", () => {
     const res = answer("what have you built with LiveKit?", sources);
     expect(res?.paras[0][0]).toEqual({
-      t: "Two things. At Think41 I architected RQ, a LangChain-based PRD generator with LiveKit real-time collaboration",
+      t: "AutoInterviewer runs live voice interviews on LiveKit: 1,000 concurrent interviews at 300ms live-audio round-trip latency",
     });
   });
 
   it("weights long keywords double", () => {
-    expect(answer("temporal", sources)?.paras[0][1]).toEqual({ c: "resume-sde2" });
+    expect(answer("temporal", sources)?.paras[0][1]).toEqual({ c: "summary-think41" });
   });
 
   it("falls back to the two best matching source passages", () => {

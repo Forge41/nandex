@@ -5,14 +5,17 @@ export const sourceOrder = [
   "resume-intern",
   "resume-sde1",
   "resume-sde2",
-  "resume-voice",
-  "resume-genalpha",
-  "resume-tps",
+  "resume-autointerviewer",
+  "resume-nantex",
   "resume-skills",
   "resume-edu",
   "summary-about",
+  "summary-think41",
   "summary-nandex",
   "summary-nantex",
+  "summary-voice",
+  "summary-genalpha",
+  "summary-tps",
 ] as const;
 
 export const answers: Answer[] = [
@@ -21,21 +24,25 @@ export const answers: Answer[] = [
     paras: [
       [
         {
-          t: "Two things. At Think41 I architected RQ, a LangChain-based PRD generator with LiveKit real-time collaboration",
+          t: "AutoInterviewer runs live voice interviews on LiveKit: 1,000 concurrent interviews at 300ms live-audio round-trip latency",
+        },
+        { c: "resume-autointerviewer" },
+        {
+          t: ". Before that, as an intern I built MUCAI, a multi-persona voice bot with configurable STT/TTS (Deepgram, Cartesia, OpenAI, ElevenLabs, Sarvam, Gemini), scaled to 1,000+ concurrent sessions for JPMC use-cases",
         },
         { c: "resume-intern" },
         {
-          t: ". More recently I built a voice-native legal RAG proof-of-concept for Harvey: a real-time audio pipeline on LiveKit + Pipecat, Google ADK for multi-agent orchestration, Deepgram STT and ElevenLabs TTS for low-latency turns",
+          t: ". I also built a voice-native legal RAG proof-of-concept for Harvey: a real-time audio pipeline on LiveKit + Pipecat, Google ADK for multi-agent orchestration, Deepgram STT and ElevenLabs TTS for low-latency turns",
         },
-        { c: "resume-voice" },
+        { c: "summary-voice" },
         { t: "." },
       ],
       [
         {
           t: "The retrieval side used Reducto OCR for scanned documents, text-embedding-3-large in Turbopuffer, and hybrid BM25 + semantic search with citations surfaced in a Word add-in",
         },
-        { c: "resume-voice" },
-        { t: ". nandex's AutoInterviewer reuses the same LiveKit agent pattern" },
+        { c: "summary-voice" },
+        { t: ". AutoInterviewer is open source in nandex" },
         { c: "summary-nandex" },
         { t: "." },
       ],
@@ -46,7 +53,7 @@ export const answers: Answer[] = [
     paras: [
       [
         {
-          t: "At Harvey.ai I built the end-to-end RAG pipeline for document-grounded legal research: semantic chunking, OpenAI text-embedding-3-large, pgvector hybrid BM25 + vector retrieval, re-ranking, context assembly, and streaming inference at production scale",
+          t: "At Harvey.ai I built the end-to-end RAG pipeline for document-grounded legal research, scaling to 100K+ documents across 300+ tenants: semantic chunking, OpenAI text-embedding-3-large, pgvector hybrid BM25 + vector retrieval, re-ranking and low-latency streaming inference, fed by an import pipeline that syncs documents from third-party apps",
         },
         { c: "resume-sde2" },
         { t: "." },
@@ -67,11 +74,11 @@ export const answers: Answer[] = [
         {
           t: "I was sole architect of Harvey's multi-agent workflow automation engine — HLD, LLD and a first prototype in one week. It orchestrates branching logic, tool use / function calling and state persistence on Temporal",
         },
-        { c: "resume-sde2" },
+        { c: "summary-think41" },
         {
-          t: ". Earlier, MUCAI was a production multi-agent conversational AI for HR/IT/PM with per-domain memory isolation",
+          t: ". AutoInterviewer also runs on Temporal: a resume becomes a tailored interview plan in 5s",
         },
-        { c: "resume-intern" },
+        { c: "resume-autointerviewer" },
         { t: "." },
       ],
     ],
@@ -83,7 +90,7 @@ export const answers: Answer[] = [
         {
           t: "For Atomicwork I authored 6 Claude Code skills — LLM-executable workflows encoding the full integration lifecycle. They cut per-integration delivery from weeks to under one week, were adopted team-wide and by the PM team for autonomous POC integrations via Devin and Claude Code, and were accepted into Atomicwork's official GitHub org",
         },
-        { c: "resume-sde1" },
+        { c: "summary-think41" },
         { t: "." },
       ],
     ],
@@ -96,6 +103,8 @@ export const answers: Answer[] = [
           t: "nantex is my open-source LaTeX live-preview CLI on PyPI: it watches your .tex, lints it locally, compiles remotely through latex-on-http so no TeX install is needed, and reloads the browser over Server-Sent Events. Its --mcp mode exposes compile_latex and get_compile_status so agents can compile LaTeX and read structured errors",
         },
         { c: "summary-nantex" },
+        { t: ". It's on PyPI, and 30+ friends use it to compile their own resumes" },
+        { c: "resume-nantex" },
         { t: ". Try it: /nantex." },
       ],
     ],
@@ -105,15 +114,20 @@ export const answers: Answer[] = [
     paras: [
       [
         {
-          t: "GenAlpha CLI converts any API repo into a production MCP server via OpenAPI detection and Python AST route extraction, so arbitrary APIs become tools for Claude, ChatGPT or Cursor; Temporal orchestrates Parse → Generate → Publish",
+          t: "At Atomicwork I designed and built a Third-Party MCP Server Service hosting custom-built MCP servers, scaling to 20+ MCP servers with zero downtime",
         },
-        { c: "resume-genalpha" },
+        { c: "resume-sde1" },
+        {
+          t: ". In open source, GenAlpha CLI converts any API repo into a production MCP server via OpenAPI detection and Python AST route extraction, so arbitrary APIs become tools for Claude, ChatGPT or Cursor; Temporal orchestrates Parse → Generate → Publish",
+        },
+        { c: "summary-genalpha" },
         {
           t: ". TPS is the companion embedded iPaaS that lets those MCP servers hold live OAuth 2.0 / API-key / mTLS credentials",
         },
-        { c: "resume-tps" },
-        { t: ". Both are under Forge41, alongside nandex" },
+        { c: "summary-tps" },
+        { t: ". All under Forge41, alongside nandex and nantex" },
         { c: "summary-nandex" },
+        { c: "summary-nantex" },
         { t: "." },
       ],
     ],
@@ -123,13 +137,13 @@ export const answers: Answer[] = [
     paras: [
       [
         {
-          t: "Since Apr 2026 I'm SDE-II at Think41 embedded with Harvey.ai. I built their document-grounded RAG pipeline, integrated Ansarada DMS via Temporal durable workflows, and architected the multi-agent workflow engine",
+          t: "Since Apr 2026 I'm SDE-II at Think41 embedded with Harvey.ai. I built their document-grounded RAG pipeline, now over 100K+ documents across 300+ tenants, and the import pipeline that syncs documents from third-party apps",
         },
         { c: "resume-sde2" },
         {
-          t: ". I also engineered CoT prompting, structured output, LLM-as-a-judge evals, PII redaction and prompt-injection defense, and used Anthropic prompt caching to cut inference cost",
+          t: ". I also integrated Ansarada DMS via Temporal durable workflows, architected the multi-agent workflow engine, and used Anthropic prompt caching to cut inference cost",
         },
-        { c: "resume-sde2" },
+        { c: "summary-think41" },
         { t: "." },
       ],
     ],
@@ -139,14 +153,10 @@ export const answers: Answer[] = [
     paras: [
       [
         {
-          t: "I treat prompts as production code — versioning, structured evals, regression testing, telemetry",
+          t: "I treat prompts as production code — versioning, structured evals, regression testing, telemetry. At Harvey that became LLM-as-a-judge evals, PII redaction and prompt-injection defense",
         },
-        { c: "resume-sde1" },
-        {
-          t: ". At Harvey that became LLM-as-a-judge evals, PII redaction, prompt-injection defense and hallucination-mitigation guardrails around the RAG pipeline",
-        },
-        { c: "resume-sde2" },
-        { t: ". Tooling: LangSmith, Langfuse, Ragas, Guardrails.ai" },
+        { c: "summary-think41" },
+        { t: ". Tooling: LangSmith, Ragas, LLM-as-a-judge and offline evals" },
         { c: "resume-skills" },
         { t: "." },
       ],
@@ -176,7 +186,7 @@ export const answers: Answer[] = [
     paras: [
       [
         {
-          t: "Core stack: Python, TypeScript, FastAPI, Next.js, PostgreSQL/pgvector, Temporal. GenAI: LangChain, LangGraph, FastMCP, Anthropic and OpenAI SDKs. Infra: Docker, Kubernetes, AWS Bedrock, Azure OpenAI, Vertex AI, OpenTelemetry",
+          t: "Core stack: Python, TypeScript, FastAPI, Next.js, PostgreSQL/pgvector, Temporal. GenAI: LangChain, LangGraph, FastMCP, Anthropic and OpenAI SDKs. Infra: Docker, Kubernetes, AWS Bedrock, Azure OpenAI, GCP Vertex AI, CI/CD",
         },
         { c: "resume-skills" },
         { t: ". Try " },
@@ -219,6 +229,8 @@ export const answers: Answer[] = [
           t: "nandex is Forge41's open-source RAG system — credential broker, Temporal importers, pgvector ingestion, RRF-fused hybrid retrieval with reranking, and streamed cited chat. It also runs AutoInterviewer, an AI interviewer where a LiveKit agent follows a resume-derived plan with sandboxed coding and SQL rounds",
         },
         { c: "summary-nandex" },
+        { t: ". It turns a resume into a tailored interview plan in 5s and has scaled to 1,000 concurrent interviews" },
+        { c: "resume-autointerviewer" },
         { t: "." },
       ],
     ],
@@ -230,9 +242,11 @@ export const answers: Answer[] = [
         { t: "Rated Above Expectations (highest rating) across all performance reviews" },
         { c: "resume-summary" },
         {
-          t: ". As SDE-I I led sprint planning and delivery for the Integration Pod: 16 work items across 47 merged PRs in 6 months, zero rollbacks",
+          t: ". As SDE-I I led a 5-engineer Integration Team that shipped 20+ third-party integrations (Workday, Keka, Rippling, ticketing, telecom)",
         },
         { c: "resume-sde1" },
+        { t: ", running sprint planning and delivery: 16 work items across 47 merged PRs in 6 months, zero rollbacks" },
+        { c: "summary-think41" },
         { t: "." },
       ],
     ],
@@ -253,7 +267,7 @@ export const projects: Project[] = [
     title: "Multi-agent workflow automation engine",
     year: "2026",
     one: "Sole architect: HLD → LLD → prototype in one week; branching, tool use, Temporal state.",
-    src: "resume-sde2",
+    src: "summary-think41",
     stack: ["Temporal", "Anthropic SDK", "Structured output", "LLM-as-judge"],
   },
   {
@@ -261,7 +275,7 @@ export const projects: Project[] = [
     title: "Voice-native legal RAG assistant",
     year: "2026",
     one: "LiveKit + Pipecat + Google ADK; Deepgram STT, ElevenLabs TTS; citations in Word add-in.",
-    src: "resume-voice",
+    src: "summary-voice",
     stack: ["LiveKit", "Pipecat", "Google ADK", "Deepgram", "ElevenLabs", "Turbopuffer"],
   },
   {
@@ -269,7 +283,7 @@ export const projects: Project[] = [
     title: "6 Claude Code skills for Atomicwork",
     year: "2025",
     one: "Integration lifecycle as LLM-executable workflows; weeks → under one week.",
-    src: "resume-sde1",
+    src: "summary-think41",
     stack: ["Claude Code", "Devin", "Agile"],
   },
   {
@@ -277,8 +291,16 @@ export const projects: Project[] = [
     title: "GenAlpha CLI",
     year: "2025",
     one: "Any API repo → production MCP server via OpenAPI + Python AST. Open source.",
-    src: "resume-genalpha",
+    src: "summary-genalpha",
     stack: ["Python", "FastAPI", "Next.js", "Temporal", "FastMCP"],
+  },
+  {
+    name: "autointerviewer",
+    title: "AutoInterviewer",
+    year: "2026",
+    one: "Resume → tailored interview plan in 5s; 1,000 concurrent live voice interviews.",
+    src: "resume-autointerviewer",
+    stack: ["Python", "Django", "Temporal", "pgvector", "Next.js", "LiveKit", "Terraform", "AWS"],
   },
   {
     name: "nandex",
@@ -293,16 +315,16 @@ export const projects: Project[] = [
     title: "nantex",
     year: "2026",
     one: "LaTeX live preview in the browser, no TeX install. CLI + MCP server on PyPI.",
-    src: "summary-nantex",
+    src: "resume-nantex",
     stack: ["Python", "Typer", "SSE", "FastMCP", "PyPI"],
   },
   {
     name: "rq-mucai",
-    title: "RQ & MUCAI",
+    title: "MUCAI & RQ",
     year: "2024",
-    one: "LangChain PRD generator with LiveKit collab; multi-agent HR/IT/PM assistant on Docker + NGINX.",
+    one: "Multi-persona voice bot: 100+ personas, 1,000+ concurrent sessions; plus a LangChain PRD generator.",
     src: "resume-intern",
-    stack: ["LangChain", "LiveKit", "Docker", "NGINX"],
+    stack: ["Deepgram", "Cartesia", "ElevenLabs", "LangChain", "LiveKit", "Docker"],
   },
 ];
 
@@ -319,9 +341,14 @@ export const gitlog: Commit[] = [
     msg: "feat(harvey): Ansarada DMS via Temporal durable workflows (OAuth 2.0, Redis, dead-session recovery)",
   },
   {
+    hash: "d4e7b21",
+    date: "2026-08",
+    msg: "feat(forge41): AutoInterviewer — resume → interview plan in 5s, 1,000 concurrent voice interviews",
+  },
+  {
     hash: "e2c8a91",
     date: "2026-05",
-    msg: "feat(harvey): end-to-end RAG — semantic chunking, pgvector hybrid BM25+vector, re-ranking, streaming",
+    msg: "feat(harvey): end-to-end RAG over 100K+ docs, 300+ tenants — pgvector hybrid BM25+vector, re-ranking, streaming",
   },
   { hash: "c41f7b3", date: "2026-04", msg: "chore: promote to SDE-II, client Harvey.ai", tag: "tag: sde-ii" },
   {
@@ -335,6 +362,11 @@ export const gitlog: Commit[] = [
     msg: "feat(forge41): GenAlpha CLI — API repo → MCP server via OpenAPI + AST; TPS iPaaS auth",
   },
   {
+    hash: "f0a2c64",
+    date: "2025-10",
+    msg: "feat(atomicwork): third-party MCP server service — 20+ MCP servers, zero downtime",
+  },
+  {
     hash: "8a4c1d2",
     date: "2025-08",
     msg: "perf(atomicwork): 6 Claude Code skills; integration delivery weeks → <1 week",
@@ -342,13 +374,13 @@ export const gitlog: Commit[] = [
   {
     hash: "1e7f9b5",
     date: "2025-06",
-    msg: "feat(atomicwork): lead Integration Pod — 16 items, 47 PRs, 0 rollbacks",
+    msg: "feat(atomicwork): lead 5-engineer Integration Team — 20+ integrations, 47 PRs, 0 rollbacks",
   },
   { hash: "b6d3e08", date: "2025-02", msg: "chore: promote to SDE-I, client Atomicwork", tag: "tag: sde-i" },
   {
     hash: "0c9a2f1",
     date: "2024-10",
-    msg: "feat(think41): MUCAI multi-agent HR/IT/PM assistant, per-domain memory isolation",
+    msg: "feat(think41): MUCAI multi-persona voice bot — 100+ personas, 1,000+ concurrent sessions",
   },
   {
     hash: "7e1b4d6",
@@ -363,73 +395,73 @@ export const tree: string[] = [
   "├── think41/  (Jun 2024 – Present)",
   "│   ├── intern/  (Jun 2024 – Jan 2025)",
   "│   │   ├── rq.md          LangChain PRD generator + LiveKit",
-  "│   │   └── mucai.md       multi-agent HR/IT/PM assistant",
+  "│   │   └── mucai.md       multi-persona voice bot, 1,000+ sessions",
   "│   ├── sde-i@atomicwork/  (Feb 2025 – Mar 2026)",
-  "│   │   ├── claude-code-skills/  6 skills, weeks → <1 week",
-  "│   │   └── integration-pod.md   16 items · 47 PRs · 0 rollbacks",
+  "│   │   ├── integration-team.md  5 engineers · 20+ integrations",
+  "│   │   ├── mcp-server-service/  20+ MCP servers, zero downtime",
+  "│   │   └── claude-code-skills/  6 skills, weeks → <1 week",
   "│   └── sde-ii@harvey.ai/  (Apr 2026 – Present)",
-  "│       ├── rag-pipeline.md      pgvector hybrid + streaming",
+  "│       ├── rag-pipeline.md      100K+ docs · 300+ tenants",
   "│       ├── workflow-engine.md   sole architect, Temporal",
   "│       └── ansarada-dms.md      OAuth 2.0 durable workflows",
   "├── forge41/  (2025 – Present, open source)",
   "│   ├── genalphacli/",
   "│   ├── tps/",
-  "│   └── nandex/",
+  "│   ├── nandex/  (AutoInterviewer)",
+  "│   └── nantex/",
   "└── education/",
   "    ├── be-cse-2020-2024.md",
   "    └── anthropic-academy-2026/  4 certifications",
   "",
-  "5 directories, 13 files",
+  "5 directories, 15 files",
 ];
 
 export const skills: Skills = {
-  languages: ["Python", "TypeScript", "JavaScript", "Java", "SQL"],
-  backend: ["FastAPI", "Next.js", "React", "Spring Boot", "Django"],
+  languages: ["Python", "TypeScript", "Java", "SQL"],
+  backend: ["FastAPI", "Next.js", "React", "Django"],
   genai: [
     "LangChain",
     "LangGraph",
     "LlamaIndex",
-    "CrewAI",
-    "AutoGen",
     "FastMCP",
     "Anthropic SDK",
     "OpenAI SDK",
-    "DSPy",
+    "Hugging Face Transformers",
   ],
   rag: [
     "hybrid BM25+dense",
     "re-ranking",
     "semantic chunking",
-    "query rewriting",
     "pgvector",
     "Pinecone",
-    "Weaviate",
     "Qdrant",
     "FAISS",
   ],
-  agentic: ["MCP", "Google ADK", "tool use", "ReAct", "Temporal", "A2A"],
-  voice: ["LiveKit", "Pipecat", "Deepgram", "ElevenLabs"],
+  agentic: ["multi-agent", "MCP", "Google ADK", "tool use", "ReAct", "Temporal"],
+  voice: ["LiveKit", "Deepgram", "Cartesia", "ElevenLabs", "Sarvam"],
   eval_infra: [
     "LangSmith",
-    "Langfuse",
     "Ragas",
-    "Guardrails.ai",
+    "LLM-as-a-judge",
+    "offline evals",
+    "PII redaction",
+    "prompt-injection defense",
     "AWS Bedrock",
     "Azure OpenAI",
-    "Vertex AI",
-    "vLLM",
+    "GCP Vertex AI",
     "Docker",
     "Kubernetes",
-    "OpenTelemetry",
+    "Terraform",
+    "CI/CD",
   ],
-  finetune: ["LoRA", "QLoRA", "PEFT", "RLHF", "DPO", "PyTorch"],
 };
 
 export const ps: string[] = [
   "USER       PID  %CPU  %MEM  COMMAND",
   "nandisha  4201  38.0  12.1  harvey/workflow-engine --phase=production-hardening",
   "nandisha  4188  22.4   8.3  harvey/rag-pipeline --tune=reranker",
-  "nandisha  3970  11.0   4.0  forge41/nandex --branch=feat-interview-room",
+  "nandisha  3970  11.0   4.0  forge41/autointerviewer --scale=1000-concurrent",
+  "nandisha  3811   9.2   3.1  forge41/nantex --watch resume.tex",
   "nandisha  3312   7.5   2.2  learn/anthropic-academy --course='Agent Skills'",
   "nandisha  2101   3.1   1.0  read/papers --topic='GraphRAG, A2A protocols'",
 ];
@@ -438,7 +470,7 @@ export const history: string[] = [
   "what have you built with LiveKit?",
   "tell me about the Harvey RAG pipeline",
   "what are the Claude Code skills?",
-  "what is GenAlpha?",
+  "what is AutoInterviewer?",
   "are you open to work?",
   "how many years of experience?",
 ];

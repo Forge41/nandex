@@ -25,7 +25,7 @@ describe("runShell", () => {
   it("lists projects", () => {
     const out = text(runShell("ls projects/", ctx));
     expect(out[0]).toMatch(/^harvey-rag\s+\.md {2}Document-grounded/);
-    expect(out).toHaveLength(8);
+    expect(out).toHaveLength(9);
   });
 
   it("cats a project with its source", () => {
@@ -90,8 +90,8 @@ describe("runSlash", () => {
 
   it("counts sources per document", () => {
     const out = text(runSlash("sources", "", ctx));
-    expect(out[0]).toBe("resume.pdf   9 sections · Nandisha D, Sep 2026");
-    expect(out[1]).toBe("summary.md   3 sections · about + open-source notes");
+    expect(out[0]).toBe("resume.pdf   8 sections · Nandisha D, Sep 2026");
+    expect(out[1]).toBe("summary.md   7 sections · about, work notes + open-source");
   });
   it("opens AutoInterviewer on /interview", () => {
     const fx = runSlash("interview", "", ctx);

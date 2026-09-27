@@ -40,7 +40,7 @@ const SKILL_ROWS = [
   { k: "Languages & backend", items: [...skills.languages, ...skills.backend] },
   { k: "GenAI & RAG", items: [...skills.genai, ...skills.rag] },
   { k: "Agentic & voice", items: [...skills.agentic, ...skills.voice] },
-  { k: "Eval, infra, tuning", items: [...skills.eval_infra, ...skills.finetune] },
+  { k: "Eval, safety & infra", items: skills.eval_infra },
 ];
 
 const INFO_ROWS = [

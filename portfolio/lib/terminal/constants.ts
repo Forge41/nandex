@@ -163,15 +163,15 @@ export const ICONS: Record<string, string> = {
   Deepgram: "deepgram",
   Docker: "docker",
   Kubernetes: "kubernetes",
-  OpenTelemetry: "opentelemetry",
-  Prometheus: "prometheus",
+  Terraform: "terraform",
+  LangSmith: "langchain",
 };
 
 export const SKILL_GRID = [
   { k: "languages & backend", items: ["Python", "TypeScript", "FastAPI", "Next.js"] },
   { k: "genai & rag", items: ["LangGraph", "Anthropic SDK", "pgvector", "Qdrant"] },
   { k: "agentic & voice", items: ["MCP", "Temporal", "LiveKit", "Deepgram"] },
-  { k: "eval & infra", items: ["Docker", "Kubernetes", "OpenTelemetry", "Prometheus"] },
+  { k: "eval & infra", items: ["Docker", "Kubernetes", "Terraform", "LangSmith"] },
 ];
 
 export const RECRUITER_TAGS = [
