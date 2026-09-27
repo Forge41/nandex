@@ -6,7 +6,7 @@ Django backend serves three products:
 | Product | Live | Code |
 | --- | --- | --- |
 | RAG system — connect apps, import, chat with citations | — | `backend/apps/{tps,importer,ingest,retrieval,chat}`, `frontend/` |
-| AI interview room — resume in, plan out, a voice interviewer runs it | [interview.nandish.online](https://interview.nandish.online) | `backend/apps/interview`, `agent/`, `frontend/` |
+| AutoInterviewer — resume in, plan out, a voice interviewer runs it | [autointerviewer.nandish.online](https://autointerviewer.nandish.online) | `backend/apps/interview`, `agent/`, `frontend/` |
 | Terminal portfolio — ask a résumé anything, cited answers, voice | [porto.nandish.online](https://porto.nandish.online) | `backend/apps/portfolio`, `portfolio/` |
 
 [MIT licensed](LICENSE).
@@ -42,7 +42,7 @@ prompts as `.md` files) that `chat` calls into — not one of the four pipeline 
 A Next.js frontend (`frontend/`) covers the chat UI and an integrations marketplace for
 connecting apps — see [Running the frontend](#running-the-frontend) below.
 
-## The interview room
+## AutoInterviewer
 
 Built on the same backend, and now the larger half of it: a candidate uploads a resume, the
 system reads it and writes an interview plan, and an AI interviewer joins a live room to run it.
@@ -367,7 +367,7 @@ make portfolio        # http://localhost:3001, proxies /api/* to BACKEND_ORIGIN
   `apps/portfolio/config.py`). Any refusal makes the page answer from its offline matcher.
 - **Sources.** Edit a file in `portfolio/content/sources/` and re-seed to store a new version;
   the core container seeds on every boot.
-- **Voice.** `/voice` joins the same LiveKit agent as the interview room, dispatched with mode
+- **Voice.** `/voice` joins the same LiveKit agent as AutoInterviewer, dispatched with mode
   `portfolio`: same speech-to-text, its own voice (Cartesia "George", `PORTFOLIO_VOICE_ID`).
   `make serve-all` turns it on; elsewhere it needs `PORTFOLIO_VOICE_ENABLED=true` and a running
   worker. Without one the page says voice is unavailable -- there is no stand-in voice.
@@ -380,7 +380,7 @@ make portfolio        # http://localhost:3001, proxies /api/* to BACKEND_ORIGIN
 | Piece | Runs on | Address |
 | --- | --- | --- |
 | API, workers, LiveKit agent, runner, Postgres | One EC2 instance (`ap-southeast-2`), `deploy/docker-compose.prod.yml` behind Caddy | `https://<eip>.nip.io` |
-| nandex frontend | Netlify site `nandex` | [interview.nandish.online](https://interview.nandish.online) |
+| nandex frontend (AutoInterviewer) | Netlify site `nandex` | [autointerviewer.nandish.online](https://autointerviewer.nandish.online) |
 | Portfolio | Netlify site `nandisha-portfolio` | [porto.nandish.online](https://porto.nandish.online) (`nandish.online`, `www` and `contact.` redirect to it) |
 | Temporal, LiveKit | Temporal Cloud, LiveKit Cloud | — |
 | Email | Resend, sending from `contact.nandish.online` | — |

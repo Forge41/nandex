@@ -73,14 +73,17 @@ resource "netlify_environment_variable" "portfolio_booking_url" {
   }]
 }
 
+# AutoInterviewer. interview. is the pre-rename name, kept as an alias that
+# frontend/netlify.toml redirects to the primary.
 resource "netlify_site_domain_settings" "frontend" {
-  site_id       = var.netlify_site_id
-  custom_domain = "interview.nandish.online"
+  site_id        = var.netlify_site_id
+  custom_domain  = "autointerviewer.nandish.online"
+  domain_aliases = ["interview.nandish.online"]
 }
 
 # porto. is primary; the others are aliases that portfolio/netlify.toml redirects to it.
 # DNS for nandish.online is at Hostinger (not in Terraform): @ A 75.2.60.5, and
-# porto/www/contact/interview/nantex CNAMEs to the sites' netlify.app names.
+# porto/www/contact/interview/autointerviewer/nantex CNAMEs to the sites' netlify.app names.
 resource "netlify_site_domain_settings" "portfolio" {
   site_id        = var.netlify_portfolio_site_id
   custom_domain  = "porto.nandish.online"

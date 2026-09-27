@@ -17,7 +17,7 @@ const instrumentSerif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
-  title: "AI Interview Room",
+  title: "AutoInterviewer",
   description: "A resume-grounded technical interview, run by an AI interviewer and reviewed by humans.",
 };
 

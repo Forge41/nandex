@@ -10,6 +10,12 @@
 
 # Next.js on Netlify needs this to serve anything that is not a static file --
 # server components, the route handlers, and the streaming the plan screen depends on.
+[[redirects]]
+  from = "https://interview.nandish.online/*"
+  to = "https://autointerviewer.nandish.online/:splat"
+  status = 301
+  force = true
+
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 

@@ -35,7 +35,7 @@ export const answers: Answer[] = [
           t: "The retrieval side used Reducto OCR for scanned documents, text-embedding-3-large in Turbopuffer, and hybrid BM25 + semantic search with citations surfaced in a Word add-in",
         },
         { c: "resume-voice" },
-        { t: ". nandex's interview room reuses the same LiveKit agent pattern" },
+        { t: ". nandex's AutoInterviewer reuses the same LiveKit agent pattern" },
         { c: "summary-nandex" },
         { t: "." },
       ],
@@ -216,7 +216,7 @@ export const answers: Answer[] = [
     paras: [
       [
         {
-          t: "nandex is Forge41's open-source RAG system — credential broker, Temporal importers, pgvector ingestion, RRF-fused hybrid retrieval with reranking, and streamed cited chat. It also runs an AI interview room where a LiveKit agent follows a resume-derived plan with sandboxed coding and SQL rounds",
+          t: "nandex is Forge41's open-source RAG system — credential broker, Temporal importers, pgvector ingestion, RRF-fused hybrid retrieval with reranking, and streamed cited chat. It also runs AutoInterviewer, an AI interviewer where a LiveKit agent follows a resume-derived plan with sandboxed coding and SQL rounds",
         },
         { c: "summary-nandex" },
         { t: "." },
@@ -284,7 +284,7 @@ export const projects: Project[] = [
     name: "nandex",
     title: "nandex",
     year: "2025",
-    one: "Open-source RAG system + AI interview room (Forge41).",
+    one: "Open-source RAG system + AutoInterviewer, an AI interviewer (Forge41).",
     src: "summary-nandex",
     stack: ["Django", "pgvector", "Temporal", "LiveKit", "Next.js"],
   },
