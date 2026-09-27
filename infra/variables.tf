@@ -9,14 +9,14 @@ variable "branch" {
 }
 
 variable "netlify_site_id" {
-  description = "Created outside Terraform -- the provider has no netlify_site resource. Empty until `netlify sites:create` has run."
+  description = "The nandex site (nandex.netlify.app). Created outside Terraform -- the provider has no netlify_site resource."
   type        = string
-  default     = ""
+  default     = "c32e2008-85eb-4629-987e-96a763818c82"
 }
 
 variable "netlify_team_id" {
   type    = string
-  default = ""
+  default = "65315a4c56c43340fb6e665e"
 }
 
 variable "aws_profile" {
@@ -43,9 +43,9 @@ variable "secret_name" {
 }
 
 variable "netlify_portfolio_site_id" {
-  description = "The portfolio's Netlify site, created outside Terraform like netlify_site_id (`netlify sites:create --name nandishnaik`). Empty until then."
+  description = "The portfolio site (nandisha-portfolio.netlify.app), created outside Terraform like netlify_site_id."
   type        = string
-  default     = ""
+  default     = "85010f58-0132-4f97-8c74-5807831488af"
 }
 
 variable "portfolio_booking_url" {
