@@ -1,6 +1,13 @@
 # nandex
 
-An open-source RAG system: connect third-party apps, import their data, and query it.
+An open-source RAG system: connect third-party apps, import their data, and query it. One
+Django backend serves three products:
+
+| Product | Live | Code |
+| --- | --- | --- |
+| RAG system — connect apps, import, chat with citations | — | `backend/apps/{tps,importer,ingest,retrieval,chat}`, `frontend/` |
+| AI interview room — resume in, plan out, a voice interviewer runs it | [interview.nandish.online](https://interview.nandish.online) | `backend/apps/interview`, `agent/`, `frontend/` |
+| Terminal portfolio — ask a résumé anything, cited answers, voice | [porto.nandish.online](https://porto.nandish.online) | `backend/apps/portfolio`, `portfolio/` |
 
 [MIT licensed](LICENSE).
 
@@ -67,6 +74,8 @@ frontend/          Next.js app: chat UI + integrations marketplace
 portfolio/         Next.js app: the terminal portfolio, deployed as its own Netlify site
   content/sources/  the portfolio's citable sources, seeded into retrieval
 packages/ui/       @nandex/ui: tokens, Tailwind theme and primitives both apps share
+deploy/            Dockerfiles and the production compose stack for the EC2 box
+infra/             Terraform: EC2, IAM/OIDC, and both Netlify sites
 backend/
   config/           Django project (settings, urls, asgi)
   ai/               Anthropic client, model registry, prompts as .md files -- no Django import
@@ -344,25 +353,48 @@ curl -H "X-TPS-Secret: <value>" http://localhost:8000/apps
 
 ## Running the portfolio
 
-The portfolio shares the backend, the database and `@nandex/ui` with nandex, and deploys on its
-own (`portfolio/netlify.toml`, `infra/netlify.tf`). Locally:
+The portfolio shares the backend, the database and `@nandex/ui` with nandex, and deploys as its
+own Netlify site. `make serve-all` runs it on :3001 with everything else; on its own:
 
 ```bash
 make seed-portfolio   # store + index portfolio/content/sources (idempotent)
 make portfolio        # http://localhost:3001, proxies /api/* to BACKEND_ORIGIN
 ```
 
-`POST /portfolio/ask` and `/portfolio/fit` stream answers over SSE (run the backend under
-`make asgi`), citing sources inline as `[source-id]`. They need no session, are rate limited per
-IP and capped per day (`PORTFOLIO_*` settings in `apps/portfolio/config.py`), and every refusal
-tells the page to answer from its offline matcher instead. Editing a file in
-`portfolio/content/sources/` and re-seeding stores a new version; the core container seeds on
-every boot.
+- **Answers.** `POST /portfolio/ask` and `/portfolio/fit` stream over SSE (run the backend under
+  `make asgi`) from the same hybrid retrieval as `chat`, citing sources inline as `[source-id]`.
+  No session needed; rate limited per IP and capped per day (`PORTFOLIO_*` in
+  `apps/portfolio/config.py`). Any refusal makes the page answer from its offline matcher.
+- **Sources.** Edit a file in `portfolio/content/sources/` and re-seed to store a new version;
+  the core container seeds on every boot.
+- **Voice.** `/voice` joins the same LiveKit agent as the interview room, dispatched with mode
+  `portfolio`: same speech-to-text, its own voice (Cartesia "George", `PORTFOLIO_VOICE_ID`).
+  `make serve-all` turns it on; elsewhere it needs `PORTFOLIO_VOICE_ENABLED=true` and a running
+  worker. Without one the page says voice is unavailable -- there is no stand-in voice.
+- **Messages.** `/message` (and `/contact`) saves a `ContactMessage` and emails
+  `PORTFOLIO_OWNER_EMAIL` through Django's SMTP backend, from our domain with Reply-To set to the
+  visitor. Locally the console backend prints it instead.
 
-`/voice` talks to the same LiveKit agent as the interview room (`agent/`), dispatched with mode
-`portfolio`, so it speaks with the same STT/TTS. `make serve-all` turns it on, since it runs the worker;
-elsewhere it needs `PORTFOLIO_VOICE_ENABLED=true` and a running worker; otherwise the page says voice is unavailable and
-the visitor keeps typing -- there is no stand-in voice.
+## Deployment
+
+| Piece | Runs on | Address |
+| --- | --- | --- |
+| API, workers, LiveKit agent, runner, Postgres | One EC2 instance (`ap-southeast-2`), `deploy/docker-compose.prod.yml` behind Caddy | `https://<eip>.nip.io` |
+| nandex frontend | Netlify site `nandex` | [interview.nandish.online](https://interview.nandish.online) |
+| Portfolio | Netlify site `nandisha-portfolio` | [porto.nandish.online](https://porto.nandish.online) (`nandish.online`, `www` and `contact.` redirect to it) |
+| Temporal, LiveKit | Temporal Cloud, LiveKit Cloud | — |
+| Email | Resend, sending from `contact.nandish.online` | — |
+
+- **Merging to `main` deploys.** `.github/workflows/deploy.yml` runs once CI passes and ships
+  only what the merge touched: the EC2 stack over SSM at the exact commit CI passed, then each
+  Netlify site with the Netlify CLI. Run it manually from the Actions tab to deploy everything.
+- **Infrastructure** is Terraform in `infra/` (EC2, IAM and GitHub OIDC, both Netlify sites and
+  their custom domains), planned on every PR and applied on merge by `infra.yml`.
+- **Runtime configuration** lives in one AWS Secrets Manager secret, `nandex/app-env`, pushed
+  from `backend/.env` with `make aws-secrets` and rendered to `/opt/nandex/.env` on first boot.
+- **DNS** for `nandish.online` is at Hostinger (not in Terraform): `@` A `75.2.60.5`, CNAMEs for
+  `porto`, `www`, `contact` and `interview` to the Netlify sites, and Resend's DKIM, SPF and
+  DMARC records under `contact`.
 
 ## Contributing
 
