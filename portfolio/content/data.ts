@@ -12,6 +12,7 @@ export const sourceOrder = [
   "resume-edu",
   "summary-about",
   "summary-nandex",
+  "summary-nantex",
 ] as const;
 
 export const answers: Answer[] = [
@@ -34,7 +35,7 @@ export const answers: Answer[] = [
           t: "The retrieval side used Reducto OCR for scanned documents, text-embedding-3-large in Turbopuffer, and hybrid BM25 + semantic search with citations surfaced in a Word add-in",
         },
         { c: "resume-voice" },
-        { t: ". nandex's interview room reuses the same LiveKit agent pattern" },
+        { t: ". nandex's AutoInterviewer reuses the same LiveKit agent pattern" },
         { c: "summary-nandex" },
         { t: "." },
       ],
@@ -84,6 +85,18 @@ export const answers: Answer[] = [
         },
         { c: "resume-sde1" },
         { t: "." },
+      ],
+    ],
+  },
+  {
+    keys: ["nantex", "latex", "overleaf"],
+    paras: [
+      [
+        {
+          t: "nantex is my open-source LaTeX live-preview CLI on PyPI: it watches your .tex, lints it locally, compiles remotely through latex-on-http so no TeX install is needed, and reloads the browser over Server-Sent Events. Its --mcp mode exposes compile_latex and get_compile_status so agents can compile LaTeX and read structured errors",
+        },
+        { c: "summary-nantex" },
+        { t: ". Try it: /nantex." },
       ],
     ],
   },
@@ -203,7 +216,7 @@ export const answers: Answer[] = [
     paras: [
       [
         {
-          t: "nandex is Forge41's open-source RAG system — credential broker, Temporal importers, pgvector ingestion, RRF-fused hybrid retrieval with reranking, and streamed cited chat. It also runs an AI interview room where a LiveKit agent follows a resume-derived plan with sandboxed coding and SQL rounds",
+          t: "nandex is Forge41's open-source RAG system — credential broker, Temporal importers, pgvector ingestion, RRF-fused hybrid retrieval with reranking, and streamed cited chat. It also runs AutoInterviewer, an AI interviewer where a LiveKit agent follows a resume-derived plan with sandboxed coding and SQL rounds",
         },
         { c: "summary-nandex" },
         { t: "." },
@@ -271,9 +284,17 @@ export const projects: Project[] = [
     name: "nandex",
     title: "nandex",
     year: "2025",
-    one: "Open-source RAG system + AI interview room (Forge41).",
+    one: "Open-source RAG system + AutoInterviewer, an AI interviewer (Forge41).",
     src: "summary-nandex",
     stack: ["Django", "pgvector", "Temporal", "LiveKit", "Next.js"],
+  },
+  {
+    name: "nantex",
+    title: "nantex",
+    year: "2026",
+    one: "LaTeX live preview in the browser, no TeX install. CLI + MCP server on PyPI.",
+    src: "summary-nantex",
+    stack: ["Python", "Typer", "SSE", "FastMCP", "PyPI"],
   },
   {
     name: "rq-mucai",

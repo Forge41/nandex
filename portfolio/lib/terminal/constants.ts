@@ -240,7 +240,8 @@ export const LINKS = {
   linkedin: "https://linkedin.com/in/nandishd",
   email: "naik.nandishd@gmail.com",
   resume: "/resume.pdf",
-  interview: "https://interview.nandish.online/",
+  interview: "https://autointerviewer.nandish.online/",
+  nantex: "https://nantex.nandish.online/",
   site: "https://porto.nandish.online",
 };
 
