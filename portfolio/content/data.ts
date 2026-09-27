@@ -13,9 +13,9 @@ export const sourceOrder = [
   "summary-think41",
   "summary-nandex",
   "summary-nantex",
-  "summary-voice",
-  "summary-genalpha",
-  "summary-tps",
+  "resume-voice",
+  "resume-genalpha",
+  "resume-tps",
 ] as const;
 
 export const answers: Answer[] = [
@@ -34,14 +34,14 @@ export const answers: Answer[] = [
         {
           t: ". I also built a voice-native legal RAG proof-of-concept for Harvey: a real-time audio pipeline on LiveKit + Pipecat, Google ADK for multi-agent orchestration, Deepgram STT and ElevenLabs TTS for low-latency turns",
         },
-        { c: "summary-voice" },
+        { c: "resume-voice" },
         { t: "." },
       ],
       [
         {
           t: "The retrieval side used Reducto OCR for scanned documents, text-embedding-3-large in Turbopuffer, and hybrid BM25 + semantic search with citations surfaced in a Word add-in",
         },
-        { c: "summary-voice" },
+        { c: "resume-voice" },
         { t: ". AutoInterviewer is open source in nandex" },
         { c: "summary-nandex" },
         { t: "." },
@@ -120,11 +120,11 @@ export const answers: Answer[] = [
         {
           t: ". In open source, GenAlpha CLI converts any API repo into a production MCP server via OpenAPI detection and Python AST route extraction, so arbitrary APIs become tools for Claude, ChatGPT or Cursor; Temporal orchestrates Parse → Generate → Publish",
         },
-        { c: "summary-genalpha" },
+        { c: "resume-genalpha" },
         {
           t: ". TPS is the companion embedded iPaaS that lets those MCP servers hold live OAuth 2.0 / API-key / mTLS credentials",
         },
-        { c: "summary-tps" },
+        { c: "resume-tps" },
         { t: ". All under Forge41, alongside nandex and nantex" },
         { c: "summary-nandex" },
         { c: "summary-nantex" },
@@ -275,7 +275,7 @@ export const projects: Project[] = [
     title: "Voice-native legal RAG assistant",
     year: "2026",
     one: "LiveKit + Pipecat + Google ADK; Deepgram STT, ElevenLabs TTS; citations in Word add-in.",
-    src: "summary-voice",
+    src: "resume-voice",
     stack: ["LiveKit", "Pipecat", "Google ADK", "Deepgram", "ElevenLabs", "Turbopuffer"],
   },
   {
@@ -291,7 +291,7 @@ export const projects: Project[] = [
     title: "GenAlpha CLI",
     year: "2025",
     one: "Any API repo → production MCP server via OpenAPI + Python AST. Open source.",
-    src: "summary-genalpha",
+    src: "resume-genalpha",
     stack: ["Python", "FastAPI", "Next.js", "Temporal", "FastMCP"],
   },
   {

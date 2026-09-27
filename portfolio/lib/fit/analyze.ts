@@ -10,9 +10,9 @@ const SKILL_SRC: Record<string, string> = {
   deepgram: "resume-intern",
   elevenlabs: "resume-intern",
   gemini: "resume-intern",
-  pipecat: "summary-voice",
-  "google adk": "summary-voice",
-  turbopuffer: "summary-voice",
+  pipecat: "resume-voice",
+  "google adk": "resume-voice",
+  turbopuffer: "resume-voice",
   pgvector: "resume-sde2",
   rag: "resume-sde2",
   openai: "resume-sde2",
@@ -29,8 +29,8 @@ const SKILL_SRC: Record<string, string> = {
   langchain: "summary-think41",
   docker: "summary-think41",
   nginx: "summary-think41",
-  fastmcp: "summary-genalpha",
-  fastapi: "summary-genalpha",
+  fastmcp: "resume-genalpha",
+  fastapi: "resume-genalpha",
 };
 
 const KNOWN = ["python", "typescript", "javascript", "java", "sql", "go", "rust", "c++", "scala", "kotlin", "swift", "fastapi", "django", "flask", "next.js", "react", "node", "spring", "rails", "graphql", "grpc", "rest", "postgres", "pgvector", "mysql", "mongodb", "redis", "kafka", "rabbitmq", "temporal", "airflow", "spark", "snowflake", "dbt", "langchain", "langgraph", "llamaindex", "crewai", "autogen", "dspy", "mcp", "rag", "embeddings", "vector", "pinecone", "weaviate", "qdrant", "faiss", "elasticsearch", "opensearch", "anthropic", "openai", "claude", "gpt", "gemini", "llama", "bedrock", "azure", "vertex", "gcp", "aws", "kubernetes", "docker", "terraform", "ci/cd", "github actions", "prometheus", "grafana", "opentelemetry", "datadog", "livekit", "pipecat", "deepgram", "elevenlabs", "whisper", "twilio", "webrtc", "pytorch", "tensorflow", "lora", "qlora", "rlhf", "dpo", "fine-tuning", "evals", "langsmith", "langfuse", "ragas", "guardrails", "multi-agent", "agents", "tool use", "function calling", "streaming", "oauth", "security", "unity", "flutter", "react native", "ios", "android", "php", "laravel", ".net", "c#", "ruby", "elixir", "haskell", "blockchain", "solidity", "sap", "salesforce", "tableau", "power bi", "excel", "agile", "scrum"];
