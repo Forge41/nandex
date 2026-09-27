@@ -209,6 +209,7 @@ async def test_message_is_stored_then_emailed(settings, monkeypatch):
         True,
     )
     assert mail.outbox[-1].to == ["owner@example.com"]
+    assert mail.outbox[-1].reply_to == ["ada@example.com"]
     assert "Let's talk" in mail.outbox[-1].body
 
 
@@ -216,12 +217,12 @@ async def test_message_is_stored_then_emailed(settings, monkeypatch):
 async def test_message_survives_a_mail_outage(monkeypatch):
     monkeypatch.setattr(portfolio_settings, "owner_email", "owner@example.com")
 
-    def broken_send_mail(**kwargs):
+    def broken_send(self, fail_silently=False):
         raise ConnectionError("smtp down")
 
     from apps.portfolio.api import views
 
-    monkeypatch.setattr(views, "send_mail", broken_send_mail)
+    monkeypatch.setattr(views.EmailMessage, "send", broken_send)
 
     response = await _post("/portfolio/message", {"email": "ada@example.com", "text": "hi"})
 

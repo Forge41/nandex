@@ -10,7 +10,7 @@ import logging
 
 from asgiref.sync import sync_to_async
 from django.core.exceptions import ValidationError
-from django.core.mail import send_mail
+from django.core.mail import EmailMessage
 from django.core.validators import validate_email
 from django.http import HttpRequest, HttpResponse, JsonResponse, StreamingHttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -83,12 +83,15 @@ async def fit(request: HttpRequest) -> HttpResponse:
 def _notify_owner_sync(contact: ContactMessage) -> None:
     if not settings.owner_email:
         return
-    send_mail(
+    # Sent from our own domain (DEFAULT_FROM_EMAIL), since mail claiming to be from the
+    # visitor's address would fail their domain's SPF/DMARC. Reply-To makes answering
+    # them one click.
+    EmailMessage(
         subject=f"Portfolio message from {contact.name or contact.email}",
-        message=f"From: {contact.name} <{contact.email}>\n\n{contact.text}",
-        from_email=None,
-        recipient_list=[settings.owner_email],
-    )
+        body=f"From: {contact.name} <{contact.email}>\n\n{contact.text}",
+        to=[settings.owner_email],
+        reply_to=[contact.email],
+    ).send()
     ContactMessage.objects.filter(id=contact.id).update(notified=True)
 
 
