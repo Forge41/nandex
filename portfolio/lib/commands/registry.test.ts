@@ -95,8 +95,8 @@ describe("runSlash", () => {
   });
   it("opens nandex's interview room on /interview", () => {
     const fx = runSlash("interview", "", ctx);
-    expect(fx).toContainEqual({ type: "openUrl", url: "https://nandex.netlify.app/" });
-    expect(text(fx).join(" ")).toContain("https://nandex.netlify.app/");
+    expect(fx).toContainEqual({ type: "openUrl", url: "https://interview.nandish.online/" });
+    expect(text(fx).join(" ")).toContain("https://interview.nandish.online/");
   });
 
   it("restarts from the loading screen on /reload", () => {

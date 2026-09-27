@@ -6,6 +6,25 @@
   # Exit 0 skips the build, so nandex-only changes don't redeploy the portfolio.
   ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- portfolio packages/ui pnpm-lock.yaml pnpm-workspace.yaml package.json"
 
+# porto.nandish.online is the primary domain; the other names on this site redirect to it.
+[[redirects]]
+  from = "https://contact.nandish.online/*"
+  to = "https://porto.nandish.online/contact"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://nandish.online/*"
+  to = "https://porto.nandish.online/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://www.nandish.online/*"
+  to = "https://porto.nandish.online/:splat"
+  status = 301
+  force = true
+
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 

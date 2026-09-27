@@ -227,7 +227,7 @@ export function runShell(c: string, ctx: CommandContext): Effect[] {
           LS([['  "email": ', "blue"], [`"${LINKS.email}"`, "green"], [",", "muted"]]),
           LS([['  "linkedin": ', "blue"], ['"linkedin.com/in/nandishd"', "green"], [",", "muted"]]),
           LS([['  "github": ', "blue"], ['"github.com/NandishNaik01"', "green"], [",", "muted"]]),
-          LS([['  "site": ', "blue"], ['"nandishnaik.netlify.app"', "green"], [",", "muted"]]),
+          LS([['  "site": ', "blue"], [`"${LINKS.site.replace("https://", "")}"`, "green"], [",", "muted"]]),
           LS([['  "timezone": ', "blue"], ['"Asia/Kolkata"', "green"]]),
           L("}", "muted"),
         ]),
