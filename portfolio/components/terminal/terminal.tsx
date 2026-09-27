@@ -118,15 +118,20 @@ export default function Terminal({
   sources,
   bookingUrl = "",
   citationViewer = "pane",
+  initialCommand = "",
 }: {
   sources: Source[];
   bookingUrl?: string;
   citationViewer?: CitationViewer;
+  initialCommand?: string;
 }) {
   const [state, dispatch] = useReducer(terminalReducer, initialState);
   const isMobile = useIsMobile();
   const narrow = useIsNarrow();
-  const [loader, setLoader] = useState(() => !readBooted() && !window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  // A deep link to a command (/contact) goes straight to it rather than through the loader.
+  const [loader, setLoader] = useState(
+    () => !initialCommand && !readBooted() && !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
   const [contrib, setContrib] = useState<number[] | null>(null);
 
   const byId = useMemo(() => Object.fromEntries(sources.map((s) => [s.id, s])), [sources]);
@@ -168,6 +173,7 @@ export default function Terminal({
     after(80, focus);
     if (hashHandled.current) return;
     hashHandled.current = true;
+    if (initialCommand) after(300, () => submit(initialCommand, true));
     const hash = location.hash;
     const src = hash.match(/src=([\w-]+)/);
     if (src && byId[src[1]]) after(400, () => openSource(src[1]));

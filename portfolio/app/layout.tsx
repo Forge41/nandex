@@ -16,6 +16,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://porto.nandish.online"),
   title: "Nandisha — Generative AI Engineer",
   description: "Ask my resume anything. Answers are retrieved from my work and cite their sources.",
 };
