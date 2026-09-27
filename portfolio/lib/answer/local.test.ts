@@ -26,4 +26,8 @@ describe("local answer", () => {
   it("returns null when nothing matches", () => {
     expect(answer("favourite pizza topping?", sources)).toBeNull();
   });
+
+  it("cites the nantex summary for LaTeX questions", () => {
+    expect(answer("what is nantex?", sources)?.paras[0][1]).toEqual({ c: "summary-nantex" });
+  });
 });

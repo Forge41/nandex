@@ -12,6 +12,7 @@ export const sourceOrder = [
   "resume-edu",
   "summary-about",
   "summary-nandex",
+  "summary-nantex",
 ] as const;
 
 export const answers: Answer[] = [
@@ -84,6 +85,18 @@ export const answers: Answer[] = [
         },
         { c: "resume-sde1" },
         { t: "." },
+      ],
+    ],
+  },
+  {
+    keys: ["nantex", "latex", "overleaf"],
+    paras: [
+      [
+        {
+          t: "nantex is my open-source LaTeX live-preview CLI on PyPI: it watches your .tex, lints it locally, compiles remotely through latex-on-http so no TeX install is needed, and reloads the browser over Server-Sent Events. Its --mcp mode exposes compile_latex and get_compile_status so agents can compile LaTeX and read structured errors",
+        },
+        { c: "summary-nantex" },
+        { t: ". Try it: /nantex." },
       ],
     ],
   },
@@ -274,6 +287,14 @@ export const projects: Project[] = [
     one: "Open-source RAG system + AI interview room (Forge41).",
     src: "summary-nandex",
     stack: ["Django", "pgvector", "Temporal", "LiveKit", "Next.js"],
+  },
+  {
+    name: "nantex",
+    title: "nantex",
+    year: "2026",
+    one: "LaTeX live preview in the browser, no TeX install. CLI + MCP server on PyPI.",
+    src: "summary-nantex",
+    stack: ["Python", "Typer", "SSE", "FastMCP", "PyPI"],
   },
   {
     name: "rq-mucai",

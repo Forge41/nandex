@@ -41,6 +41,7 @@ export const SLASH_COMMANDS: [string, string][] = [
   ["recruiter", "one-screen summary for people who won't type"],
   ["tour", "run every command, one after another"],
   ["interview", "try nandex's AI interview room"],
+  ["nantex", "LaTeX live preview CLI + MCP server"],
   ["reload", "start over from the loading screen"],
 ];
 
@@ -343,6 +344,11 @@ export function runSlash(name: string, arg: string, ctx: CommandContext): Effect
       return [
         push(prose([LS([["opening the interview room → ", "muted"], [LINKS.interview, "accent"]])])),
         { type: "openUrl", url: LINKS.interview },
+      ];
+    case "nantex":
+      return [
+        push(prose([LS([["opening nantex → ", "muted"], [LINKS.nantex, "accent"]])])),
+        { type: "openUrl", url: LINKS.nantex },
       ];
     case "reload":
       return [{ type: "reload" }];

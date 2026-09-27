@@ -241,6 +241,7 @@ export const LINKS = {
   email: "naik.nandishd@gmail.com",
   resume: "/resume.pdf",
   interview: "https://interview.nandish.online/",
+  nantex: "https://nantex.nandish.online/",
   site: "https://porto.nandish.online",
 };
 

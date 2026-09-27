@@ -4,6 +4,7 @@ import { LiveDot } from "@nandex/ui/indicators";
 import Image from "next/image";
 import { useMemo, useState } from "react";
 
+import { projects } from "@/content/data";
 import { sampleGrid, streaks } from "@/lib/github";
 import { LINKS } from "@/lib/terminal/constants";
 import { industry } from "@/lib/terminal/time";
@@ -47,7 +48,7 @@ function Stats() {
         </div>
       </button>
       <button type="button" title="!ls projects/" className={statBtn} onClick={stop(() => submit("!ls projects/"))}>
-        <div className="text-base font-semibold leading-[1.2]">7</div>
+        <div className="text-base font-semibold leading-[1.2]">{projects.length}</div>
         <div className={statLabel}>
           projects <span className="text-tm-dim">›</span>
         </div>

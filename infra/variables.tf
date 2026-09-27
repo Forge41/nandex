@@ -48,6 +48,12 @@ variable "netlify_portfolio_site_id" {
   default     = "85010f58-0132-4f97-8c74-5807831488af"
 }
 
+variable "netlify_nantex_site_id" {
+  description = "The nantex landing page (nantex.netlify.app), created outside Terraform like netlify_site_id and deployed from Forge41/nantex."
+  type        = string
+  default     = "738918ef-daa4-4d02-bcde-4d756ee1c21c"
+}
+
 variable "portfolio_booking_url" {
   description = "Scheduling link for the portfolio's /book. Empty sends /book to /message."
   type        = string

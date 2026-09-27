@@ -80,11 +80,18 @@ resource "netlify_site_domain_settings" "frontend" {
 
 # porto. is primary; the others are aliases that portfolio/netlify.toml redirects to it.
 # DNS for nandish.online is at Hostinger (not in Terraform): @ A 75.2.60.5, and
-# porto/www/contact/interview CNAMEs to the sites' netlify.app names.
+# porto/www/contact/interview/nantex CNAMEs to the sites' netlify.app names.
 resource "netlify_site_domain_settings" "portfolio" {
   site_id        = var.netlify_portfolio_site_id
   custom_domain  = "porto.nandish.online"
   domain_aliases = ["nandish.online", "www.nandish.online", "contact.nandish.online"]
+}
+
+# nantex's static page. Only its domain lives here, beside the other nandish.online names;
+# Forge41/nantex's site.yml deploys it. DNS: nantex CNAME nantex.netlify.app.
+resource "netlify_site_domain_settings" "nantex" {
+  site_id       = var.netlify_nantex_site_id
+  custom_domain = "nantex.nandish.online"
 }
 
 # These settings existed before Terraform managed them. Importing adopts them rather
@@ -117,4 +124,9 @@ import {
 import {
   to = netlify_site_domain_settings.portfolio
   id = var.netlify_portfolio_site_id
+}
+
+import {
+  to = netlify_site_domain_settings.nantex
+  id = var.netlify_nantex_site_id
 }
