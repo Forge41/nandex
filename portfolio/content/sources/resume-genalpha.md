@@ -1,5 +1,5 @@
 ---
-doc: resume.pdf
+doc: summary.md
 title: Project — GenAlpha CLI (2025 – Present)
 ---
 

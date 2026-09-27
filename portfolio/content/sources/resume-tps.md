@@ -1,5 +1,5 @@
 ---
-doc: resume.pdf
+doc: summary.md
 title: Project — TPS, Embedded iPaaS (2025 – Present)
 ---
 

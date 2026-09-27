@@ -1,5 +1,5 @@
 ---
-doc: resume.pdf
+doc: summary.md
 title: Project — Voice-Native Legal RAG Assistant (2026)
 ---
 
