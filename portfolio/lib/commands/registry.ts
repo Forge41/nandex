@@ -40,7 +40,7 @@ export const SLASH_COMMANDS: [string, string][] = [
   ["share", "copy a link that replays this conversation"],
   ["recruiter", "one-screen summary for people who won't type"],
   ["tour", "run every command, one after another"],
-  ["interview", "try AutoInterviewer, nandex's AI interviewer"],
+  ["interview", "try AutoInterviewer, my AI interviewer"],
   ["nantex", "LaTeX live preview CLI + MCP server"],
   ["reload", "start over from the loading screen"],
 ];

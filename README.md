@@ -1,7 +1,8 @@
-# nandex
+# AutoInterviewer
 
-An open-source RAG system: connect third-party apps, import their data, and query it. One
-Django backend serves three products:
+AutoInterviewer (formerly nandex) is an open-source AI interviewer built on a RAG platform:
+connect third-party apps, import their data, and query it. One Django backend serves three
+products:
 
 | Product | Live | Code |
 | --- | --- | --- |

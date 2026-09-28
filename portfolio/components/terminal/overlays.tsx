@@ -50,7 +50,7 @@ export function RecruiterView({ theme, onExit, onBook }: { theme: string; onExit
               <li>Built Harvey.ai&apos;s production RAG pipeline — pgvector hybrid retrieval, re-ranking, streaming inference.</li>
               <li>Sole architect of a multi-agent workflow engine on Temporal: HLD → LLD → prototype in one week.</li>
               <li>6 Claude Code skills cut integration delivery from weeks to under one week; 47 PRs, zero rollbacks.</li>
-              <li>Open source: GenAlpha CLI (any API → MCP server), TPS, nandex. Rated Above Expectations every review.</li>
+              <li>Open source: AutoInterviewer (AI interviewer), nantex (LaTeX CLI + MCP), GenAlpha CLI (any API → MCP server). Rated Above Expectations every review.</li>
             </ul>
             <div className="flex flex-wrap gap-[5px]">
               {RECRUITER_TAGS.map((t) => (

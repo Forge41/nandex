@@ -25,13 +25,13 @@ describe("runShell", () => {
   it("lists projects", () => {
     const out = text(runShell("ls projects/", ctx));
     expect(out[0]).toMatch(/^harvey-rag\s+\.md {2}Document-grounded/);
-    expect(out).toHaveLength(9);
+    expect(out).toHaveLength(8);
   });
 
   it("cats a project with its source", () => {
-    const out = text(runShell("cat projects/nandex.md", ctx));
-    expect(out[0]).toBe("# nandex  (2025)");
-    expect(out.at(-1)).toMatch(/^source: summary\.md › /);
+    const out = text(runShell("cat projects/autointerviewer.md", ctx));
+    expect(out[0]).toBe("# AutoInterviewer  (2026)");
+    expect(out.at(-1)).toMatch(/^source: resume\.pdf › /);
     expect(text(runShell("cat projects/nope.md", ctx))).toEqual(["cat: projects/nope.md: No such file"]);
   });
 
