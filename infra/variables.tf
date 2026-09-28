@@ -1,6 +1,6 @@
 variable "repo_url" {
   type    = string
-  default = "https://github.com/Forge41/nandex"
+  default = "https://github.com/NandishNaik01/nandex"
 }
 
 variable "branch" {
@@ -49,7 +49,7 @@ variable "netlify_portfolio_site_id" {
 }
 
 variable "netlify_nantex_site_id" {
-  description = "The nantex landing page (nantex.netlify.app), created outside Terraform like netlify_site_id and deployed from Forge41/nantex."
+  description = "The nantex landing page (nantex.netlify.app), created outside Terraform like netlify_site_id and deployed from NandishNaik01/nantex."
   type        = string
   default     = "738918ef-daa4-4d02-bcde-4d756ee1c21c"
 }

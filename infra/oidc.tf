@@ -32,19 +32,12 @@ resource "aws_iam_role" "github_actions" {
         # CloudTrail -- the API answers "Not authorized to perform
         # sts:AssumeRoleWithWebIdentity" either way -- so both forms are listed. The id
         # form is the stronger one: it survives a rename and cannot be squatted.
-        #
-        # The Forge41 subjects cover runs from before the repository moved to
-        # NandishNaik01; remove them once nothing runs from Forge41/nandex.
         StringLike = {
           "token.actions.githubusercontent.com:sub" = [
             "repo:NandishNaik01@147323163/nandex@1355965819:ref:refs/heads/main",
             "repo:NandishNaik01@147323163/nandex@1355965819:pull_request",
             "repo:NandishNaik01/nandex:ref:refs/heads/main",
             "repo:NandishNaik01/nandex:pull_request",
-            "repo:Forge41@194065758/nandex@1355965819:ref:refs/heads/main",
-            "repo:Forge41@194065758/nandex@1355965819:pull_request",
-            "repo:Forge41/nandex:ref:refs/heads/main",
-            "repo:Forge41/nandex:pull_request",
           ]
         }
       }

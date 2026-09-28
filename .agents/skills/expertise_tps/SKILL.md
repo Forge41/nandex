@@ -5,7 +5,7 @@ description: Architecture map and invariants for backend/apps/tps, the third-par
 
 # tps architecture
 
-`tps` is modeled on (not copied from) `Forge41/genalphacli`'s `services/tps` — a credential
+`tps` is modeled on (not copied from) `NandishNaik01/genalphacli`'s `services/tps` — a credential
 broker, not a sync engine. It proves a `Connection` has a valid, refreshable token and stops
 there. See `.claude/plans/docs/architecture/repo-structure.md` (local planning doc, not shared
 via git — may not exist on every machine) for how it fits into the full
