@@ -6,6 +6,7 @@ import { LINKS, RECRUITER_TAGS } from "@/lib/terminal/constants";
 import type { Source } from "@/lib/types";
 import { GreenDot } from "./entries/whoami";
 import { PhosphorPortrait } from "./phosphor-portrait";
+import { ResumePage, useResumePageCount } from "./resume-page";
 
 const SHARE_TEXT = "Nandisha D — Generative AI Engineer. Talk to his terminal portfolio: ask about RAG, agents, MCP, voice.";
 
@@ -185,4 +186,46 @@ export function experience(byId: Record<string, Source>): Row[] {
     { when: "Feb 2025 – Mar 2026", title: "SDE-I, Think41 · client Atomicwork", text: byId["resume-sde1"]?.text ?? "" },
     { when: "Jun 2024 – Jan 2025", title: "Intern, Think41", text: byId["resume-intern"]?.text ?? "" },
   ];
+}
+
+export function ResumeModal({ onClose }: { onClose: () => void }) {
+  const pages = useResumePageCount();
+  return (
+    <div
+      data-screen-label="Résumé modal"
+      className="absolute inset-0 z-40 flex items-stretch justify-center bg-black/70 p-6 max-[859px]:p-0"
+      style={{ animation: "tFade .2s" }}
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="résumé"
+        className="light flex min-h-0 w-full max-w-[760px] flex-col bg-background font-sans text-content shadow-[0_30px_80px_rgba(0,0,0,.6)]"
+        style={{ animation: "tReveal .3s cubic-bezier(.2,.8,.2,1)" }}
+        onClick={(ev) => ev.stopPropagation()}
+      >
+        <div className="flex flex-none items-center gap-2.5 border-b border-line px-4 py-2.5">
+          <span className="t-eyebrow text-content-muted">
+            résumé · {pages} page{pages === 1 ? "" : "s"}
+          </span>
+          <span className="flex-1" />
+          <a href={LINKS.resumeView} target="_blank" rel="noopener noreferrer" className="rounded-sm px-2.5 py-1 text-xs font-medium text-content no-underline hover:bg-surface-hover">
+            Open in Drive
+          </a>
+          <a href={LINKS.resumeDownload} target="_blank" rel="noopener noreferrer" className="rounded-sm bg-btn-inverted px-2.5 py-1 text-xs font-medium text-content-on-interactive no-underline hover:bg-btn-inverted-hover">
+            Download PDF
+          </a>
+          <button type="button" autoFocus className="cursor-pointer rounded-sm px-2.5 py-1 text-xs font-medium text-content hover:bg-surface-hover" onClick={onClose}>
+            esc · close
+          </button>
+        </div>
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto bg-surface-subtle p-4 max-[859px]:p-0">
+          {Array.from({ length: pages }, (_, i) => (
+            <ResumePage key={i} page={i + 1} className="w-full flex-none shadow-sm" />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }

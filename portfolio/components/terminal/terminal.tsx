@@ -27,7 +27,7 @@ import { useIsMobile, useIsNarrow } from "./hooks";
 import { ChevronIcon } from "./icons";
 import { InfoPane } from "./info-pane";
 import { MessageModal } from "./entries/contact-entries";
-import { RecruiterView, ShareModal } from "./overlays";
+import { RecruiterView, ResumeModal, ShareModal } from "./overlays";
 import { Prompt } from "./prompt";
 import { RaceLoader } from "./race-loader";
 import { SourceViewer } from "./source-viewer";
@@ -592,6 +592,7 @@ export default function Terminal({
       randomCommit: (k) => impl.current.randomCommit(k),
       openVoice: () => impl.current.openVoice(),
       openShare: () => dispatch({ type: "PANEL", panel: "shareOpen", open: true }),
+      openResume: () => dispatch({ type: "PANEL", panel: "resumeOpen", open: true }),
     }),
     [sources, byId],
   );
@@ -611,6 +612,10 @@ export default function Terminal({
     }
     if (s.recruiter) {
       if (esc) closePanel("recruiter");
+      return;
+    }
+    if (s.resumeOpen) {
+      if (esc) closePanel("resumeOpen");
       return;
     }
     if (s.message) {
@@ -683,7 +688,7 @@ export default function Terminal({
 
   const onLoaderDone = useMemo(() => () => impl.current.loaderDone(), []);
 
-  function closePanel(panel: "shareOpen" | "recruiter" | "gui") {
+  function closePanel(panel: "shareOpen" | "recruiter" | "resumeOpen" | "gui") {
     dispatch({ type: "PANEL", panel, open: false });
     after(50, focus);
   }
@@ -800,6 +805,7 @@ export default function Terminal({
                 isMobile={isMobile}
                 onClose={() => dispatch({ type: "SHEET", open: false })}
                 onRun={(cmd) => submit(cmd)}
+                onOpenResume={() => dispatch({ type: "PANEL", panel: "resumeOpen", open: true })}
               />
             )}
           </div>
@@ -825,6 +831,7 @@ export default function Terminal({
             />
           )}
           {s.shareOpen && <ShareModal url={`${location.origin}${location.pathname}`} copyText={copyText} onClose={() => closePanel("shareOpen")} />}
+          {s.resumeOpen && <ResumeModal onClose={() => closePanel("resumeOpen")} />}
           {s.message && <MessageModal initial={s.message} />}
           {s.gui && <GuiView byId={byId} skills={SKILL_ROWS} onExit={() => closePanel("gui")} />}
         </div>

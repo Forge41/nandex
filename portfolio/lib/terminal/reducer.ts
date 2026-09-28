@@ -3,7 +3,7 @@ import { READY_STATUS } from "./constants";
 import type { AnswerBody, DebugInfo, Entry, EntryBody, MessageDraft, ThemeName } from "./types";
 
 export type Connection = "checking" | "live" | "offline";
-export type Panel = "gui" | "recruiter" | "shareOpen";
+export type Panel = "gui" | "recruiter" | "shareOpen" | "resumeOpen";
 export type StreamTarget = "answer" | "assessment";
 
 export type TerminalState = {
@@ -25,6 +25,7 @@ export type TerminalState = {
   gui: boolean;
   recruiter: boolean;
   shareOpen: boolean;
+  resumeOpen: boolean;
   message: MessageDraft | null;
   voice: boolean;
   infoCollapsed: boolean;
@@ -56,6 +57,7 @@ export const initialState: TerminalState = {
   gui: false,
   recruiter: false,
   shareOpen: false,
+  resumeOpen: false,
   message: null,
   voice: false,
   infoCollapsed: false,
