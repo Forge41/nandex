@@ -26,7 +26,7 @@ curl -fsSL "https://github.com/docker/buildx/releases/download/${BUILDX_VERSION}
 chmod +x /usr/libexec/docker/cli-plugins/docker-buildx
 
 install -d -m 0755 /opt/nandex
-git clone --depth 1 https://github.com/Forge41/nandex.git /opt/nandex/app
+git clone --depth 1 https://github.com/NandishNaik01/nandex.git /opt/nandex/app
 
 # IMDSv2. The instance role grants GetSecretValue on one secret and nothing else.
 TOKEN=$(curl -fsSL -X PUT http://169.254.169.254/latest/api/token \

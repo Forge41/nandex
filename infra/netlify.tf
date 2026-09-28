@@ -91,7 +91,7 @@ resource "netlify_site_domain_settings" "portfolio" {
 }
 
 # nantex's static page. Only its domain lives here, beside the other nandish.online names;
-# Forge41/nantex's site.yml deploys it. DNS: nantex CNAME nantex.netlify.app.
+# NandishNaik01/nantex's site.yml deploys it. DNS: nantex CNAME nantex.netlify.app.
 resource "netlify_site_domain_settings" "nantex" {
   site_id       = var.netlify_nantex_site_id
   custom_domain = "nantex.nandish.online"
