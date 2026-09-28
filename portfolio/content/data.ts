@@ -222,11 +222,11 @@ export const answers: Answer[] = [
     ],
   },
   {
-    keys: ["autointerviewer", "nandex", "interview"],
+    keys: ["autointerviewer", "interview"],
     paras: [
       [
         {
-          t: "AutoInterviewer (formerly nandex) is my open-source AI interviewer: a resume becomes a tailored interview plan, and a LiveKit voice agent runs the interview with sandboxed coding and SQL rounds. Underneath is a full RAG platform — credential broker, Temporal importers, pgvector ingestion, RRF-fused hybrid retrieval with reranking, and streamed cited chat",
+          t: "AutoInterviewer is my open-source AI interviewer, live at autointerviewer.nandish.online: a resume becomes a tailored interview plan, and a LiveKit voice agent runs the interview with sandboxed coding and SQL rounds. Underneath is a full RAG platform — credential broker, Temporal importers, pgvector ingestion, RRF-fused hybrid retrieval with reranking, and streamed cited chat",
         },
         { c: "summary-autointerviewer" },
         { t: ". It turns a resume into a tailored interview plan in 5s and has scaled to 1,000 concurrent interviews" },
@@ -399,7 +399,7 @@ export const tree: string[] = [
   "├── open-source/  (2025 – Present)",
   "│   ├── genalphacli/",
   "│   ├── tps/",
-  "│   ├── autointerviewer/  (formerly nandex)",
+  "│   ├── autointerviewer/  AI interviewer",
   "│   └── nantex/",
   "└── education/",
   "    ├── be-cse-2020-2024.md",

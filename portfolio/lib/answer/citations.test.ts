@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { numberCitations, parseAnswer } from "./citations";
 
-const valid = ["resume-sde2", "resume-intern", "summary-nandex"];
+const valid = ["resume-sde2", "resume-intern", "summary-autointerviewer"];
 
 describe("parseAnswer", () => {
   it("turns valid markers into citations and drops unknown ids", () => {
@@ -18,9 +18,9 @@ describe("parseAnswer", () => {
   });
 
   it("splits paragraphs and marks inline code", () => {
-    expect(parseAnswer("Run `/book`.\n\nSecond[summary-nandex].", valid)).toEqual([
+    expect(parseAnswer("Run `/book`.\n\nSecond[summary-autointerviewer].", valid)).toEqual([
       [{ t: "Run " }, { t: "/book", code: true }, { t: "." }],
-      [{ t: "Second" }, { c: "summary-nandex" }, { t: "." }],
+      [{ t: "Second" }, { c: "summary-autointerviewer" }, { t: "." }],
     ]);
   });
 

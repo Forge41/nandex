@@ -93,8 +93,9 @@ describe("runSlash", () => {
     expect(out[0]).toBe("resume.pdf   8 sections · Nandisha D, Sep 2026");
     expect(out[1]).toBe("summary.md   7 sections · about, work notes + open-source");
   });
-  it("opens AutoInterviewer on /interview", () => {
-    const fx = runSlash("interview", "", ctx);
+  it("opens AutoInterviewer on /autointerviewer and the old /interview", () => {
+    expect(runSlash("interview", "", ctx)).toEqual(runSlash("autointerviewer", "", ctx));
+    const fx = runSlash("autointerviewer", "", ctx);
     expect(fx).toContainEqual({ type: "openUrl", url: "https://autointerviewer.nandish.online/" });
     expect(text(fx).join(" ")).toContain("https://autointerviewer.nandish.online/");
   });

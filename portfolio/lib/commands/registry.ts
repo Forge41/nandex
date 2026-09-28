@@ -40,7 +40,7 @@ export const SLASH_COMMANDS: [string, string][] = [
   ["share", "copy a link that replays this conversation"],
   ["recruiter", "one-screen summary for people who won't type"],
   ["tour", "run every command, one after another"],
-  ["interview", "try AutoInterviewer, my AI interviewer"],
+  ["autointerviewer", "open AutoInterviewer, my AI interviewer"],
   ["nantex", "LaTeX live preview CLI + MCP server"],
   ["reload", "start over from the loading screen"],
 ];
@@ -340,10 +340,11 @@ export function runSlash(name: string, arg: string, ctx: CommandContext): Effect
       return [{ type: "share" }];
     case "recruiter":
       return [{ type: "recruiter" }];
+    case "autointerviewer":
     case "interview":
       return [
-        push(prose([LS([["opening AutoInterviewer → ", "muted"], [LINKS.interview, "accent"]])])),
-        { type: "openUrl", url: LINKS.interview },
+        push(prose([LS([["opening AutoInterviewer → ", "muted"], [LINKS.autointerviewer, "accent"]])])),
+        { type: "openUrl", url: LINKS.autointerviewer },
       ];
     case "nantex":
       return [

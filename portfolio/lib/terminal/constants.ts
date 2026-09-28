@@ -245,7 +245,7 @@ export const LINKS = {
   resume: "/resume.pdf",
   resumeView: driveViewUrl(RESUME_DRIVE_ID),
   resumeDownload: driveDownloadUrl(RESUME_DRIVE_ID),
-  interview: "https://autointerviewer.nandish.online/",
+  autointerviewer: "https://autointerviewer.nandish.online/",
   nantex: "https://nantex.nandish.online/",
   site: "https://porto.nandish.online",
 };
