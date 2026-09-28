@@ -53,7 +53,7 @@ export const answers: Answer[] = [
     paras: [
       [
         {
-          t: "At Harvey.ai I built the end-to-end RAG pipeline for document-grounded legal research, scaling to 100K+ documents across 300+ tenants: semantic chunking, OpenAI text-embedding-3-large, pgvector hybrid BM25 + vector retrieval, re-ranking and low-latency streaming inference, fed by an import pipeline that syncs documents from third-party apps",
+          t: "At Harvey.ai I built the end-to-end RAG pipeline for document-grounded legal research, scaling to 1M+ documents (80K+ per sync session) across 300+ tenants: semantic chunking, OpenAI text-embedding-3-large, pgvector hybrid BM25 + vector retrieval, re-ranking and low-latency streaming inference, fed by an import pipeline that syncs documents from third-party apps",
         },
         { c: "resume-sde2" },
         { t: "." },
@@ -137,7 +137,7 @@ export const answers: Answer[] = [
     paras: [
       [
         {
-          t: "Since Apr 2026 I'm SDE-II at Think41 embedded with Harvey.ai. I built their document-grounded RAG pipeline, now over 100K+ documents across 300+ tenants, and the import pipeline that syncs documents from third-party apps",
+          t: "Since Apr 2026 I'm SDE-II at Think41 embedded with Harvey.ai. I built their document-grounded RAG pipeline, now over 1M+ documents across 300+ tenants, and the import pipeline that syncs documents from third-party apps",
         },
         { c: "resume-sde2" },
         {
@@ -348,7 +348,7 @@ export const gitlog: Commit[] = [
   {
     hash: "e2c8a91",
     date: "2026-05",
-    msg: "feat(harvey): end-to-end RAG over 100K+ docs, 300+ tenants — pgvector hybrid BM25+vector, re-ranking, streaming",
+    msg: "feat(harvey): end-to-end RAG over 1M+ docs, 300+ tenants — pgvector hybrid BM25+vector, re-ranking, streaming",
   },
   { hash: "c41f7b3", date: "2026-04", msg: "chore: promote to SDE-II, client Harvey.ai", tag: "tag: sde-ii" },
   {
@@ -401,7 +401,7 @@ export const tree: string[] = [
   "│   │   ├── mcp-server-service/  20+ MCP servers, zero downtime",
   "│   │   └── claude-code-skills/  6 skills, weeks → <1 week",
   "│   └── sde-ii@harvey.ai/  (Apr 2026 – Present)",
-  "│       ├── rag-pipeline.md      100K+ docs · 300+ tenants",
+  "│       ├── rag-pipeline.md      1M+ docs · 300+ tenants",
   "│       ├── workflow-engine.md   sole architect, Temporal",
   "│       └── ansarada-dms.md      OAuth 2.0 durable workflows",
   "├── forge41/  (2025 – Present, open source)",

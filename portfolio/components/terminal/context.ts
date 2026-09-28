@@ -22,7 +22,6 @@ export type TerminalApi = {
   randomCommit: (kind: "pr" | "skill") => void;
   openVoice: () => void;
   openShare: () => void;
-  openResume: () => void;
 };
 
 export type TerminalView = {

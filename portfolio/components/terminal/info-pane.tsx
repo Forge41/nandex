@@ -98,18 +98,16 @@ export function InfoPane({
   isMobile,
   onClose,
   onRun,
-  onOpenResume,
 }: {
   isMobile: boolean;
   onClose: () => void;
   onRun: (cmd: string) => void;
-  onOpenResume: () => void;
 }) {
   const tiles: [string, string, React.ReactNode, string][] = [
     [LINKS.github, "GitHub · NandishNaik01", <GithubIcon key="g" size={14} />, "github"],
     [LINKS.linkedin, "LinkedIn · in/nandishd", <LinkedinIcon key="l" size={13} />, "linkedin"],
     [`mailto:${LINKS.email}`, LINKS.email, <MailIcon key="m" size={14} />, "email"],
-    [LINKS.resume, "Résumé (PDF)", <FileIcon key="f" />, "résumé.pdf"],
+    [LINKS.resumeView, "Résumé (PDF)", <FileIcon key="f" />, "résumé.pdf"],
   ];
   return (
     <aside
@@ -152,22 +150,21 @@ export function InfoPane({
         <div className="-mb-2.5 flex items-baseline justify-between">
           <span className="text-[10.5px] uppercase tracking-[.08em] text-tm-muted">résumé</span>
         </div>
-        <button
-          type="button"
-          title="open résumé"
-          className="t-reset relative box-border block w-full flex-none overflow-hidden border border-tm-border text-left transition-[box-shadow,border-color] duration-200 hover:border-tm-accent hover:shadow-[0_0_28px_var(--t-hl)]"
-          onClick={(ev) => {
-            ev.stopPropagation();
-            onOpenResume();
-          }}
+        <a
+          href={LINKS.resumeView}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="open résumé in Google Drive"
+          className="t-reset relative box-border block w-full flex-none overflow-hidden border border-tm-border text-left no-underline transition-[box-shadow,border-color] duration-200 hover:border-tm-accent hover:shadow-[0_0_28px_var(--t-hl)]"
+          onClick={(ev) => ev.stopPropagation()}
         >
           <ResumePage />
           <div className="absolute inset-x-0 bottom-2 flex justify-center">
             <span className="border bg-white px-2 py-0.5 font-mono text-[10px] uppercase tracking-[.08em]" style={{ color: "hsl(36 5% 40%)", borderColor: "hsl(34 11% 88%)" }}>
-              résumé · click to enlarge
+              résumé · click to open
             </span>
           </div>
-        </button>
+        </a>
         <div className="flex flex-col gap-2.5">
           {SKILL_GRID.map((g) => (
             <div key={g.k} className="flex flex-col gap-[5px]">

@@ -47,7 +47,7 @@ describe("runShell", () => {
 
   it("asks for the sudo password and opens the résumé on wget", () => {
     expect(runShell("sudo hire nandisha", ctx)).toEqual([{ type: "sudo" }]);
-    expect(runShell("wget resume.pdf", ctx)[0]).toEqual({ type: "openUrl", url: "/resume.pdf" });
+    expect(runShell("wget resume.pdf", ctx)[0]).toEqual({ type: "openUrl", url: "https://drive.google.com/uc?export=download&id=1lbKDZSdoNfvTDVHhoS_xlOa5XfdLzpu8" });
   });
 
   it("staggers rm -rf and falls through to command not found", () => {

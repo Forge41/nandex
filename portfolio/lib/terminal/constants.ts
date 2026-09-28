@@ -1,3 +1,5 @@
+import { driveDownloadUrl, driveViewUrl, RESUME_DRIVE_ID } from "@/lib/resume";
+
 import type { ThemeName } from "./types";
 
 export const THEME_VARS = [
@@ -225,7 +227,7 @@ export const MOUNT_TREE: MountNode = {
 
 export const BOOT_LOG = [
   "Mounting ~/nandisha",
-  "Loading resume.pdf (1 page, 9 sections)",
+  "Loading resume.pdf (1 page, 8 sections)",
   "Loading summary.md",
   "Embedding 11 chunks → pgvector",
   "Starting agent · model=claude · retrieval=hybrid(bm25+dense)",
@@ -239,7 +241,10 @@ export const LINKS = {
   github: "https://github.com/NandishNaik01",
   linkedin: "https://linkedin.com/in/nandishd",
   email: "naik.nandishd@gmail.com",
+  // Same-origin proxy of the Drive file (app/resume.pdf/route.ts); what pdf.js renders.
   resume: "/resume.pdf",
+  resumeView: driveViewUrl(RESUME_DRIVE_ID),
+  resumeDownload: driveDownloadUrl(RESUME_DRIVE_ID),
   interview: "https://autointerviewer.nandish.online/",
   nantex: "https://nantex.nandish.online/",
   site: "https://porto.nandish.online",

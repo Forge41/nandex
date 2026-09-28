@@ -236,11 +236,11 @@ export function runShell(c: string, ctx: CommandContext): Effect[] {
     ];
   if (/^wget/.test(c))
     return [
-      { type: "openUrl", url: LINKS.resume },
+      { type: "openUrl", url: LINKS.resumeDownload },
       push(
         prose([
-          L("--2026-09-26--  https://nandisha.dev/resume.pdf", "muted"),
-          LS([["resume.pdf", "base"], ["          100%[===================>]  1 page   opened in new tab", "green"]]),
+          L(`--2026-09-26--  ${LINKS.site}/resume.pdf`, "muted"),
+          LS([["resume.pdf", "base"], ["          100%[===================>]  1 page   downloading", "green"]]),
         ]),
       ),
     ];

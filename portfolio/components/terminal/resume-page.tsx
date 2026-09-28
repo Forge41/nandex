@@ -15,20 +15,6 @@ function loadResume(): Promise<PDFDocumentProxy> {
   return resumePdf;
 }
 
-export function useResumePageCount(): number {
-  const [count, setCount] = useState(1);
-  useEffect(() => {
-    let live = true;
-    loadResume()
-      .then((pdf) => live && setCount(pdf.numPages))
-      .catch(() => undefined);
-    return () => {
-      live = false;
-    };
-  }, []);
-  return count;
-}
-
 /** Page `page` of the real résumé PDF, drawn at the container's width, so what is shown is
  * exactly what downloads. */
 export function ResumePage({ page = 1, className }: { page?: number; className?: string }) {
@@ -80,7 +66,7 @@ export function ResumePage({ page = 1, className }: { page?: number; className?:
   return (
     <div ref={wrapRef} className={className} style={{ aspectRatio: aspect, background: "white" }}>
       {failed ? (
-        <a href={LINKS.resume} target="_blank" className="flex size-full items-center justify-center text-xs text-content-muted">
+        <a href={LINKS.resumeView} target="_blank" rel="noopener noreferrer" className="flex size-full items-center justify-center text-xs text-content-muted">
           open résumé.pdf
         </a>
       ) : (

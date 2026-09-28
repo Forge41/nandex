@@ -39,11 +39,11 @@ const MINE = new Set(["python", "typescript", "javascript", "java", "sql", "fast
 
 const PROOF: Record<string, string> = {
   livekit: "AutoInterviewer, which runs 1,000 concurrent live voice interviews on LiveKit",
-  pgvector: "Harvey.ai's production RAG pipeline over 100K+ documents across 300+ tenants",
+  pgvector: "Harvey.ai's production RAG pipeline over 1M+ documents across 300+ tenants",
   temporal: "a multi-agent workflow engine with durable state on Temporal",
   mcp: "a third-party MCP server service hosting 20+ MCP servers with zero downtime",
   "claude code": "6 Claude Code skills that cut integration delivery from weeks to under one week",
-  rag: "Harvey.ai's document-grounded RAG pipeline over 100K+ documents",
+  rag: "Harvey.ai's document-grounded RAG pipeline over 1M+ documents",
 };
 
 export function coverNote(matches: string[], gaps: string[]) {
