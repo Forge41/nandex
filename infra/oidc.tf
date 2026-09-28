@@ -26,17 +26,21 @@ resource "aws_iam_role" "github_actions" {
         # Scoped to this repository, and within it to main and to pull requests.
         # Without this any GitHub workflow anywhere could assume the role.
         #
-        # This organisation issues *immutable* subject claims, which carry the numeric
-        # org and repo ids: the real subject is
-        #   repo:Forge41@194065758/nandex@1355965819:pull_request
-        # not repo:Forge41/nandex:pull_request. Only CloudTrail says so -- the API
-        # answers "Not authorized to perform sts:AssumeRoleWithWebIdentity" either way.
+        # Subjects can be *immutable* claims carrying the numeric owner and repo ids,
+        #   repo:NandishNaik01@147323163/nandex@1355965819:pull_request
+        # or the plain repo:NandishNaik01/nandex:pull_request. A mismatch only shows in
+        # CloudTrail -- the API answers "Not authorized to perform
+        # sts:AssumeRoleWithWebIdentity" either way -- so both forms are listed. The id
+        # form is the stronger one: it survives a rename and cannot be squatted.
         #
-        # Both forms are listed so the role keeps working if that setting is turned
-        # off. Matching on ids is the stronger of the two: they survive a rename and
-        # cannot be squatted by recreating a repository under the same name.
+        # The Forge41 subjects cover runs from before the repository moved to
+        # NandishNaik01; remove them once nothing runs from Forge41/nandex.
         StringLike = {
           "token.actions.githubusercontent.com:sub" = [
+            "repo:NandishNaik01@147323163/nandex@1355965819:ref:refs/heads/main",
+            "repo:NandishNaik01@147323163/nandex@1355965819:pull_request",
+            "repo:NandishNaik01/nandex:ref:refs/heads/main",
+            "repo:NandishNaik01/nandex:pull_request",
             "repo:Forge41@194065758/nandex@1355965819:ref:refs/heads/main",
             "repo:Forge41@194065758/nandex@1355965819:pull_request",
             "repo:Forge41/nandex:ref:refs/heads/main",
