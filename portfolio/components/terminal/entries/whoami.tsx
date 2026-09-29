@@ -209,7 +209,7 @@ function IdentityCard() {
           Bangalore · UTC+5:30
         </div>
       </div>
-      <div className={isMobile ? "flex flex-1 flex-col gap-1.5 px-0.5 pb-3.5 pt-1" : "flex flex-1 items-end justify-between gap-3 px-0.5 pb-3.5 pt-1"}>
+      <div className={isMobile ? "flex flex-col gap-1.5 px-0.5" : "flex items-end justify-between gap-3 px-0.5"}>
         <blockquote className="m-0 min-w-0 flex-1 font-serif text-[15px] italic leading-[1.35] tracking-[-.005em] text-tm-fg [text-wrap:pretty]">
           <span className="mr-0.5 align-[-.25em] text-[1.5em] leading-[0] text-tm-accent">“</span>
           {QUOTE.map((line, i) => (
