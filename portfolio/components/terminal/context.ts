@@ -31,6 +31,7 @@ export type TerminalView = {
   prCount: number;
   skillCount: number;
   contrib: number[] | null;
+  landing: boolean;
 };
 
 export const ApiContext = createContext<TerminalApi | null>(null);
@@ -40,6 +41,7 @@ export const ViewContext = createContext<TerminalView>({
   prCount: 1080,
   skillCount: 600,
   contrib: null,
+  landing: true,
 });
 
 export function useTerminal() {

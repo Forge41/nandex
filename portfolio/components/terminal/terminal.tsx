@@ -598,8 +598,8 @@ export default function Terminal({
   );
 
   const view = useMemo<TerminalView>(
-    () => ({ theme: state.theme, isMobile, prCount: state.prCount, skillCount: state.skillCount, contrib }),
-    [state.theme, isMobile, state.prCount, state.skillCount, contrib],
+    () => ({ theme: state.theme, isMobile, prCount: state.prCount, skillCount: state.skillCount, contrib, landing: state.landing }),
+    [state.theme, isMobile, state.prCount, state.skillCount, contrib, state.landing],
   );
 
   const onGlobalKey = useEffectEvent((ev: KeyboardEvent) => {

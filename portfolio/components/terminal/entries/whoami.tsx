@@ -43,20 +43,21 @@ function Dots({ count, active, tone }: { count: number; active: number; tone: st
   );
 }
 
-function Portrait() {
+function Portrait({ size = 84, hint = true }: { size?: number; hint?: boolean }) {
   const { openVoice } = useTerminal();
   const { theme } = useTerminalView();
   const [lens, setLens] = useState<{ x: number; y: number } | null>(null);
   const [toast, setToast] = useState(false);
 
   useEffect(() => {
+    if (!hint) return;
     const show = setTimeout(() => setToast(true), 3000);
     const hide = setTimeout(() => setToast(false), 9000);
     return () => {
       clearTimeout(show);
       clearTimeout(hide);
     };
-  }, []);
+  }, [hint]);
 
   return (
     <button
@@ -70,8 +71,8 @@ function Portrait() {
       })}
     >
       <div
-        className="relative size-[84px]"
-        style={{ animation: toast ? "tNudge .9s ease-in-out" : "none" }}
+        className="relative"
+        style={{ width: size, height: size, animation: toast ? "tNudge .9s ease-in-out" : "none" }}
         onMouseMove={(ev) => {
           const r = ev.currentTarget.getBoundingClientRect();
           setLens({ x: ev.clientX - r.left, y: ev.clientY - r.top });
@@ -325,8 +326,59 @@ function ActivityCard() {
   );
 }
 
+/** Phone layout once the conversation starts: one row, so the chat keeps the screen. */
+function CompactWhoami() {
+  const { openVoice, openShare } = useTerminal();
+  return (
+    <div className="t-glass flex min-w-0 flex-col gap-2.5 rounded-[18px] p-3" style={{ animation: "tFade .3s" }}>
+      <div className="flex min-w-0 items-center gap-3">
+        <Portrait size={48} hint={false} />
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[15px] font-bold leading-[1.15] tracking-[-.01em]">Nandisha D</div>
+          <div className="truncate text-[11.5px] text-tm-sub">Generative AI Engineer · Think41 → Harvey.ai</div>
+        </div>
+        <button
+          type="button"
+          title="share this portfolio"
+          aria-label="share this portfolio"
+          className="t-reset t-chip inline-flex size-7 flex-none items-center justify-center rounded-full text-tm-sub"
+          onClick={stop(openShare)}
+        >
+          <ShareIcon />
+        </button>
+      </div>
+      <div className="flex items-center gap-2">
+        <a href={LINKS.github} target="_blank" rel="noopener noreferrer" aria-label="GitHub" className={iconLink}>
+          <GithubIcon size={15} />
+        </a>
+        <a href={LINKS.linkedin} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className={iconLink}>
+          <LinkedinIcon size={14} />
+        </a>
+        <a href={`mailto:${LINKS.email}`} aria-label="Email" className={iconLink}>
+          <MailIcon size={15} />
+        </a>
+        <button type="button" aria-label="voice mode" className={`t-reset ${iconLink}`} onClick={stop(openVoice)}>
+          <MicIcon size={15} />
+        </button>
+        <span className="flex-1" />
+        <a
+          href={LINKS.resumeDownload}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Download résumé"
+          className="inline-flex h-8 items-center gap-1.5 rounded-full bg-tm-accent px-3.5 font-sans text-xs font-semibold text-tm-bg no-underline hover:text-tm-bg"
+        >
+          <DownloadIcon />
+          résumé.pdf
+        </a>
+      </div>
+    </div>
+  );
+}
+
 export function Whoami() {
-  const { isMobile } = useTerminalView();
+  const { isMobile, landing } = useTerminalView();
+  if (isMobile && !landing) return <CompactWhoami />;
   return (
     <div
       className={
