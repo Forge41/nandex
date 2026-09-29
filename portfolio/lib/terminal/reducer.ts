@@ -264,8 +264,6 @@ export function terminalReducer(state: TerminalState, action: TerminalAction): T
       return {
         ...state,
         tick,
-        prCount: state.prCount + (tick % 9 === 0 ? 1 : 0),
-        skillCount: state.skillCount + (tick % 14 === 0 ? 1 : 0),
         sugSeed: tick % 7 === 0 ? state.sugSeed + 1 : state.sugSeed,
       };
     }

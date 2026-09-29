@@ -143,11 +143,11 @@ function GlobeCard() {
       run: () => submit("!uptime"),
     },
     { k: "projects", v: String(projects.length), sub: "RAG · agents · voice · MCP · CLI", run: () => submit("!ls projects/") },
-    { k: "merged PRs", v: prCount.toLocaleString("en-US"), suffix: "+ live", sub: "click a card to insert a commit", run: () => randomCommit("pr") },
+    { k: "merged PRs", v: prCount.toLocaleString("en-US"), suffix: "+", sub: "click a card to insert a commit", run: () => randomCommit("pr") },
     {
       k: "skills",
       v: skillCount.toLocaleString("en-US"),
-      suffix: "+ live",
+      suffix: "+",
       sub: "and counting — Claude Code, LangGraph, pgvector…",
       run: () => randomCommit("skill"),
     },
