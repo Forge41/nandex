@@ -60,7 +60,7 @@ export const initialState: TerminalState = {
   resumeOpen: false,
   message: null,
   voice: false,
-  infoCollapsed: false,
+  infoCollapsed: true,
   infoCollapsedBeforeVoice: false,
   infoSheet: false,
   statusMsg: READY_STATUS,

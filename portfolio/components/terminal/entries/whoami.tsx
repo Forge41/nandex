@@ -2,107 +2,98 @@
 
 import { LiveDot } from "@nandex/ui/indicators";
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { projects } from "@/content/data";
 import { sampleGrid, streaks } from "@/lib/github";
 import { LINKS } from "@/lib/terminal/constants";
-import { industry } from "@/lib/terminal/time";
+import { uptime } from "@/lib/terminal/time";
 import { ContribGraph } from "../contrib-graph";
 import { useTerminal, useTerminalView } from "../context";
-import { useNow } from "../hooks";
-import { DownloadIcon, GithubIcon, LinkedinIcon, MailIcon, PinIcon, ShareIcon } from "../icons";
+import { Globe } from "../globe";
+import { useNow, useRotator } from "../hooks";
+import { DownloadIcon, GithubIcon, LinkedinIcon, MailIcon, MicIcon, PinIcon, ShareIcon } from "../icons";
 import { PhosphorPortrait } from "../phosphor-portrait";
 
 export const GreenDot = ({ size = 6 }: { size?: number }) => (
   <LiveDot tone="success" size={size} style={{ background: "var(--t-green)", animationDuration: "1.4s" }} />
 );
 
-const statBtn =
-  "t-reset min-w-0 flex-[1_1_110px] bg-tm-panel px-2.5 py-2 transition-[background,color,transform] duration-150 hover:-translate-y-px hover:bg-tm-hl";
-const statLabel = "whitespace-nowrap text-[10.5px] uppercase tracking-[.06em] text-tm-muted";
-const linkBtn =
-  "inline-flex items-center justify-center gap-1.5 border border-tm-border px-2 py-[5px] text-tm-sub no-underline transition-all duration-150 hover:border-tm-accent hover:text-tm-accent";
+export const QUOTE = "Retrieval is easy. Retrieving the right thing, with a receipt, is the job.";
 
-function Stats() {
-  const { submit, randomCommit } = useTerminal();
-  const { prCount, skillCount, isMobile } = useTerminalView();
-  const ind = industry(useNow());
-  const stop = (fn: () => void) => (ev: React.MouseEvent) => {
-    ev.stopPropagation();
-    fn();
-  };
+const stop = (fn: () => void) => (ev: React.SyntheticEvent) => {
+  ev.stopPropagation();
+  fn();
+};
+
+const iconLink =
+  "t-chip inline-flex size-8 items-center justify-center rounded-[10px] text-tm-sub no-underline transition-all duration-150 hover:-translate-y-px hover:bg-tm-hl hover:text-tm-accent";
+
+function Dots({ count, active, tone }: { count: number; active: number; tone: string }) {
   return (
-    <div
-      className="border border-tm-border bg-tm-border"
-      style={isMobile ? { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1 } : { display: "flex", flexWrap: "wrap", gap: 1 }}
-    >
-      <button type="button" title="!uptime" className={statBtn} onClick={stop(() => submit("!uptime"))}>
-        <div className="whitespace-nowrap text-base font-semibold leading-[1.2]">
-          {ind.years}
-          <span className="text-[11px] font-normal text-tm-muted">y</span> {ind.days}
-          <span className="text-[11px] font-normal text-tm-muted">d</span>
-        </div>
-        <div className={statLabel}>
-          in industry <span className="text-tm-dim">›</span>
-        </div>
-      </button>
-      <button type="button" title="!ls projects/" className={statBtn} onClick={stop(() => submit("!ls projects/"))}>
-        <div className="text-base font-semibold leading-[1.2]">{projects.length}</div>
-        <div className={statLabel}>
-          projects <span className="text-tm-dim">›</span>
-        </div>
-      </button>
-      <button type="button" title="insert a commit" className={statBtn} onClick={stop(() => randomCommit("pr"))}>
-        <div className="text-base font-semibold leading-[1.2] tabular-nums">
-          {prCount.toLocaleString("en-US")}
-          <span className="text-tm-accent">+</span>
-        </div>
-        <div className={statLabel}>
-          merged PRs <span className="text-tm-green">++</span>
-        </div>
-      </button>
-      <button type="button" title="insert a commit" className={statBtn} onClick={stop(() => randomCommit("skill"))}>
-        <div className="text-base font-semibold leading-[1.2] tabular-nums">
-          {skillCount.toLocaleString("en-US")}
-          <span className="text-tm-accent">+</span>
-        </div>
-        <div className={statLabel}>
-          skills <span className="text-tm-green">++</span>
-        </div>
-      </button>
-    </div>
+    <span className="mt-1.5 flex gap-[5px]" aria-hidden>
+      {Array.from({ length: count }, (_, i) => (
+        <span
+          key={i}
+          className="h-[5px] rounded-full transition-all duration-[350ms] ease-[cubic-bezier(.2,.8,.2,1)]"
+          style={{ width: i === active ? 16 : 5, background: i === active ? tone : "rgba(255,255,255,.18)" }}
+        />
+      ))}
+    </span>
   );
 }
 
 function Portrait() {
   const { openVoice } = useTerminal();
-  const { theme, isMobile } = useTerminalView();
+  const { theme } = useTerminalView();
   const [lens, setLens] = useState<{ x: number; y: number } | null>(null);
+  const [toast, setToast] = useState(false);
+
+  useEffect(() => {
+    const show = setTimeout(() => setToast(true), 3000);
+    const hide = setTimeout(() => setToast(false), 9000);
+    return () => {
+      clearTimeout(show);
+      clearTimeout(hide);
+    };
+  }, []);
+
   return (
     <button
       type="button"
       title="tap to talk"
-      className="t-reset flex flex-col items-center gap-1.5"
-      onClick={(ev) => {
-        ev.stopPropagation();
+      aria-label="talk to me — voice mode"
+      className="t-reset relative row-span-2 block"
+      onClick={stop(() => {
+        setToast(false);
         openVoice();
-      }}
+      })}
     >
       <div
+        className="relative size-[84px]"
+        style={{ animation: toast ? "tNudge .9s ease-in-out" : "none" }}
         onMouseMove={(ev) => {
           const r = ev.currentTarget.getBoundingClientRect();
           setLens({ x: ev.clientX - r.left, y: ev.clientY - r.top });
         }}
         onMouseLeave={() => setLens(null)}
-        style={isMobile ? { position: "relative", width: 150, height: 150, margin: "0 auto" } : { position: "relative", width: 232, height: 232 }}
       >
+        {toast && (
+          <span
+            className="pointer-events-none absolute bottom-[calc(100%+10px)] left-1/2 z-[5] inline-flex items-center gap-[7px] whitespace-nowrap rounded-xl bg-tm-accent px-[11px] py-[7px] font-sans text-[11px] font-semibold tracking-[.02em] text-tm-bg shadow-[0_10px_26px_var(--t-hl),inset_0_1px_0_rgba(255,255,255,.3)]"
+            style={{ animation: "tToastIn .45s cubic-bezier(.2,.9,.2,1.2) both" }}
+          >
+            <MicIcon size={12} />
+            tap photo to talk
+            <span className="absolute left-1/2 top-full size-0 -translate-x-1/2 border-[6px] border-b-0 border-transparent border-t-tm-accent" />
+          </span>
+        )}
         <PhosphorPortrait
           theme={theme}
-          className="size-full shadow-[0_0_0_1px_var(--t-border),0_0_36px_var(--t-hl)] transition-shadow duration-200 hover:shadow-[0_0_0_1px_var(--t-accent),0_0_48px_var(--t-hl)]"
+          className="size-full rounded-[22px] shadow-[inset_0_0_0_1px_rgba(255,255,255,.1),0_12px_36px_rgba(0,0,0,.4)] transition-shadow duration-200 hover:shadow-[inset_0_0_0_1px_var(--t-accent),0_0_48px_var(--t-hl)]"
         />
         <div
-          className="pointer-events-none absolute inset-0 overflow-hidden bg-tm-bg"
+          className="pointer-events-none absolute inset-0 overflow-hidden rounded-[22px] bg-tm-bg"
           style={{
             clipPath: lens ? `circle(38px at ${lens.x}px ${lens.y}px)` : "circle(0px at 50% 50%)",
             transition: lens ? "none" : "clip-path .25s ease",
@@ -119,134 +110,228 @@ function Portrait() {
           />
         </div>
       </div>
-      <span className="inline-flex items-center gap-1.5 text-[10.5px] uppercase tracking-[.08em] text-tm-muted">
-        <GreenDot />
-        tap to talk
+    </button>
+  );
+}
+
+function Signature() {
+  return (
+    <span
+      className="relative inline-block origin-bottom-right -rotate-6 whitespace-nowrap text-[30px] leading-[.9] tracking-[.01em] text-tm-accent"
+      style={{ fontFamily: "var(--font-signature), cursive", filter: "drop-shadow(0 0 8px var(--t-hl))" }}
+      aria-label="signed, Nandisha D"
+    >
+      Nandisha D
+      <svg viewBox="0 0 200 14" preserveAspectRatio="none" className="absolute -bottom-1.5 -left-[4%] h-3 w-[106%] overflow-visible opacity-80" aria-hidden>
+        <path d="M2 9 C 40 2, 90 12, 130 6 S 185 3, 198 8" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      </svg>
+    </span>
+  );
+}
+
+type StatCard = { k: string; v: string; suffix?: string; sub: string; run: () => void };
+
+function GlobeCard() {
+  const { submit, randomCommit } = useTerminal();
+  const { prCount, skillCount, theme } = useTerminalView();
+  const now = useNow();
+  const cards: StatCard[] = [
+    {
+      k: "in industry",
+      v: uptime(now).replace(/ years?, /, "y ").replace(/ days?$/, "d"),
+      sub: "Think41 → Harvey.ai · Bangalore, UTC+5:30",
+      run: () => submit("!uptime"),
+    },
+    { k: "projects", v: String(projects.length), sub: "RAG · agents · voice · MCP · CLI", run: () => submit("!ls projects/") },
+    { k: "merged PRs", v: prCount.toLocaleString("en-US"), suffix: "+ live", sub: "click a card to insert a commit", run: () => randomCommit("pr") },
+    {
+      k: "skills",
+      v: skillCount.toLocaleString("en-US"),
+      suffix: "+ live",
+      sub: "and counting — Claude Code, LangGraph, pgvector…",
+      run: () => randomCommit("skill"),
+    },
+  ];
+  const [idx, next] = useRotator(cards.length);
+  const c = cards[idx];
+  return (
+    <button
+      type="button"
+      title="next"
+      className="t-reset t-glass relative flex min-w-0 items-center gap-3.5 overflow-hidden rounded-2xl px-3 py-2.5 transition-[transform,box-shadow] duration-[350ms] ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-0.5 hover:scale-[1.01]"
+      onClick={stop(() => {
+        c.run();
+        next();
+      })}
+    >
+      <span className="pointer-events-none absolute -left-[30%] -top-[60%] h-[120%] w-4/5 opacity-90" style={{ background: "radial-gradient(closest-side,var(--t-hl),transparent)" }} />
+      <span className="relative flex size-14 flex-none items-center justify-center rounded-full shadow-[inset_0_0_0_1px_rgba(255,255,255,.08)]" style={{ background: "radial-gradient(circle at 35% 30%,rgba(255,255,255,.12),rgba(255,255,255,0) 60%)" }}>
+        <Globe theme={theme} />
+      </span>
+      <span className="relative flex min-w-0 flex-1 flex-col gap-0.5 font-sans">
+        <span className="truncate text-[11px] font-semibold uppercase tracking-[.02em] text-tm-muted">{c.k}</span>
+        <span key={c.k} className="flex items-baseline gap-1.5" style={{ animation: "tFade .35s" }}>
+          <span className="min-w-0 truncate text-xl font-bold leading-[1.05] tracking-[-.02em] text-tm-fg tabular-nums">{c.v}</span>
+          {c.suffix && <span className="rounded-full bg-tm-accent px-[7px] py-0.5 text-[11px] font-bold text-tm-bg">{c.suffix}</span>}
+        </span>
+        <span className="truncate text-xs tracking-[-.005em] text-tm-sub">{c.sub}</span>
+        <Dots count={cards.length} active={idx} tone="var(--t-accent)" />
       </span>
     </button>
   );
 }
 
-export function Whoami() {
-  const { openVoice, openShare } = useTerminal();
-  const { isMobile, contrib, theme } = useTerminalView();
+function IdentityCard() {
+  const { openShare } = useTerminal();
+  const { isMobile } = useTerminalView();
+  return (
+    <div className="t-glass relative z-[2] flex min-w-0 flex-col justify-between gap-3 rounded-[20px] p-3.5" style={{ animation: "tReveal .5s ease-out" }}>
+      <div className="grid min-w-0 grid-cols-[84px_minmax(0,1fr)] grid-rows-[auto_auto] items-center gap-x-3 gap-y-0.5">
+        <Portrait />
+        <div className="flex min-w-0 items-start justify-between gap-2.5 self-end">
+          <div className="min-w-0">
+            <div className="whitespace-nowrap text-base font-bold leading-[1.1] tracking-[-.01em]">Nandisha D</div>
+            <div className="mt-[3px] text-xs leading-[1.3] text-tm-sub">Generative AI Engineer</div>
+            <div className="text-[11.5px] leading-[1.3] text-tm-muted">Think41 → Harvey.ai</div>
+          </div>
+          <button
+            type="button"
+            title="share this portfolio"
+            aria-label="share this portfolio"
+            className="t-reset t-chip inline-flex size-7 flex-none items-center justify-center rounded-full text-tm-sub transition-all duration-150 hover:bg-tm-hl hover:text-tm-accent"
+            onClick={stop(openShare)}
+          >
+            <ShareIcon />
+          </button>
+        </div>
+        <div className="inline-flex items-center gap-1.5 self-start text-[11px] text-tm-muted">
+          <PinIcon />
+          Bangalore · UTC+5:30
+        </div>
+      </div>
+      <div className={isMobile ? "flex flex-1 flex-col gap-1.5 px-0.5 pb-3.5 pt-1" : "flex flex-1 items-end justify-between gap-3 px-0.5 pb-3.5 pt-1"}>
+        <blockquote className="m-0 min-w-0 flex-1 font-serif text-[15px] italic leading-[1.35] tracking-[-.005em] text-tm-fg [text-wrap:pretty]">
+          <span className="mr-0.5 align-[-.25em] text-[1.5em] leading-[0] text-tm-accent">“</span>
+          {QUOTE}
+          <span className="ml-0.5 align-[-.25em] text-[1.5em] leading-[0] text-tm-accent">”</span>
+        </blockquote>
+        <div className="flex flex-none items-end justify-end pr-2.5">
+          <Signature />
+        </div>
+      </div>
+      <GlobeCard />
+    </div>
+  );
+}
+
+function ActivityCard() {
+  const { openVoice } = useTerminal();
+  const { contrib, theme } = useTerminalView();
   const sample = useMemo(() => sampleGrid(), []);
   const grid = contrib ?? sample;
   const st = useMemo(() => streaks(grid), [grid]);
+  const cards = [
+    { k: "current streak", v: String(st.now), unit: "days", sub: "consecutive days with commits" },
+    { k: "longest streak", v: String(st.max), unit: "days", sub: "best run in the last 52 weeks" },
+    { k: "contributions", v: String(st.total), unit: "commits", sub: "activity · last 52 weeks" },
+  ];
+  const [idx, next] = useRotator(cards.length);
+  const c = cards[idx];
 
   return (
-    <div
-      style={
-        isMobile
-          ? { display: "flex", flexDirection: "column", alignItems: "stretch", gap: 14, padding: "6px 0 2px" }
-          : { display: "flex", flexWrap: "wrap", gap: "8px 28px", alignItems: "flex-start", padding: "6px 0 2px" }
-      }
-    >
-      <Portrait />
-      <div
-        style={
-          isMobile
-            ? { display: "flex", flexDirection: "column", gap: 12, fontSize: 12.5, animation: "tReveal .5s ease-out" }
-            : {
-                minWidth: "min(100%,340px)",
-                flex: "1 1 340px",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-                gap: 12,
-                minHeight: 232,
-                fontSize: 12.5,
-                animation: "tReveal .5s ease-out",
-              }
-        }
-      >
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <div className="text-[17px] font-semibold leading-[1.2]">Nandisha D</div>
-            <div className="text-tm-sub">Generative AI Engineer · Think41 → Harvey.ai</div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 whitespace-nowrap border border-tm-border px-2 py-0.5 text-[11px] text-tm-green">
-              <GreenDot />
-              {isMobile ? "open to work" : "open to interesting work"}
-            </span>
-            <button
-              type="button"
-              title="share this portfolio"
-              aria-label="share this portfolio"
-              className="t-reset inline-flex size-[26px] items-center justify-center border border-tm-border text-tm-sub transition-all duration-150 hover:border-tm-accent hover:bg-tm-hl hover:text-tm-accent"
-              onClick={(ev) => {
-                ev.stopPropagation();
-                openShare();
-              }}
-            >
-              <ShareIcon />
-            </button>
-          </div>
-        </div>
-        <Stats />
-        <div className="flex flex-col gap-1.5">
-          <div className="flex justify-between gap-2 text-[10.5px] uppercase tracking-[.08em] text-tm-muted">
-            <span className="truncate">github · last 52 weeks</span>
-            <span className="text-tm-dim">{contrib ? "live" : "sample data · offline"}</span>
-          </div>
+    <div className="t-glass flex min-w-0 flex-col gap-3 rounded-[20px] p-3.5" style={{ animation: "tReveal .5s ease-out .06s both" }}>
+      <div className="flex flex-none items-center justify-between gap-2">
+        <span className="inline-flex items-center gap-2 font-sans text-[11px] font-semibold uppercase tracking-[.02em] text-tm-muted">
+          <GithubIcon />
+          activity · 52 weeks
+        </span>
+        {contrib ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 font-sans text-[10.5px] font-bold uppercase tracking-[.06em] text-tm-green shadow-[inset_0_0_0_1px_color-mix(in_oklch,var(--t-green)_40%,transparent)]">
+            <span className="inline-block size-1.5 rounded-full bg-tm-green" style={{ animation: "tBlink 1.1s steps(1,end) infinite" }} />
+            live
+          </span>
+        ) : (
+          <span className="text-[10.5px] uppercase tracking-[.08em] text-tm-dim">sample data · offline</span>
+        )}
+      </div>
+      <div className="relative flex min-h-[82px] flex-auto items-center">
+        <div className="w-full">
           <ContribGraph grid={grid} theme={theme} />
-          <div className="flex flex-wrap gap-4 text-[11.5px] text-tm-muted">
-            <span>
-              <span className="text-tm-green">▪</span> {st.now} day streak
-            </span>
-            <span>longest {st.max}</span>
-            <span>{st.total} contributions</span>
-          </div>
-        </div>
-        <div
-          className="border-t border-dashed border-tm-border pt-2 text-[11.5px] text-tm-sub"
-          style={isMobile ? { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 } : { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}
-        >
-          {!isMobile && (
-            <span className="mr-auto inline-flex items-center gap-1.5 text-tm-muted">
-              <PinIcon />
-              Bangalore · UTC+5:30
-            </span>
-          )}
-          <a href={LINKS.github} target="_blank" rel="noopener noreferrer" title="GitHub" className={linkBtn}>
-            <GithubIcon />
-            github
-          </a>
-          <a href={LINKS.linkedin} target="_blank" rel="noopener noreferrer" title="LinkedIn" className={linkBtn}>
-            <LinkedinIcon />
-            linkedin
-          </a>
-          <a href={`mailto:${LINKS.email}`} title="Email" className={linkBtn}>
-            <MailIcon />
-            email
-          </a>
-          <a
-            href={LINKS.resumeDownload}
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Download résumé"
-            className="inline-flex items-center justify-center gap-1.5 rounded-full border border-tm-accent bg-tm-accent px-3 py-[5px] font-semibold text-tm-bg no-underline shadow-[0_0_16px_var(--t-hl)] transition-all duration-150 hover:-translate-y-px hover:text-tm-bg hover:shadow-[0_0_28px_var(--t-hl)]"
-          >
-            <DownloadIcon />
-            résumé.pdf
-          </a>
         </div>
       </div>
-      {!isMobile && (
+      <div className="grid flex-none grid-cols-2 gap-2.5">
         <button
           type="button"
-          title="voice mode"
-          className="t-reset box-border flex h-[232px] w-[72px] flex-col items-center justify-center gap-2.5 self-start overflow-hidden whitespace-nowrap border border-tm-accent bg-tm-hl px-3 text-tm-accent shadow-[0_0_32px_var(--t-hl)] transition-transform duration-[350ms] ease-[cubic-bezier(.2,.8,.2,1)] hover:translate-x-2.5"
-          onClick={(ev) => {
-            ev.stopPropagation();
-            openVoice();
-          }}
+          title="next"
+          className="t-reset t-chip relative flex min-w-0 flex-col justify-center gap-0.5 overflow-hidden rounded-[14px] px-3 py-2.5 font-sans transition-[transform,background] duration-300 hover:-translate-y-px hover:bg-tm-hl"
+          onClick={stop(next)}
         >
-          <span className="text-[40px] font-light leading-none">›</span>
-          <span className="rotate-180 text-[11px] uppercase tracking-[.14em] [writing-mode:vertical-rl]">let&apos;s go voice mode</span>
+          <span className="text-[10.5px] font-semibold uppercase tracking-[.04em] text-tm-muted">{c.k}</span>
+          <span key={c.k} className="flex items-baseline gap-[5px]" style={{ animation: "tFade .35s" }}>
+            <span className="whitespace-nowrap text-[19px] font-bold leading-[1.05] tracking-[-.02em] text-tm-fg tabular-nums">{c.v}</span>
+            <span className="text-[11px] font-medium text-tm-muted">{c.unit}</span>
+          </span>
+          <span className="truncate text-[11px] text-tm-sub">{c.sub}</span>
+          <Dots count={cards.length} active={idx} tone="var(--t-green)" />
         </button>
-      )}
+        <button
+          type="button"
+          title="talk to me — voice mode"
+          className="t-reset relative flex min-w-0 items-center gap-2.5 overflow-hidden rounded-[14px] px-3 py-2.5 font-sans text-tm-bg shadow-[0_10px_28px_var(--t-hl),inset_0_1px_0_rgba(255,255,255,.25)] transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:scale-[1.01]"
+          style={{ background: "linear-gradient(140deg,var(--t-accent),color-mix(in oklch,var(--t-accent) 70%,black))" }}
+          onClick={stop(openVoice)}
+        >
+          <span className="pointer-events-none absolute -right-[20%] -top-1/2 h-[150%] w-[70%]" style={{ background: "radial-gradient(closest-side,rgba(255,255,255,.25),transparent)" }} />
+          <span className="relative inline-flex size-[34px] flex-none items-center justify-center rounded-full bg-black/[.18] shadow-[inset_0_0_0_1px_rgba(255,255,255,.2)]">
+            <span className="absolute inset-0 rounded-full border border-white/60" style={{ animation: "tRingOut 2.2s ease-out infinite" }} />
+            <MicIcon size={18} />
+          </span>
+          <span className="relative flex min-w-0 flex-col gap-0.5">
+            <span className="text-sm font-bold leading-[1.1] tracking-[-.01em]">Go voice mode</span>
+            <span className="truncate text-[11px] opacity-85">ask me out loud — open mic</span>
+          </span>
+          <span className="relative ml-auto text-lg leading-none opacity-90">›</span>
+        </button>
+      </div>
+      <div className="flex flex-none items-center gap-2 pt-0.5">
+        <a href={LINKS.github} target="_blank" rel="noopener noreferrer" title="GitHub" aria-label="GitHub" className={iconLink}>
+          <GithubIcon size={15} />
+        </a>
+        <a href={LINKS.linkedin} target="_blank" rel="noopener noreferrer" title="LinkedIn" aria-label="LinkedIn" className={iconLink}>
+          <LinkedinIcon size={14} />
+        </a>
+        <a href={`mailto:${LINKS.email}`} title="Email" aria-label="Email" className={iconLink}>
+          <MailIcon size={15} />
+        </a>
+        <span className="flex-1" />
+        <a
+          href={LINKS.resumeDownload}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Download résumé"
+          className="inline-flex h-8 items-center justify-center gap-1.5 rounded-full bg-tm-accent px-3.5 font-sans text-xs font-semibold text-tm-bg no-underline hover:text-tm-bg shadow-[0_6px_18px_var(--t-hl)] transition-all duration-150 hover:-translate-y-px hover:shadow-[0_8px_28px_var(--t-hl)]"
+          style={{ animation: "tDribble 2.4s cubic-bezier(.34,1.56,.64,1) .8s 3" }}
+        >
+          <DownloadIcon />
+          résumé.pdf
+        </a>
+      </div>
+    </div>
+  );
+}
+
+export function Whoami() {
+  const { isMobile } = useTerminalView();
+  return (
+    <div
+      className={
+        isMobile
+          ? "flex flex-col gap-3 pb-0.5 pt-1.5"
+          : "flex flex-col gap-3 pb-0.5 pt-1.5 @min-[760px]:grid @min-[760px]:grid-cols-[minmax(0,4fr)_minmax(0,6fr)] @min-[760px]:items-stretch @min-[760px]:gap-3.5"
+      }
+    >
+      <IdentityCard />
+      <ActivityCard />
     </div>
   );
 }

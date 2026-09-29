@@ -212,7 +212,7 @@ export const answers: Answer[] = [
     paras: [
       [
         {
-          t: "naik.nandishd@gmail.com · linkedin.com/in/nandishd · github.com/NandishNaik01. Status: open to interesting work",
+          t: "naik.nandishd@gmail.com · linkedin.com/in/nandishd · github.com/Nandisha-D. Status: open to interesting work",
         },
         { c: "summary-about" },
         { t: ". Or run " },

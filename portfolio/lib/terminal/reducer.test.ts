@@ -59,10 +59,15 @@ describe("terminalReducer", () => {
   });
 
   it("collapses the info pane for voice and restores it after", () => {
-    let s = r({ ...initialState, viewerId: "resume-sde2" }, { type: "VOICE", on: true });
+    let s = r({ ...initialState, infoCollapsed: false, viewerId: "resume-sde2" }, { type: "VOICE", on: true });
     expect(s).toMatchObject({ voice: true, infoCollapsed: true, viewerId: null });
     s = r(s, { type: "VOICE", on: false });
     expect(s).toMatchObject({ voice: false, infoCollapsed: false });
+  });
+
+  it("starts with the info pane collapsed to the rail", () => {
+    expect(initialState.infoCollapsed).toBe(true);
+    expect(r(initialState, { type: "TOGGLE_INFO" }).infoCollapsed).toBe(false);
   });
 
   it("masks the sudo prompt when done", () => {

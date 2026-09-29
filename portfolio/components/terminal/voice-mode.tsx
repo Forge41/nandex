@@ -130,10 +130,10 @@ export function VoiceMode({
             style={{ color: tone, filter: animated ? "drop-shadow(0 0 5px currentColor)" : "none" }}
           />
         </div>
-        <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-auto px-7 pb-3 pt-2 text-[13px] max-[859px]:px-4">
+        <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-auto px-7 pb-3 pt-2 font-sans text-[13px] tracking-[-.005em] max-[859px]:px-4">
           {turns.map((t) => (
             <div key={t.id} className="flex gap-2.5" style={t.final ? undefined : { color: "var(--t-muted)" }}>
-              <span className="w-11 flex-none" style={{ color: t.who === "you" ? "var(--t-green)" : "var(--t-accent)" }}>
+              <span className="w-11 flex-none pt-px font-mono text-[10.5px] uppercase tracking-[.08em]" style={{ color: t.who === "you" ? "var(--t-green)" : "var(--t-accent)" }}>
                 {t.who}
               </span>
               <span className="leading-[1.6] [overflow-wrap:anywhere]">
@@ -144,7 +144,7 @@ export function VoiceMode({
           ))}
           {live && (
             <div className="flex gap-2.5 text-tm-muted">
-              <span className="w-11 flex-none text-tm-green">you</span>
+              <span className="w-11 flex-none pt-px font-mono text-[10.5px] uppercase tracking-[.08em] text-tm-green">you</span>
               <span className="[overflow-wrap:anywhere]">
                 {live}
                 <TypingCaret height={13} className="ml-[3px]" style={{ background: "var(--t-green)" }} />

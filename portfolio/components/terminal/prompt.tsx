@@ -5,7 +5,7 @@ import { forwardRef } from "react";
 import { modeOf, PROMPT_COLOR, PROMPT_SYMBOL } from "@/lib/commands/parse";
 import type { TerminalAction } from "@/lib/terminal/reducer";
 import { acItems, needsArg, type AcItem } from "@/lib/terminal/suggest";
-import { GreenDot } from "./entries/whoami";
+import { MicIcon, SendIcon } from "./icons";
 
 type PromptProps = {
   input: string;
@@ -21,13 +21,14 @@ type PromptProps = {
   submit: (text: string) => void;
   runSuggestion: (text: string) => void;
   onShortcuts: () => void;
+  onVoice: () => void;
 };
 
 const kbd = "flex-none border border-tm-border px-[5px] text-[10px] text-tm-muted";
 const withArgSpace = (fill: string) => fill + (fill.includes(" ") || /theme|cat|grep/.test(fill) ? " " : "");
 
 export const Prompt = forwardRef<HTMLInputElement, PromptProps>(function Prompt(
-  { input, acIdx, fitPending, sudoPending, thinking, showLanding, ghost, suggestions, isMobile, dispatch, submit, runSuggestion, onShortcuts },
+  { input, acIdx, fitPending, sudoPending, thinking, showLanding, ghost, suggestions, isMobile, dispatch, submit, runSuggestion, onShortcuts, onVoice },
   inputRef,
 ) {
   const flags = { fitPending, sudoPending };
@@ -77,7 +78,7 @@ export const Prompt = forwardRef<HTMLInputElement, PromptProps>(function Prompt(
   };
 
   return (
-    <div className="relative flex-none border-t border-tm-border bg-tm-bg">
+    <div className="relative z-[1] flex-none border-t border-tm-border bg-tm-bg">
       {open && (
         <div
           id="t-autocomplete"
@@ -111,26 +112,12 @@ export const Prompt = forwardRef<HTMLInputElement, PromptProps>(function Prompt(
         </div>
       )}
       {showLanding && (
-        <div className="flex flex-col px-[18px] pt-2 max-[859px]:px-3" style={{ animation: "tFade .3s" }}>
-          <button
-            type="button"
-            className="t-reset flex items-center gap-2.5 border border-b-0 border-tm-border bg-tm-panel px-2.5 py-1.5 text-[12.5px] text-tm-green hover:bg-tm-sel"
-            onClick={(ev) => {
-              ev.stopPropagation();
-              runSuggestion("/voice");
-            }}
-          >
-            <GreenDot />
-            <span className="min-w-0 flex-1 truncate">
-              /voice <span className="text-tm-muted">— activate voice</span>
-            </span>
-            <span className={kbd}>⏎</span>
-          </button>
+        <div className="flex flex-col px-[18px] pt-2 min-[860px]:mr-[124px] max-[859px]:px-2.5" style={{ animation: "tFade .3s" }}>
           {suggestions.slice(0, isMobile ? 2 : 3).map((t) => (
             <button
               key={t}
               type="button"
-              className="t-reset flex items-center gap-2.5 border border-b-0 border-tm-border bg-tm-panel px-2.5 py-1.5 text-[12.5px] text-tm-sub hover:bg-tm-sel hover:text-tm-fg"
+              className="t-reset t-glass mb-1.5 flex items-center gap-2.5 rounded-[18px] px-4 py-[9px] text-[12.5px] text-tm-sub shadow-[inset_0_1px_0_rgba(255,255,255,.1),inset_0_0_0_1px_rgba(255,255,255,.06)] transition-[background,color,transform] duration-200 hover:translate-x-1 hover:bg-tm-hl hover:text-tm-fg"
               onClick={(ev) => {
                 ev.stopPropagation();
                 runSuggestion(t);
@@ -141,42 +128,75 @@ export const Prompt = forwardRef<HTMLInputElement, PromptProps>(function Prompt(
               <span className={kbd}>⏎</span>
             </button>
           ))}
-          <div className="border-t border-tm-border" />
         </div>
       )}
-      <div className="flex items-center gap-2.5 px-[18px] py-2.5 max-[859px]:min-h-12 max-[859px]:px-3.5 max-[859px]:py-3">
-        <span className="flex-none font-semibold" style={{ color: PROMPT_COLOR[mode] }} aria-hidden>
-          {PROMPT_SYMBOL[mode]}
-        </span>
-        <div className="relative flex min-w-0 flex-1 items-center">
-          {!input && !thinking && !fitPending && !sudoPending && ghost && (
-            <span className="pointer-events-none absolute inset-y-0 left-0 flex max-w-full items-center gap-2.5 overflow-hidden whitespace-nowrap text-[13px] text-tm-dim" aria-hidden>
-              <span className="truncate">{ghost}</span>
-              <span className={kbd}>⏎</span>
-            </span>
-          )}
-          <input
-            ref={inputRef}
-            value={input}
-            onChange={(ev) => setInput(ev.target.value)}
-            onKeyDown={onKeyDown}
-            placeholder={mode === "fit" ? "paste job description…" : ""}
-            aria-label={mode === "fit" ? "job description" : mode === "sudo" ? "sudo password" : "ask a question or type a command"}
-            aria-autocomplete="list"
-            aria-controls={open ? "t-autocomplete" : undefined}
-            aria-expanded={open}
-            aria-activedescendant={open ? `t-ac-${Math.min(acIdx, ac.length - 1)}` : undefined}
-            role="combobox"
-            type={mode === "sudo" ? "password" : "text"}
-            autoFocus
-            spellCheck={false}
-            autoComplete="off"
-            autoCapitalize="off"
-            className="relative min-w-0 flex-1 border-0 bg-transparent p-0 text-[13px] text-tm-fg"
-            style={{ caretColor: "var(--t-accent)", fontSize: isMobile ? 16 : 13 }}
+      <div className="relative z-[1] mx-[18px] mb-4 mt-2 flex items-center gap-2.5 max-[859px]:mx-2.5 max-[859px]:mb-3 max-[859px]:mt-1.5 max-[859px]:gap-2">
+        <div className="t-glass relative flex min-h-[52px] min-w-0 flex-1 items-center gap-2.5 rounded-[18px] px-[18px] py-2 shadow-[inset_0_1px_0_rgba(255,255,255,.14),inset_0_0_0_1px_rgba(255,255,255,.07),0_18px_44px_rgba(0,0,0,.45)] max-[859px]:px-3.5">
+          <span
+            className="pointer-events-none absolute inset-0 rounded-[18px]"
+            style={{ background: "radial-gradient(ellipse 70% 160% at 30% 100%,var(--t-hl),transparent 70%)", animation: "tBreathe 4.5s ease-in-out infinite" }}
           />
+          <span
+            className="pointer-events-none absolute inset-x-[18px] top-0 h-px opacity-60"
+            style={{ background: "linear-gradient(90deg,transparent,var(--t-accent),transparent)", animation: "tSweep 6s ease-in-out infinite" }}
+          />
+          <span className="relative flex-none font-semibold" style={{ color: PROMPT_COLOR[mode] }} aria-hidden>
+            {PROMPT_SYMBOL[mode]}
+          </span>
+          <div className="relative flex min-w-0 flex-1 items-center">
+            {!input && !thinking && !fitPending && !sudoPending && ghost && (
+              <span className="pointer-events-none absolute inset-y-0 left-0 flex max-w-full items-center gap-2.5 overflow-hidden whitespace-nowrap text-[13px] text-tm-dim" aria-hidden>
+                <span className="truncate">{ghost}</span>
+                <span className={kbd}>⏎</span>
+              </span>
+            )}
+            <input
+              ref={inputRef}
+              value={input}
+              onChange={(ev) => setInput(ev.target.value)}
+              onKeyDown={onKeyDown}
+              placeholder={mode === "fit" ? "paste job description…" : ""}
+              aria-label={mode === "fit" ? "job description" : mode === "sudo" ? "sudo password" : "ask a question or type a command"}
+              aria-autocomplete="list"
+              aria-controls={open ? "t-autocomplete" : undefined}
+              aria-expanded={open}
+              aria-activedescendant={open ? `t-ac-${Math.min(acIdx, ac.length - 1)}` : undefined}
+              role="combobox"
+              type={mode === "sudo" ? "password" : "text"}
+              autoFocus
+              spellCheck={false}
+              autoComplete="off"
+              autoCapitalize="off"
+              className="relative min-w-0 flex-1 border-0 bg-transparent p-0 text-[13px] text-tm-fg"
+              style={{ caretColor: "var(--t-accent)", fontSize: isMobile ? 16 : 13 }}
+            />
+          </div>
         </div>
-        <span className="flex-none text-[11px] text-tm-dim">{mode}</span>
+        <button
+          type="button"
+          title="talk to me — voice mode"
+          aria-label="voice mode"
+          className="t-reset t-chip relative inline-flex size-[52px] flex-none items-center justify-center rounded-full text-tm-sub transition-all duration-200 hover:scale-105 hover:bg-tm-hl hover:text-tm-accent"
+          onClick={(ev) => {
+            ev.stopPropagation();
+            onVoice();
+          }}
+        >
+          <span className="pointer-events-none absolute inset-0 rounded-full border border-tm-accent opacity-60" style={{ animation: "tRingOut 2.4s ease-out infinite" }} />
+          <MicIcon />
+        </button>
+        <button
+          type="button"
+          title="send"
+          aria-label="send"
+          className="t-reset inline-flex size-[52px] flex-none items-center justify-center rounded-full bg-tm-accent text-tm-bg shadow-[0_6px_18px_var(--t-hl)] transition-[transform,box-shadow] duration-200 hover:scale-105 hover:shadow-[0_8px_26px_var(--t-hl)]"
+          onClick={(ev) => {
+            ev.stopPropagation();
+            submit(input);
+          }}
+        >
+          <SendIcon />
+        </button>
       </div>
     </div>
   );

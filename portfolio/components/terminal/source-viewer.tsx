@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import type { Source } from "@/lib/types";
+import { FileIcon, LinkIcon } from "./icons";
 
 export function SourceViewer({
   sources,
@@ -38,22 +39,24 @@ export function SourceViewer({
     <aside
       data-screen-label="Source viewer"
       aria-label={`source viewer: ${current.doc}`}
-      className="flex min-h-0 flex-col bg-tm-panel"
+      className={isMobile ? "flex min-h-0 flex-col bg-tm-panel" : "t-glass flex min-h-0 flex-col overflow-hidden rounded-[20px]"}
       style={
         isMobile
           ? { position: "absolute", inset: 0, zIndex: 20 }
-          : { width: 380, flex: "none", borderLeft: "1px solid var(--t-border)", animation: "tFade .2s ease-out" }
+          : { width: "min(400px, 42vw)", flex: "none", margin: "10px 10px 10px 0", animation: "tSlideIn .3s cubic-bezier(.2,.8,.2,1)" }
       }
     >
-      <div className="flex h-[30px] flex-none items-center gap-2 border-b border-tm-border px-3 text-[11px] uppercase tracking-[.08em] text-tm-muted">
-        <span className="text-tm-accent">3</span>
-        <span>less</span>
-        <span className="truncate normal-case tracking-normal text-tm-sub">{current.doc}</span>
+      <div className="flex h-11 flex-none items-center gap-2.5 border-b border-white/[.07] pl-3.5 pr-2.5 text-[11px] uppercase tracking-[.06em] text-tm-muted">
+        <span className="inline-flex min-w-0 items-center gap-2">
+          <FileIcon size={13} />
+          <span className="font-semibold">source</span>
+          <span className="truncate normal-case tracking-normal text-tm-sub">{current.doc}</span>
+        </span>
         <span className="flex-1" />
         <button
           type="button"
           title="copy deep link"
-          className="t-reset normal-case tracking-normal text-tm-muted"
+          className="t-reset t-chip inline-flex h-7 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-[11px] normal-case tracking-normal text-tm-sub transition-all duration-150 hover:bg-tm-hl hover:text-tm-accent"
           onClick={() =>
             void onCopy(viewerId).then((ok) => {
               setCopyLabel(ok ? "copied ✓" : "copy blocked");
@@ -61,9 +64,16 @@ export function SourceViewer({
             })
           }
         >
+          <LinkIcon />
           {copyLabel}
         </button>
-        <button type="button" aria-label="close source viewer" className="t-reset px-0.5 text-tm-muted" onClick={onClose}>
+        <button
+          type="button"
+          title="close (q)"
+          aria-label="close source viewer"
+          className="t-reset t-chip inline-flex size-7 items-center justify-center rounded-full text-xs text-tm-sub transition-all duration-150 hover:bg-tm-hl hover:text-tm-fg"
+          onClick={onClose}
+        >
           ✕
         </button>
       </div>
@@ -84,12 +94,12 @@ export function SourceViewer({
                 <span style={{ color: on ? "var(--t-accent)" : "var(--t-muted)" }}>{x.title}</span>
                 <span className="flex-none whitespace-nowrap text-tm-dim">#{x.id}</span>
               </div>
-              <div className="text-[12.5px] leading-[1.65] text-tm-fg [overflow-wrap:anywhere]">{x.text}</div>
+              <div className="font-sans text-[13px] leading-[1.55] tracking-[-.005em] text-tm-fg [overflow-wrap:anywhere] [text-wrap:pretty]">{x.text}</div>
             </div>
           );
         })}
       </div>
-      <div className="flex flex-none gap-3 border-t border-tm-border px-3 py-1.5 text-[11px] text-tm-dim">
+      <div className="flex flex-none gap-3 border-t border-white/[.07] px-3.5 py-2 text-[11px] text-tm-dim">
         <span>
           section {idx + 1}/{sections.length} · #src={viewerId}
         </span>

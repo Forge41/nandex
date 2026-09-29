@@ -1,13 +1,14 @@
 "use client";
 
 import { TypingCaret } from "@nandex/ui/indicators";
-import { memo } from "react";
+import { memo, useState } from "react";
 
 import { formatDebug } from "@/lib/answer/debug";
 import { numberCitations } from "@/lib/answer/citations";
 import type { AnswerBody, EntryOf } from "@/lib/terminal/types";
+import type { Source } from "@/lib/types";
 import { useTerminal } from "../context";
-import { CiteChip, citeStyle } from "./cite-chip";
+import { CiteChip } from "./cite-chip";
 
 export function AnswerText({ answer, entryId }: { answer: AnswerBody; entryId?: number }) {
   const { byId, openSource } = useTerminal();
@@ -17,7 +18,7 @@ export function AnswerText({ answer, entryId }: { answer: AnswerBody; entryId?: 
   return (
     <>
       {paras.map((p, pi) => (
-        <p key={pi} className="m-0 mb-2 whitespace-pre-line leading-[1.65] [overflow-wrap:anywhere]">
+        <p key={pi} className="m-0 mb-2 whitespace-pre-line leading-[1.55] [overflow-wrap:anywhere] [text-wrap:pretty]">
           {p.map((s, si) =>
             s.kind === "cite" ? (
               <CiteChip key={si} n={s.n} title={title(s.id)} onOpen={() => openSource(s.id, entryId)} />
@@ -38,26 +39,51 @@ export function AnswerText({ answer, entryId }: { answer: AnswerBody; entryId?: 
         </p>
       )}
       {order.length > 0 && !answer.streaming && (
-        <div className="mt-1.5 flex flex-col gap-0.5 border-t border-dashed border-tm-border pt-1.5 text-[11.5px] text-tm-muted">
+        <div className="mt-2.5 flex flex-wrap items-center gap-1.5 border-t border-white/[.07] pt-2 font-sans text-[11.5px] tracking-[-.005em] text-tm-muted">
+          <span className="mr-1 text-tm-dim">Sources</span>
           {order.map((id, i) => (
-            <button
-              key={id}
-              type="button"
-              className="t-reset flex items-baseline gap-2"
-              onClick={(ev) => {
-                ev.stopPropagation();
-                openSource(id, entryId);
-              }}
-            >
-              <span style={{ ...citeStyle(), margin: 0 }}>{i + 1}</span>
-              <span className="text-tm-dim">{byId[id]?.doc ?? id}</span>
-              <span className="text-tm-muted">›</span>
-              <span className="text-tm-sub">{byId[id]?.title ?? ""}</span>
-            </button>
+            <SourceChip key={id} n={i + 1} id={id} source={byId[id]} onOpen={() => openSource(id, entryId)} />
           ))}
         </div>
       )}
     </>
+  );
+}
+
+function SourceChip({ n, id, source, onOpen }: { n: number; id: string; source?: Source; onOpen: () => void }) {
+  const [hover, setHover] = useState(false);
+  const snippet = source ? (source.text.length > 160 ? source.text.slice(0, 160).trimEnd() + "…" : source.text) : "";
+  return (
+    <span className="relative inline-block">
+      <button
+        type="button"
+        aria-label={`source ${n}: ${source ? `${source.doc} › ${source.title}` : id}`}
+        className="t-reset t-chip inline-flex size-[26px] items-center justify-center rounded-lg text-[11.5px] font-bold tabular-nums text-tm-accent transition-all duration-150 hover:-translate-y-px hover:bg-tm-accent hover:text-tm-bg"
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+        onFocus={() => setHover(true)}
+        onBlur={() => setHover(false)}
+        onClick={(ev) => {
+          ev.stopPropagation();
+          setHover(false);
+          onOpen();
+        }}
+      >
+        {n}
+      </button>
+      {hover && source && (
+        <span
+          role="tooltip"
+          className="t-popover pointer-events-none absolute bottom-[calc(100%+8px)] left-0 z-30 w-[260px] rounded-xl px-3 py-2.5 text-[11.5px] leading-[1.45]"
+          style={{ animation: "tPopIn .2s ease-out" }}
+        >
+          <span className="mb-[3px] block font-semibold tracking-[-.005em]">{source.title}</span>
+          <span className="block text-[#6b645e]">{snippet}</span>
+          <span className="mt-1.5 block text-[10.5px] uppercase tracking-[.04em] text-[#8a827b]">{source.doc} · click to open</span>
+          <span className="absolute left-[9px] top-full size-0 border-[6px] border-b-0 border-transparent border-t-white" />
+        </span>
+      )}
+    </span>
   );
 }
 
@@ -90,9 +116,8 @@ function InlineSource({ entryId, sourceId }: { entryId: number; sourceId: string
 
 export const AiAnswer = memo(function AiAnswer({ entry }: { entry: EntryOf<"ai"> }) {
   return (
-    <div className="flex gap-2.5 py-0.5">
-      <span className="flex-none leading-[1.6] text-tm-accent">◆</span>
-      <div className="min-w-0 max-w-[110ch] flex-1">
+    <div className="flex justify-start py-0.5">
+      <div className="min-w-0 max-w-[min(72ch,78%)] rounded-[18px_18px_18px_4px] bg-tm-panel px-4 pb-2.5 pt-3 font-sans text-[13px] tracking-[-.005em] shadow-[inset_0_0_0_1px_rgba(255,255,255,.07)] max-[859px]:max-w-[92%]">
         <AnswerText answer={entry.answer} entryId={entry.id} />
         {entry.inlineId && <InlineSource entryId={entry.id} sourceId={entry.inlineId} />}
         {entry.showDebug && entry.debug && (

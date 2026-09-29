@@ -114,7 +114,7 @@ export function ShareModal({ url, onClose, copyText }: { url: string; onClose: (
         role="dialog"
         aria-modal="true"
         aria-label="share"
-        className="flex w-full max-w-[520px] flex-col border border-tm-border bg-tm-panel shadow-[0_30px_80px_rgba(0,0,0,.6)]"
+        className="flex w-full max-w-[520px] flex-col overflow-hidden rounded-[22px] bg-tm-panel shadow-[inset_0_1px_0_rgba(255,255,255,.12),inset_0_0_0_1px_rgba(255,255,255,.07),0_30px_80px_rgba(0,0,0,.6)]"
         style={{ animation: "tReveal .3s cubic-bezier(.2,.8,.2,1)" }}
         onClick={(ev) => ev.stopPropagation()}
       >
