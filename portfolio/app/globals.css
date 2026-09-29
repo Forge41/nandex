@@ -284,6 +284,17 @@ body {
     transform: translateX(-60%);
   }
 }
+@keyframes tChevron {
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: translateY(-1px);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(1.5px);
+  }
+}
 @keyframes tRingOut {
   0% {
     transform: scale(1);

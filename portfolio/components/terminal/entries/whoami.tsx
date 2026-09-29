@@ -2,7 +2,7 @@
 
 import { LiveDot } from "@nandex/ui/indicators";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { projects } from "@/content/data";
 import { sampleGrid, streaks } from "@/lib/github";
@@ -327,17 +327,62 @@ function ActivityCard() {
 }
 
 /** Phone layout once the conversation starts: one row, so the chat keeps the screen. */
+const PULL_OPEN = 56;
+
+function SwipeHint() {
+  return (
+    <svg width="18" height="16" viewBox="0 0 18 16" aria-hidden className="text-tm-muted">
+      {[0, 1, 2].map((i) => (
+        <path
+          key={i}
+          d={`M3 ${2 + i * 4.5} L9 ${5.5 + i * 4.5} L15 ${2 + i * 4.5}`}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ animation: `tChevron 1.5s ease-in-out ${i * 0.18}s infinite` }}
+        />
+      ))}
+    </svg>
+  );
+}
+
 function CompactWhoami({ onExpand }: { onExpand: () => void }) {
   const { openVoice, openShare } = useTerminal();
+  const start = useRef<number | null>(null);
+  const [pull, setPull] = useState(0);
+  const release = () => {
+    start.current = null;
+    setPull(0);
+  };
   return (
     <div
       role="button"
       tabIndex={0}
       aria-expanded={false}
       aria-label="show full profile"
-      className="t-glass flex min-w-0 cursor-pointer flex-col gap-2.5 rounded-[18px] p-3"
-      style={{ animation: "tFade .3s" }}
+      className="t-glass flex min-w-0 cursor-pointer touch-none select-none flex-col gap-2.5 rounded-[18px] px-3 pb-1.5 pt-3"
+      style={{
+        animation: "tFade .3s",
+        transform: pull ? `translateY(${pull * 0.4}px)` : undefined,
+        transition: pull ? "none" : "transform .25s cubic-bezier(.2,.8,.2,1)",
+      }}
       onClick={stop(onExpand)}
+      onPointerDown={(ev) => {
+        if ((ev.target as HTMLElement).closest("a,button")) return;
+        start.current = ev.clientY;
+      }}
+      onPointerMove={(ev) => {
+        if (start.current == null) return;
+        const dy = Math.max(0, ev.clientY - start.current);
+        if (dy >= PULL_OPEN) {
+          release();
+          onExpand();
+        } else setPull(dy);
+      }}
+      onPointerUp={release}
+      onPointerCancel={release}
       onKeyDown={(ev) => {
         if (ev.key === "Enter" || ev.key === " ") {
           ev.preventDefault();
@@ -386,6 +431,9 @@ function CompactWhoami({ onExpand }: { onExpand: () => void }) {
           <DownloadIcon />
           résumé.pdf
         </a>
+      </div>
+      <div className="flex justify-center" title="tap or swipe down">
+        <SwipeHint />
       </div>
     </div>
   );
