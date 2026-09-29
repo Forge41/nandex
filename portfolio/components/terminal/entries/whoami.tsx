@@ -12,7 +12,7 @@ import { ContribGraph } from "../contrib-graph";
 import { useTerminal, useTerminalView } from "../context";
 import { Globe } from "../globe";
 import { useNow, useRotator } from "../hooks";
-import { DownloadIcon, GithubIcon, LinkedinIcon, MailIcon, MicIcon, PinIcon, ShareIcon } from "../icons";
+import { ChevronIcon, DownloadIcon, GithubIcon, LinkedinIcon, MailIcon, MicIcon, PinIcon, ShareIcon } from "../icons";
 import { PhosphorPortrait } from "../phosphor-portrait";
 
 export const GreenDot = ({ size = 6 }: { size?: number }) => (
@@ -327,10 +327,24 @@ function ActivityCard() {
 }
 
 /** Phone layout once the conversation starts: one row, so the chat keeps the screen. */
-function CompactWhoami() {
+function CompactWhoami({ onExpand }: { onExpand: () => void }) {
   const { openVoice, openShare } = useTerminal();
   return (
-    <div className="t-glass flex min-w-0 flex-col gap-2.5 rounded-[18px] p-3" style={{ animation: "tFade .3s" }}>
+    <div
+      role="button"
+      tabIndex={0}
+      aria-expanded={false}
+      aria-label="show full profile"
+      className="t-glass flex min-w-0 cursor-pointer flex-col gap-2.5 rounded-[18px] p-3"
+      style={{ animation: "tFade .3s" }}
+      onClick={stop(onExpand)}
+      onKeyDown={(ev) => {
+        if (ev.key === "Enter" || ev.key === " ") {
+          ev.preventDefault();
+          onExpand();
+        }
+      }}
+    >
       <div className="flex min-w-0 items-center gap-3">
         <Portrait size={48} hint={false} />
         <div className="min-w-0 flex-1">
@@ -348,13 +362,13 @@ function CompactWhoami() {
         </button>
       </div>
       <div className="flex items-center gap-2">
-        <a href={LINKS.github} target="_blank" rel="noopener noreferrer" aria-label="GitHub" className={iconLink}>
+        <a href={LINKS.github} target="_blank" rel="noopener noreferrer" aria-label="GitHub" className={iconLink} onClick={(ev) => ev.stopPropagation()}>
           <GithubIcon size={15} />
         </a>
-        <a href={LINKS.linkedin} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className={iconLink}>
+        <a href={LINKS.linkedin} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className={iconLink} onClick={(ev) => ev.stopPropagation()}>
           <LinkedinIcon size={14} />
         </a>
-        <a href={`mailto:${LINKS.email}`} aria-label="Email" className={iconLink}>
+        <a href={`mailto:${LINKS.email}`} aria-label="Email" className={iconLink} onClick={(ev) => ev.stopPropagation()}>
           <MailIcon size={15} />
         </a>
         <button type="button" aria-label="voice mode" className={`t-reset ${iconLink}`} onClick={stop(openVoice)}>
@@ -367,6 +381,7 @@ function CompactWhoami() {
           rel="noopener noreferrer"
           title="Download résumé"
           className="inline-flex h-8 items-center gap-1.5 rounded-full bg-tm-accent px-3.5 font-sans text-xs font-semibold text-tm-bg no-underline hover:text-tm-bg"
+          onClick={(ev) => ev.stopPropagation()}
         >
           <DownloadIcon />
           résumé.pdf
@@ -378,9 +393,19 @@ function CompactWhoami() {
 
 export function Whoami() {
   const { isMobile, landing } = useTerminalView();
-  if (isMobile && !landing) return <CompactWhoami />;
+  const [expanded, setExpanded] = useState(false);
+  const collapsible = isMobile && !landing;
+  if (collapsible && !expanded) return <CompactWhoami onExpand={() => setExpanded(true)} />;
   return (
     <div
+      onClick={
+        collapsible
+          ? (ev) => {
+              ev.stopPropagation();
+              if (!(ev.target as HTMLElement).closest("a,button")) setExpanded(false);
+            }
+          : undefined
+      }
       className={
         isMobile
           ? "flex flex-col gap-3 pb-0.5 pt-1.5"
@@ -389,6 +414,12 @@ export function Whoami() {
     >
       <IdentityCard />
       <ActivityCard />
+      {collapsible && (
+        <span className="inline-flex items-center justify-center gap-1 self-center text-[10.5px] uppercase tracking-[.08em] text-tm-muted">
+          <ChevronIcon size={12} style={{ transform: "rotate(-90deg)" }} />
+          tap to shrink
+        </span>
+      )}
     </div>
   );
 }
