@@ -42,9 +42,11 @@ async def run(ctx: JobContext, dispatch: Dispatch) -> None:
     modality = voice.available()
     if not modality.voice:
         logger.warning("Portfolio guide in %s", modality.describe())
+    modality, chain = await voice.prepare_speech(modality, settings.portfolio_voice_id)
     session = voice.build_session(
-        ctx.proc.userdata["vad"], modality, voice_id=settings.portfolio_voice_id
+        ctx.proc.userdata["vad"], modality, voice_id=settings.portfolio_voice_id, chain=chain
     )
+    voice.watch_speech(session, chain)
 
     room_input, room_output = voice.room_options(modality)
     await session.start(
