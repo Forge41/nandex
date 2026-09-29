@@ -30,8 +30,16 @@ const Spans = ({ line }: { line: Line }) => (
 );
 
 export const CommandEcho = memo(function CommandEcho({ entry }: { entry: EntryOf<"cmd"> }) {
+  if (entry.mode === "chat")
+    return (
+      <div className="flex justify-end py-0.5">
+        <div className="max-w-[min(72ch,78%)] whitespace-pre-wrap rounded-[18px_18px_4px_18px] bg-tm-accent px-3.5 py-2.5 font-sans text-[13px] leading-[1.5] tracking-[-.005em] text-tm-bg shadow-[0_8px_24px_var(--t-hl)] [overflow-wrap:anywhere]">
+          {entry.text}
+        </div>
+      </div>
+    );
   return (
-    <div className="flex gap-2 text-tm-fg">
+    <div className="flex gap-2 font-sans tracking-[-.005em] text-tm-fg">
       <span className="flex-none font-semibold" style={{ color: entry.mode === "voice" ? "var(--t-fg)" : PROMPT_COLOR[entry.mode] }}>
         {PROMPT_SYMBOL[entry.mode]}
       </span>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 let now = Date.now();
 const clockListeners = new Set<() => void>();
@@ -59,3 +59,20 @@ export function readCssColor(el: Element, prop: string, fallback: [number, numbe
 }
 
 export const cssVar = (el: Element, prop: string) => getComputedStyle(el).getPropertyValue(prop).trim();
+
+/** Steps through `count` cards every `ms`; a manual step holds the auto-advance for one period. */
+export function useRotator(count: number, ms = 4000) {
+  const [idx, setIdx] = useState(0);
+  const manual = useRef(0);
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (Date.now() - manual.current > ms - 500) setIdx((i) => (i + 1) % count);
+    }, ms);
+    return () => clearInterval(id);
+  }, [count, ms]);
+  const next = () => {
+    manual.current = Date.now();
+    setIdx((i) => (i + 1) % count);
+  };
+  return [idx % count, next] as const;
+}

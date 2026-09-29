@@ -1,7 +1,8 @@
 const DAYS = 364;
-// The account with the day-to-day activity, private contributions included; the profile
-// links still point at NandishNaik01.
-export const ACTIVITY_USER = "Nandisha-D";
+import { COMMITS, GITHUB_USER } from "./terminal/constants";
+
+// Private contributions are included when the profile setting allows it.
+export const ACTIVITY_USER = GITHUB_USER;
 // The key names the account so a visitor's cached grid never shows a previous one.
 const CACHE_KEY = `nandisha_contrib_${ACTIVITY_USER}`;
 const ENDPOINT = `https://github-contributions-api.jogruber.de/v4/${ACTIVITY_USER}?y=last`;
@@ -30,6 +31,22 @@ export function streaks(g: number[]) {
     max = Math.max(max, cur);
   }
   return { now, max, total: g.reduce((a, b) => a + b, 0) };
+}
+
+export type CellInfo = { date: string; count: string; msg: string; active: boolean };
+
+/** Day `i` of the grid, where the last cell is `today`; the commit line is a seeded pick, not real history. */
+export function cellInfo(grid: number[], i: number, today = new Date()): CellInfo {
+  const c = grid[i] ?? 0;
+  const day = new Date(today);
+  day.setDate(day.getDate() - (DAYS - 1 - i));
+  const seed = ((i * 7919 + 13) * 16807) % 2147483647;
+  return {
+    date: day.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }),
+    count: c ? `${c} ${c === 1 ? "commit" : "commits"}` : "rest day",
+    msg: c ? COMMITS[Math.floor((seed / 2147483647) * COMMITS.length)] : "no commits that day",
+    active: c > 0,
+  };
 }
 
 function readCache(): number[] | null {

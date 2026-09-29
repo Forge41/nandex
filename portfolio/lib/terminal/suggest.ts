@@ -32,6 +32,5 @@ export function suggest({ history, commands, sugSeed }: SuggestState): string[] 
 
 export function ghost(state: SuggestState & InputFlags & { landing: boolean }): string {
   if (state.fitPending || state.sudoPending) return "";
-  if (state.landing) return "/voice";
   return suggest(state)[0] ?? "";
 }

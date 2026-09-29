@@ -237,8 +237,10 @@ export const BOOT_LOG = [
 export const CAREER_START = "2024-06-03";
 export const CAREER_START_IST = "2024-06-03T09:00:00+05:30";
 
+export const GITHUB_USER = "Nandisha-D";
+
 export const LINKS = {
-  github: "https://github.com/NandishNaik01",
+  github: `https://github.com/${GITHUB_USER}`,
   linkedin: "https://linkedin.com/in/nandishd",
   email: "naik.nandishd@gmail.com",
   // Same-origin proxy of the Drive file (app/resume.pdf/route.ts); what pdf.js renders.

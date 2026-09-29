@@ -30,6 +30,7 @@ import { MessageModal } from "./entries/contact-entries";
 import { RecruiterView, ResumeModal, ShareModal } from "./overlays";
 import { Prompt } from "./prompt";
 import { RaceLoader } from "./race-loader";
+import { Rail } from "./rail";
 import { SourceViewer } from "./source-viewer";
 import { StatusLine } from "./status-line";
 import { VoiceMode } from "./voice-mode";
@@ -169,7 +170,6 @@ export default function Terminal({
     dispatch({ type: "STATUS", msg: READY_STATUS });
     echo("!whoami", "shell");
     push({ kind: "whoami" });
-    push(prose([LS([["Ask me anything, or type ", "muted"], ["/", "violet"], [" for commands, ", "muted"], ["!", "accent"], [" for shell.", "muted"]])]));
     after(80, focus);
     if (hashHandled.current) return;
     hashHandled.current = true;
@@ -598,8 +598,8 @@ export default function Terminal({
   );
 
   const view = useMemo<TerminalView>(
-    () => ({ theme: state.theme, isMobile, prCount: state.prCount, skillCount: state.skillCount, contrib }),
-    [state.theme, isMobile, state.prCount, state.skillCount, contrib],
+    () => ({ theme: state.theme, isMobile, prCount: state.prCount, skillCount: state.skillCount, contrib, landing: state.landing }),
+    [state.theme, isMobile, state.prCount, state.skillCount, contrib, state.landing],
   );
 
   const onGlobalKey = useEffectEvent((ev: KeyboardEvent) => {
@@ -698,7 +698,7 @@ export default function Terminal({
   const suggestions = suggest(suggestState(s));
   const squeezed = (s.viewerId != null || s.voice) && narrow;
   const showInfoPane = isMobile ? s.infoSheet : !s.infoCollapsed && !squeezed;
-  const infoHidden = !isMobile && (s.infoCollapsed || squeezed);
+  const showRail = !isMobile && s.infoCollapsed && !s.voice && !s.gui && !s.recruiter && !s.viewerId;
   const themeVars = (THEMES[s.theme] ?? {}) as React.CSSProperties;
 
   return (
@@ -714,16 +714,28 @@ export default function Terminal({
             <section
               data-screen-label="Terminal"
               aria-label="terminal"
-              className="relative flex min-w-0 flex-1 flex-col bg-tm-bg"
+              className="@container relative flex min-w-0 flex-1 flex-col bg-tm-bg"
               onClick={() => {
                 if (!window.getSelection()?.toString()) focus();
               }}
             >
-              <div className="flex h-[30px] flex-none items-center gap-2 border-b border-tm-border px-3 text-[11px] uppercase tracking-[.08em] text-tm-muted">
-                <span className="text-tm-accent">1</span>
-                <span className="truncate">nandisha@portfolio: ~</span>
-                <span className="flex-1" />
-                {isMobile && (
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 z-0"
+                style={{
+                  background:
+                    "radial-gradient(ellipse 80% 55% at 18% -10%,var(--t-hl),transparent 60%),radial-gradient(ellipse 60% 50% at 100% 110%,rgba(255,255,255,.05),transparent 60%),linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,0) 40%)",
+                }}
+              />
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 z-0 opacity-35"
+                style={{ background: "repeating-linear-gradient(180deg,rgba(255,255,255,.035) 0 1px,transparent 1px 3px)" }}
+              />
+              {isMobile && (
+                <div className="relative z-[1] flex h-[30px] flex-none items-center gap-2 border-b border-tm-border px-3 text-[11px] uppercase tracking-[.08em] text-tm-muted">
+                  <span className="truncate">nandisha@portfolio: ~</span>
+                  <span className="flex-1" />
                   <button
                     type="button"
                     className="t-reset inline-flex h-[30px] items-center gap-1.5 px-1 text-[11px] uppercase tracking-[.08em] text-tm-sub"
@@ -735,15 +747,15 @@ export default function Terminal({
                   >
                     {s.infoSheet ? "close" : "≡ info"}
                   </button>
-                )}
-              </div>
+                </div>
+              )}
 
               <div
                 ref={scrollRef}
                 role="log"
                 aria-live="polite"
                 aria-label="terminal output"
-                className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
+                className="relative z-[1] min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
                 style={{ padding: isMobile ? "12px 12px 8px" : "14px 18px 8px" }}
               >
                 <div ref={contentRef}>
@@ -766,6 +778,7 @@ export default function Terminal({
                 submit={submit}
                 runSuggestion={runSuggestion}
                 onShortcuts={() => push(shortcutsEntry())}
+                onVoice={openVoice}
               />
             </section>
 
@@ -783,20 +796,24 @@ export default function Terminal({
 
             {s.viewerId && <SourceViewer sources={sources} viewerId={s.viewerId} isMobile={isMobile} onClose={closeViewer} onCopy={copyLink} />}
 
-            {!isMobile && !s.voice && !s.gui && !s.recruiter && (
+            {showRail && (
+              <Rail onExpand={() => dispatch({ type: "TOGGLE_INFO" })} onResume={() => dispatch({ type: "PANEL", panel: "resumeOpen", open: true })} />
+            )}
+
+            {showInfoPane && !isMobile && !s.voice && !s.gui && !s.recruiter && !s.viewerId && (
               <button
                 type="button"
-                title={infoHidden ? "show info pane" : "hide info pane"}
-                aria-label={infoHidden ? "show info pane" : "hide info pane"}
+                title="hide info pane"
+                aria-label="hide info pane"
                 className="t-reset absolute top-1/2 z-[15] flex h-16 w-[30px] items-center justify-center rounded-md border border-tm-border bg-tm-panel text-tm-muted shadow-[0_4px_16px_rgba(0,0,0,.4)] hover:border-tm-accent hover:bg-tm-hl hover:text-tm-accent"
                 style={{
-                  right: showInfoPane ? 312 : 0,
+                  right: 312,
                   transform: "translate(50%, -50%)",
                   transition: "right .3s cubic-bezier(.2,.8,.2,1), background .2s, color .2s, border-color .2s",
                 }}
                 onClick={() => dispatch({ type: "TOGGLE_INFO" })}
               >
-                <ChevronIcon style={{ transform: s.infoCollapsed ? "rotate(180deg)" : "none", transition: "transform .35s cubic-bezier(.2,.8,.2,1)" }} />
+                <ChevronIcon />
               </button>
             )}
 

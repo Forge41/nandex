@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 
-import { LINKS, SKILL_GRID, ICONS } from "@/lib/terminal/constants";
+import { GITHUB_USER, LINKS, SKILL_GRID, ICONS } from "@/lib/terminal/constants";
 import { industry } from "@/lib/terminal/time";
 import { useNow } from "./hooks";
 import { FileIcon, GithubIcon, LinkedinIcon, MailIcon } from "./icons";
@@ -16,7 +16,7 @@ function UptimeClock() {
   const ind = industry(useNow());
   const rot = (deg: number) => `rotate(${deg} 50 50)`;
   return (
-    <div className="flex items-center gap-3.5 border border-tm-border bg-tm-bg p-3">
+    <div className="t-glass flex items-center gap-3.5 rounded-[18px] p-3">
       <svg viewBox="0 0 100 100" width="96" height="96" className="flex-none overflow-visible" aria-hidden>
         <circle cx="50" cy="50" r="46" fill="none" stroke="var(--t-border)" strokeWidth="1" />
         <g stroke="var(--t-dim)" strokeWidth="1.5">
@@ -63,7 +63,7 @@ function SkillTile({ label, onRun }: { label: string; onRun: () => void }) {
     <button
       type="button"
       title={`${label} · !grep ${label.toLowerCase()} -r ~/`}
-      className="t-reset flex min-w-0 flex-col items-center gap-1 border border-tm-border bg-tm-bg px-0.5 pb-[5px] pt-1.5 text-tm-sub transition-all duration-150 hover:-translate-y-px hover:border-tm-accent hover:bg-tm-hl hover:text-tm-accent"
+      className="t-reset t-chip flex min-w-0 flex-col items-center gap-1 rounded-[10px] px-0.5 pb-1.5 pt-[7px] text-tm-sub transition-all duration-150 hover:-translate-y-px hover:bg-tm-hl hover:text-tm-accent"
       onClick={(ev) => {
         ev.stopPropagation();
         onRun();
@@ -92,7 +92,7 @@ function SkillTile({ label, onRun }: { label: string; onRun: () => void }) {
 }
 
 const linkTile =
-  "flex items-center gap-2 border border-tm-border bg-tm-bg px-2.5 py-[7px] text-[11.5px] text-tm-sub no-underline transition-all duration-150 hover:border-tm-accent hover:bg-tm-hl hover:text-tm-accent";
+  "t-chip flex items-center gap-2 rounded-xl px-3 py-2 text-[11.5px] text-tm-sub no-underline transition-all duration-150 hover:bg-tm-hl hover:text-tm-accent";
 
 export function InfoPane({
   isMobile,
@@ -106,7 +106,7 @@ export function InfoPane({
   onOpenResume: () => void;
 }) {
   const tiles: [string, string, React.ReactNode, string][] = [
-    [LINKS.github, "GitHub · NandishNaik01", <GithubIcon key="g" size={14} />, "github"],
+    [LINKS.github, `GitHub · ${GITHUB_USER}`, <GithubIcon key="g" size={14} />, "github"],
     [LINKS.linkedin, "LinkedIn · in/nandishd", <LinkedinIcon key="l" size={13} />, "linkedin"],
     [`mailto:${LINKS.email}`, LINKS.email, <MailIcon key="m" size={14} />, "email"],
     [LINKS.resumeView, "Résumé (PDF)", <FileIcon key="f" />, "résumé.pdf"],
@@ -119,7 +119,7 @@ export function InfoPane({
       style={
         isMobile
           ? { position: "absolute", left: 0, right: 0, top: 30, bottom: 0, zIndex: 30, borderTop: "1px solid var(--t-border)", animation: "tSlideUp .3s cubic-bezier(.2,.8,.2,1)" }
-          : { width: 312, flex: "none", borderLeft: "1px solid var(--t-border)" }
+          : { width: 312, flex: "none", borderLeft: "1px solid var(--t-border)", animation: "tSlideIn .3s cubic-bezier(.2,.8,.2,1)" }
       }
     >
       <div className="flex h-[30px] flex-none items-center gap-2 border-b border-tm-border px-3 text-[11px] uppercase tracking-[.08em] text-tm-muted">
@@ -155,7 +155,7 @@ export function InfoPane({
         <button
           type="button"
           title="open résumé"
-          className="t-reset relative box-border block w-full flex-none overflow-hidden border border-tm-border text-left transition-[box-shadow,border-color] duration-200 hover:border-tm-accent hover:shadow-[0_0_28px_var(--t-hl)]"
+          className="t-reset relative box-border block w-full flex-none overflow-hidden rounded-xl border border-tm-border text-left transition-[box-shadow,border-color] duration-200 hover:border-tm-accent hover:shadow-[0_0_28px_var(--t-hl)]"
           onClick={(ev) => {
             ev.stopPropagation();
             onOpenResume();

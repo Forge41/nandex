@@ -69,6 +69,12 @@ export const ChevronIcon = ({ size = 18, style }: IconProps) => (
   </svg>
 );
 
+export const ChevronLeftIcon = ({ size = 14 }: IconProps) => (
+  <svg {...stroke(size, 2.2)}>
+    <path d="m15 6-6 6 6 6" />
+  </svg>
+);
+
 export const MicIcon = ({ size = 16 }: IconProps) => (
   <svg {...stroke(size, 2)}>
     <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
@@ -98,5 +104,27 @@ export const HangUpIcon = ({ size = 16 }: IconProps) => (
     <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92V20a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67" />
     <path d="M6.7 9.6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91" />
     <path d="m2 2 20 20" />
+  </svg>
+);
+
+export const LinkIcon = ({ size = 11 }: IconProps) => (
+  <svg {...stroke(size, 2)}>
+    <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.5 1.5" />
+    <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.5-1.5" />
+  </svg>
+);
+
+export const SendIcon = ({ size = 16 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+    <path d="M2.5 11.2 21 3.4c.8-.3 1.6.4 1.4 1.3l-3 15.6c-.2.9-1.2 1.3-1.9.7l-4.6-3.6-2.4 2.6c-.5.5-1.3.2-1.3-.5v-3.9l8.7-8.4L7.4 14.4l-4.8-1.6c-.9-.3-.9-1.5-.1-1.6z" />
+  </svg>
+);
+
+export const GridIcon = ({ size = 16 }: IconProps) => (
+  <svg {...stroke(size)}>
+    <rect x="3" y="3" width="7" height="7" />
+    <rect x="14" y="3" width="7" height="7" />
+    <rect x="3" y="14" width="7" height="7" />
+    <rect x="14" y="14" width="7" height="7" />
   </svg>
 );
