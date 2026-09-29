@@ -19,7 +19,7 @@ export const GreenDot = ({ size = 6 }: { size?: number }) => (
   <LiveDot tone="success" size={size} style={{ background: "var(--t-green)", animationDuration: "1.4s" }} />
 );
 
-export const QUOTE = "Retrieval is easy. Retrieving the right thing, with a receipt, is the job.";
+export const QUOTE = ["Retrieve the right thing.", "Cite it with a receipt.", "Say it out loud, before they finish asking."];
 
 const stop = (fn: () => void) => (ev: React.SyntheticEvent) => {
   ev.stopPropagation();
@@ -212,7 +212,12 @@ function IdentityCard() {
       <div className={isMobile ? "flex flex-1 flex-col gap-1.5 px-0.5 pb-3.5 pt-1" : "flex flex-1 items-end justify-between gap-3 px-0.5 pb-3.5 pt-1"}>
         <blockquote className="m-0 min-w-0 flex-1 font-serif text-[15px] italic leading-[1.35] tracking-[-.005em] text-tm-fg [text-wrap:pretty]">
           <span className="mr-0.5 align-[-.25em] text-[1.5em] leading-[0] text-tm-accent">“</span>
-          {QUOTE}
+          {QUOTE.map((line, i) => (
+            <span key={line}>
+              {i > 0 && <br />}
+              {line}
+            </span>
+          ))}
           <span className="ml-0.5 align-[-.25em] text-[1.5em] leading-[0] text-tm-accent">”</span>
         </blockquote>
         <div className="flex flex-none items-end justify-end pr-2.5">
