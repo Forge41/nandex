@@ -222,8 +222,9 @@ export function Whoami() {
             email
           </a>
           <a
-            href={LINKS.resume}
+            href={LINKS.resumeDownload}
             target="_blank"
+            rel="noopener noreferrer"
             title="Download résumé"
             className="inline-flex items-center justify-center gap-1.5 rounded-full border border-tm-accent bg-tm-accent px-3 py-[5px] font-semibold text-tm-bg no-underline shadow-[0_0_16px_var(--t-hl)] transition-all duration-150 hover:-translate-y-px hover:text-tm-bg hover:shadow-[0_0_28px_var(--t-hl)]"
           >

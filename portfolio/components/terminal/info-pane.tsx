@@ -109,7 +109,7 @@ export function InfoPane({
     [LINKS.github, "GitHub · NandishNaik01", <GithubIcon key="g" size={14} />, "github"],
     [LINKS.linkedin, "LinkedIn · in/nandishd", <LinkedinIcon key="l" size={13} />, "linkedin"],
     [`mailto:${LINKS.email}`, LINKS.email, <MailIcon key="m" size={14} />, "email"],
-    [LINKS.resume, "Résumé (PDF)", <FileIcon key="f" />, "résumé.pdf"],
+    [LINKS.resumeView, "Résumé (PDF)", <FileIcon key="f" />, "résumé.pdf"],
   ];
   return (
     <aside

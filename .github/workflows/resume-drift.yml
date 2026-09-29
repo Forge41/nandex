@@ -1,0 +1,45 @@
+# The portfolio serves the résumé straight from Google Drive, but the agent answers
+# from portfolio/content/sources. When the Drive file changes, this opens an issue
+# with the text diff so the sources, the bundled fallback and resume.sha256 get updated.
+name: Résumé drift
+
+on:
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get install -y -qq poppler-utils >/dev/null
+      - name: Compare the Drive file with the one the sources were written from
+        id: diff
+        run: |
+          id=$(grep -oE '"[A-Za-z0-9_-]{25,}"' portfolio/lib/resume.ts | head -1 | tr -d '"')
+          curl -fsSL -o drive.pdf "https://drive.google.com/uc?export=download&id=$id"
+          head -c 5 drive.pdf | grep -q '%PDF-' || { echo "Drive did not return a PDF" >&2; exit 1; }
+          if [ "$(sha256sum drive.pdf | cut -d' ' -f1)" = "$(cat portfolio/content/resume.sha256)" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          pdftotext -layout portfolio/content/resume-fallback.pdf old.txt
+          pdftotext -layout drive.pdf new.txt
+          { echo "The résumé on Google Drive no longer matches \`portfolio/content/resume.sha256\`."
+            echo
+            echo "Update \`portfolio/content/sources/resume-*.md\` (what the agent answers from), replace"
+            echo "\`portfolio/content/resume-fallback.pdf\` with the Drive file, and record its sha256."
+            echo
+            echo '```diff'; diff -u old.txt new.txt | tail -n +3 | head -200; echo '```'; } > body.md
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+      - if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="Résumé changed on Google Drive: update the portfolio sources"
+          n=$(gh issue list --state open --search "in:title \"$title\"" --json number -q '.[0].number')
+          if [ -n "$n" ]; then gh issue comment "$n" --body-file body.md; else gh issue create --title "$title" --body-file body.md; fi

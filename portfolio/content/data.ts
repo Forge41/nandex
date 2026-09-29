@@ -11,7 +11,7 @@ export const sourceOrder = [
   "resume-edu",
   "summary-about",
   "summary-think41",
-  "summary-nandex",
+  "summary-autointerviewer",
   "summary-nantex",
   "resume-voice",
   "resume-genalpha",
@@ -42,8 +42,8 @@ export const answers: Answer[] = [
           t: "The retrieval side used Reducto OCR for scanned documents, text-embedding-3-large in Turbopuffer, and hybrid BM25 + semantic search with citations surfaced in a Word add-in",
         },
         { c: "resume-voice" },
-        { t: ". AutoInterviewer is open source in nandex" },
-        { c: "summary-nandex" },
+        { t: ". AutoInterviewer is open source" },
+        { c: "summary-autointerviewer" },
         { t: "." },
       ],
     ],
@@ -53,16 +53,16 @@ export const answers: Answer[] = [
     paras: [
       [
         {
-          t: "At Harvey.ai I built the end-to-end RAG pipeline for document-grounded legal research, scaling to 100K+ documents across 300+ tenants: semantic chunking, OpenAI text-embedding-3-large, pgvector hybrid BM25 + vector retrieval, re-ranking and low-latency streaming inference, fed by an import pipeline that syncs documents from third-party apps",
+          t: "At Harvey.ai I built the end-to-end RAG pipeline for document-grounded legal research, scaling to 1M+ documents (80K+ per sync session) across 300+ tenants: semantic chunking, OpenAI text-embedding-3-large, pgvector hybrid BM25 + vector retrieval, re-ranking and low-latency streaming inference, fed by an import pipeline that syncs documents from third-party apps",
         },
         { c: "resume-sde2" },
         { t: "." },
       ],
       [
         {
-          t: "The open-source version lives in nandex: parse → chunk → embed → index on Temporal, hybrid search fused with Reciprocal Rank Fusion and a cross-encoder reranker, answers streamed with structured citations",
+          t: "The open-source version lives in AutoInterviewer: parse → chunk → embed → index on Temporal, hybrid search fused with Reciprocal Rank Fusion and a cross-encoder reranker, answers streamed with structured citations",
         },
-        { c: "summary-nandex" },
+        { c: "summary-autointerviewer" },
         { t: "." },
       ],
     ],
@@ -110,7 +110,7 @@ export const answers: Answer[] = [
     ],
   },
   {
-    keys: ["mcp", "genalpha", "model context protocol", "cli", "open source", "open-source", "forge41"],
+    keys: ["mcp", "genalpha", "model context protocol", "cli", "open source", "open-source"],
     paras: [
       [
         {
@@ -125,8 +125,8 @@ export const answers: Answer[] = [
           t: ". TPS is the companion embedded iPaaS that lets those MCP servers hold live OAuth 2.0 / API-key / mTLS credentials",
         },
         { c: "resume-tps" },
-        { t: ". All under Forge41, alongside nandex and nantex" },
-        { c: "summary-nandex" },
+        { t: ". All open source, alongside AutoInterviewer and nantex" },
+        { c: "summary-autointerviewer" },
         { c: "summary-nantex" },
         { t: "." },
       ],
@@ -137,7 +137,7 @@ export const answers: Answer[] = [
     paras: [
       [
         {
-          t: "Since Apr 2026 I'm SDE-II at Think41 embedded with Harvey.ai. I built their document-grounded RAG pipeline, now over 100K+ documents across 300+ tenants, and the import pipeline that syncs documents from third-party apps",
+          t: "Since Apr 2026 I'm SDE-II at Think41 embedded with Harvey.ai. I built their document-grounded RAG pipeline, now over 1M+ documents across 300+ tenants, and the import pipeline that syncs documents from third-party apps",
         },
         { c: "resume-sde2" },
         {
@@ -222,13 +222,13 @@ export const answers: Answer[] = [
     ],
   },
   {
-    keys: ["nandex", "interview"],
+    keys: ["autointerviewer", "interview"],
     paras: [
       [
         {
-          t: "nandex is Forge41's open-source RAG system — credential broker, Temporal importers, pgvector ingestion, RRF-fused hybrid retrieval with reranking, and streamed cited chat. It also runs AutoInterviewer, an AI interviewer where a LiveKit agent follows a resume-derived plan with sandboxed coding and SQL rounds",
+          t: "AutoInterviewer is my open-source AI interviewer, live at autointerviewer.nandish.online: a resume becomes a tailored interview plan, and a LiveKit voice agent runs the interview with sandboxed coding and SQL rounds. Underneath is a full RAG platform — credential broker, Temporal importers, pgvector ingestion, RRF-fused hybrid retrieval with reranking, and streamed cited chat",
         },
-        { c: "summary-nandex" },
+        { c: "summary-autointerviewer" },
         { t: ". It turns a resume into a tailored interview plan in 5s and has scaled to 1,000 concurrent interviews" },
         { c: "resume-autointerviewer" },
         { t: "." },
@@ -303,14 +303,6 @@ export const projects: Project[] = [
     stack: ["Python", "Django", "Temporal", "pgvector", "Next.js", "LiveKit", "Terraform", "AWS"],
   },
   {
-    name: "nandex",
-    title: "nandex",
-    year: "2025",
-    one: "Open-source RAG system + AutoInterviewer, an AI interviewer (Forge41).",
-    src: "summary-nandex",
-    stack: ["Django", "pgvector", "Temporal", "LiveKit", "Next.js"],
-  },
-  {
     name: "nantex",
     title: "nantex",
     year: "2026",
@@ -343,12 +335,12 @@ export const gitlog: Commit[] = [
   {
     hash: "d4e7b21",
     date: "2026-08",
-    msg: "feat(forge41): AutoInterviewer — resume → interview plan in 5s, 1,000 concurrent voice interviews",
+    msg: "feat(autointerviewer): AutoInterviewer — resume → interview plan in 5s, 1,000 concurrent voice interviews",
   },
   {
     hash: "e2c8a91",
     date: "2026-05",
-    msg: "feat(harvey): end-to-end RAG over 100K+ docs, 300+ tenants — pgvector hybrid BM25+vector, re-ranking, streaming",
+    msg: "feat(harvey): end-to-end RAG over 1M+ docs, 300+ tenants — pgvector hybrid BM25+vector, re-ranking, streaming",
   },
   { hash: "c41f7b3", date: "2026-04", msg: "chore: promote to SDE-II, client Harvey.ai", tag: "tag: sde-ii" },
   {
@@ -359,7 +351,7 @@ export const gitlog: Commit[] = [
   {
     hash: "3f2b8c7",
     date: "2025-11",
-    msg: "feat(forge41): GenAlpha CLI — API repo → MCP server via OpenAPI + AST; TPS iPaaS auth",
+    msg: "feat(genalpha): GenAlpha CLI — API repo → MCP server via OpenAPI + AST; TPS iPaaS auth",
   },
   {
     hash: "f0a2c64",
@@ -401,13 +393,13 @@ export const tree: string[] = [
   "│   │   ├── mcp-server-service/  20+ MCP servers, zero downtime",
   "│   │   └── claude-code-skills/  6 skills, weeks → <1 week",
   "│   └── sde-ii@harvey.ai/  (Apr 2026 – Present)",
-  "│       ├── rag-pipeline.md      100K+ docs · 300+ tenants",
+  "│       ├── rag-pipeline.md      1M+ docs · 300+ tenants",
   "│       ├── workflow-engine.md   sole architect, Temporal",
   "│       └── ansarada-dms.md      OAuth 2.0 durable workflows",
-  "├── forge41/  (2025 – Present, open source)",
+  "├── open-source/  (2025 – Present)",
   "│   ├── genalphacli/",
   "│   ├── tps/",
-  "│   ├── nandex/  (AutoInterviewer)",
+  "│   ├── autointerviewer/  AI interviewer",
   "│   └── nantex/",
   "└── education/",
   "    ├── be-cse-2020-2024.md",
@@ -460,8 +452,8 @@ export const ps: string[] = [
   "USER       PID  %CPU  %MEM  COMMAND",
   "nandisha  4201  38.0  12.1  harvey/workflow-engine --phase=production-hardening",
   "nandisha  4188  22.4   8.3  harvey/rag-pipeline --tune=reranker",
-  "nandisha  3970  11.0   4.0  forge41/autointerviewer --scale=1000-concurrent",
-  "nandisha  3811   9.2   3.1  forge41/nantex --watch resume.tex",
+  "nandisha  3970  11.0   4.0  autointerviewer --scale=1000-concurrent",
+  "nandisha  3811   9.2   3.1  nantex --watch resume.tex",
   "nandisha  3312   7.5   2.2  learn/anthropic-academy --course='Agent Skills'",
   "nandisha  2101   3.1   1.0  read/papers --topic='GraphRAG, A2A protocols'",
 ];

@@ -3,7 +3,7 @@
 [build]
   command = "pnpm --filter portfolio build"
   publish = "portfolio/.next"
-  # Exit 0 skips the build, so nandex-only changes don't redeploy the portfolio.
+  # Exit 0 skips the build, so AutoInterviewer-only changes don't redeploy the portfolio.
   ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- portfolio packages/ui pnpm-lock.yaml pnpm-workspace.yaml package.json"
 
 # porto.nandish.online is the primary domain; the other names on this site redirect to it.

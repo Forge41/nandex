@@ -25,13 +25,13 @@ describe("runShell", () => {
   it("lists projects", () => {
     const out = text(runShell("ls projects/", ctx));
     expect(out[0]).toMatch(/^harvey-rag\s+\.md {2}Document-grounded/);
-    expect(out).toHaveLength(9);
+    expect(out).toHaveLength(8);
   });
 
   it("cats a project with its source", () => {
-    const out = text(runShell("cat projects/nandex.md", ctx));
-    expect(out[0]).toBe("# nandex  (2025)");
-    expect(out.at(-1)).toMatch(/^source: summary\.md › /);
+    const out = text(runShell("cat projects/autointerviewer.md", ctx));
+    expect(out[0]).toBe("# AutoInterviewer  (2026)");
+    expect(out.at(-1)).toMatch(/^source: resume\.pdf › /);
     expect(text(runShell("cat projects/nope.md", ctx))).toEqual(["cat: projects/nope.md: No such file"]);
   });
 
@@ -47,7 +47,7 @@ describe("runShell", () => {
 
   it("asks for the sudo password and opens the résumé on wget", () => {
     expect(runShell("sudo hire nandisha", ctx)).toEqual([{ type: "sudo" }]);
-    expect(runShell("wget resume.pdf", ctx)[0]).toEqual({ type: "openUrl", url: "/resume.pdf" });
+    expect(runShell("wget resume.pdf", ctx)[0]).toEqual({ type: "openUrl", url: "https://drive.google.com/uc?export=download&id=1lbKDZSdoNfvTDVHhoS_xlOa5XfdLzpu8" });
   });
 
   it("staggers rm -rf and falls through to command not found", () => {
@@ -93,8 +93,9 @@ describe("runSlash", () => {
     expect(out[0]).toBe("resume.pdf   8 sections · Nandisha D, Sep 2026");
     expect(out[1]).toBe("summary.md   7 sections · about, work notes + open-source");
   });
-  it("opens AutoInterviewer on /interview", () => {
-    const fx = runSlash("interview", "", ctx);
+  it("opens AutoInterviewer on /autointerviewer and the old /interview", () => {
+    expect(runSlash("interview", "", ctx)).toEqual(runSlash("autointerviewer", "", ctx));
+    const fx = runSlash("autointerviewer", "", ctx);
     expect(fx).toContainEqual({ type: "openUrl", url: "https://autointerviewer.nandish.online/" });
     expect(text(fx).join(" ")).toContain("https://autointerviewer.nandish.online/");
   });

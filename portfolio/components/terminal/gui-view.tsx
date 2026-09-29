@@ -58,7 +58,7 @@ export function GuiView({
                 <a href={LINKS.github} target="_blank" rel="noopener noreferrer" className={secondary}>
                   GitHub
                 </a>
-                <a href={LINKS.resume} target="_blank" className={ghost}>
+                <a href={LINKS.resumeView} target="_blank" rel="noopener noreferrer" className={ghost}>
                   Résumé (PDF)
                 </a>
               </div>

@@ -1,6 +1,10 @@
 const DAYS = 364;
-const CACHE_KEY = "nandisha_contrib_v1";
-const ENDPOINT = "https://github-contributions-api.jogruber.de/v4/NandishNaik01?y=last";
+// The account with the day-to-day activity, private contributions included; the profile
+// links still point at NandishNaik01.
+export const ACTIVITY_USER = "Nandisha-D";
+// The key names the account so a visitor's cached grid never shows a previous one.
+const CACHE_KEY = `nandisha_contrib_${ACTIVITY_USER}`;
+const ENDPOINT = `https://github-contributions-api.jogruber.de/v4/${ACTIVITY_USER}?y=last`;
 
 export function sampleGrid(): number[] {
   let seed = 41;

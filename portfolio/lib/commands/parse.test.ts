@@ -9,7 +9,7 @@ describe("parseInput", () => {
     expect(parseInput("!ls   projects/", idle)).toEqual({ kind: "shell", text: "!ls   projects/", cmd: "ls projects/" });
     expect(parseInput("/theme nord", idle)).toEqual({ kind: "slash", text: "/theme nord", name: "theme", arg: "nord" });
     expect(parseInput("/fit  some jd text ", idle)).toMatchObject({ name: "fit", arg: "some jd text" });
-    expect(parseInput("what is nandex?", idle)).toEqual({ kind: "chat", text: "what is nandex?" });
+    expect(parseInput("what is AutoInterviewer?", idle)).toEqual({ kind: "chat", text: "what is AutoInterviewer?" });
   });
 
   it("pending prompts win over prefixes", () => {
