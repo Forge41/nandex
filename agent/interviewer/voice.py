@@ -8,16 +8,21 @@ Silence would be worse than text. A candidate looking at a plan with an intervie
 never arrives cannot tell a missing API key from a broken product.
 """
 
+import asyncio
 import logging
 import os
 from dataclasses import dataclass
 
 import anthropic as anthropic_sdk
 from livekit.agents import AgentSession, RoomInputOptions, RoomOutputOptions
+from livekit.agents.tts import TTS, FallbackAdapter
+from livekit.agents.voice import events
 from livekit.agents.voice.turn import InterruptionOptions, TurnHandlingOptions
 from livekit.plugins import anthropic, cartesia, deepgram
 
+from interviewer import core_client, speech_keys
 from interviewer.config import settings
+from interviewer.speech_keys import SpeechKey
 
 logger = logging.getLogger("interviewer.voice")
 
@@ -50,11 +55,36 @@ class Modality:
 def available() -> Modality:
     return Modality(
         can_hear=bool(os.getenv("DEEPGRAM_API_KEY")),
-        can_speak=bool(os.getenv("CARTESIA_API_KEY")),
+        can_speak=bool(speech_keys.configured()),
     )
 
 
-def build_session(vad, modality: Modality, voice_id: str = "") -> AgentSession:
+async def prepare_speech(modality: Modality, voice_id: str) -> tuple[Modality, list[SpeechKey]]:
+    """Picks the keys this call will speak with, and reports the ones that can't."""
+    if not modality.voice:
+        return modality, []
+    selection = await speech_keys.select(voice_id)
+    remaining = len(selection.chain)
+    for key, health in selection.newly_dead:
+        await core_client.report_speech_key(key.hint, health.value, remaining)
+    if not selection.chain:
+        logger.error("No Cartesia key can speak; this call is text only")
+        return Modality(can_hear=modality.can_hear, can_speak=False), []
+    if selection.chain[0].layer > 1:
+        logger.warning("Speaking on %s", selection.chain[0].name)
+    return modality, selection.chain
+
+
+def speech_tts(chain: list[SpeechKey], voice_id: str) -> TTS:
+    voices = [cartesia.TTS(api_key=k.value, voice=voice_id) for k in chain]
+    # No retries on a key: a 402 is not retryable, and anything that is should move on to
+    # the next account rather than make the visitor wait on this one.
+    return voices[0] if len(voices) == 1 else FallbackAdapter(voices, max_retry_per_tts=0)
+
+
+def build_session(
+    vad, modality: Modality, voice_id: str = "", chain: list[SpeechKey] | None = None
+) -> AgentSession:
     """Both halves or neither.
 
     Hearing without speaking is an interviewer that listens in silence; speaking without
@@ -80,7 +110,7 @@ def build_session(vad, modality: Modality, voice_id: str = "") -> AgentSession:
         # uses, and it was tried -- one provider, one balance. Aura's voices were not
         # good enough, so this stays a second account to keep topped up, which is the
         # cost of the better voice rather than an oversight.
-        tts=cartesia.TTS(voice=voice_id or settings.voice_id),
+        tts=speech_tts(chain or speech_keys.configured(), voice_id or settings.voice_id),
         # Interruptions from the local VAD rather than LiveKit Cloud's adaptive service,
         # which a self-hosted deployment has no credentials for: left to choose, the
         # session tries it three times per job and logs a 401 each time before falling
@@ -124,3 +154,39 @@ def drop_to_text(session, reason: str) -> None:
         return
     session.output.set_audio_enabled(False)
     logger.error("Speech is off for the rest of this interview: %s", reason)
+
+
+def watch_speech(session: AgentSession, chain: list[SpeechKey]) -> None:
+    """Mid-call: a key that stops speaking is reported and the chain moves on; when none
+    is left, the call carries on as text."""
+    tts = session.tts
+    if isinstance(tts, FallbackAdapter):
+        # The adapter keeps its instances in the order it was given them: the chain's.
+        by_instance = dict(zip(map(id, tts._tts_instances), chain, strict=True))
+        down: set[int] = set()
+        reports: set[asyncio.Task] = set()
+
+        def _changed(event) -> None:
+            key = by_instance.get(id(event.tts))
+            if key is None:
+                return
+            if event.available:
+                down.discard(key.layer)
+                return
+            down.add(key.layer)
+            # Re-probed on the next call, which is what decides out of credits or a blip.
+            speech_keys.forget(key)
+            task = asyncio.create_task(
+                core_client.report_speech_key(key.hint, "stopped mid-call", len(chain) - len(down))
+            )
+            reports.add(task)
+            task.add_done_callback(reports.discard)
+
+        tts.on("tts_availability_changed", _changed)
+
+    @session.on("error")
+    def _speech_failed(event: events.ErrorEvent) -> None:
+        if not isinstance(event.source, TTS):
+            return
+        if is_permanent(event.error) or isinstance(event.source, FallbackAdapter):
+            drop_to_text(session, repr(event.error))

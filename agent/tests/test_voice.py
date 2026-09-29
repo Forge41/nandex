@@ -67,3 +67,35 @@ def test_half_a_conversation_is_not_offered(monkeypatch):
     modality = voice.available()
     assert not modality.voice
     assert "CARTESIA_API_KEY" in modality.describe()
+
+
+async def test_all_speech_keys_dead_makes_the_call_text_only(monkeypatch):
+    from interviewer import core_client, speech_keys
+
+    reports = []
+
+    async def fake_select(voice_id):
+        key = speech_keys.SpeechKey(1, "sk_car_dead0000")
+        return speech_keys.Selection([], [(key, speech_keys.Health.EXHAUSTED)])
+
+    async def fake_report(key, problem, left):
+        reports.append((key, problem, left))
+
+    monkeypatch.setattr(speech_keys, "select", fake_select)
+    monkeypatch.setattr(core_client, "report_speech_key", fake_report)
+
+    modality, chain = await voice.prepare_speech(voice.Modality(can_hear=True, can_speak=True), "v")
+
+    assert chain == [] and not modality.voice
+    assert reports == [("CARTESIA_API_KEY (…0000)", "out of credits", 0)]
+
+
+def test_several_keys_become_one_fallback_chain():
+    from interviewer.speech_keys import SpeechKey
+    from livekit.agents.tts import FallbackAdapter
+
+    one = voice.speech_tts([SpeechKey(1, "a")], "v")
+    many = voice.speech_tts([SpeechKey(1, "a"), SpeechKey(2, "b")], "v")
+
+    assert not isinstance(one, FallbackAdapter)
+    assert isinstance(many, FallbackAdapter)

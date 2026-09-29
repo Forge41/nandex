@@ -107,3 +107,17 @@ async def portfolio_passages(question: str) -> list[dict]:
         except Exception:
             logger.exception("Couldn't search the portfolio")
             return []
+
+
+async def report_speech_key(key: str, problem: str, layers_left: int) -> None:
+    """Tells core a speech key can't be used, so the owner is emailed. Never raises: the
+    call goes on with the next key either way."""
+    async with _client() as client:
+        try:
+            response = await client.post(
+                "/portfolio/agent/speech-key-alert",
+                json={"key": key, "problem": problem, "layers_left": layers_left},
+            )
+            response.raise_for_status()
+        except Exception:
+            logger.exception("Couldn't report %s (%s)", key, problem)

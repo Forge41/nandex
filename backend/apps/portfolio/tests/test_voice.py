@@ -160,3 +160,63 @@ async def test_agent_passages_rejects_everything_when_no_token_is_configured():
         "/portfolio/agent/passages", {"question": "q"}, headers={"Authorization": "Bearer "}
     )
     assert response.status_code == 401
+
+
+@pytest.fixture
+def mail_owner(settings, monkeypatch):
+    from django.core.cache import cache
+
+    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+    monkeypatch.setattr(portfolio_settings, "owner_email", "owner@example.com")
+    cache.clear()
+
+
+async def _alert(body):
+    return await _post(
+        "/portfolio/agent/speech-key-alert",
+        body,
+        headers={"Authorization": f"Bearer {AGENT_TOKEN}"},
+    )
+
+
+@pytest.mark.django_db(transaction=True)
+async def test_a_dead_speech_key_emails_the_owner_once(agent_token, mail_owner):
+    from django.core import mail
+
+    body = {"key": "CARTESIA_API_KEY (…abcd)", "problem": "out of credits", "layers_left": 3}
+    first = await _alert(body)
+    again = await _alert(body)
+
+    assert json.loads(first.content) == {"emailed": True}
+    assert json.loads(again.content) == {"emailed": False}
+    assert len(mail.outbox) == 1
+    assert mail.outbox[0].to == ["owner@example.com"]
+    assert (
+        "CARTESIA_API_KEY (…abcd) is out of credits; 3 fallback key(s) left"
+        in mail.outbox[0].subject
+    )
+
+
+@pytest.mark.django_db(transaction=True)
+async def test_the_last_speech_key_says_voice_is_text_only(agent_token, mail_owner):
+    from django.core import mail
+
+    await _alert({"key": "CARTESIA_API_KEY_5 (…wxyz)", "problem": "rejected", "layers_left": 0})
+
+    assert "no speech keys left, voice is text only" in mail.outbox[0].subject
+
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.parametrize(
+    "body", [{}, {"key": "k", "problem": "p"}, {"key": "", "problem": "p", "layers_left": 1}]
+)
+async def test_speech_key_alert_validation(agent_token, body):
+    assert (await _alert(body)).status_code == 400
+
+
+@pytest.mark.django_db(transaction=True)
+async def test_speech_key_alert_requires_the_agent_token(agent_token):
+    response = await _post(
+        "/portfolio/agent/speech-key-alert", {"key": "k", "problem": "p", "layers_left": 1}
+    )
+    assert response.status_code == 401

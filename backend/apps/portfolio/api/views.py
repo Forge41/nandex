@@ -9,6 +9,7 @@ import json
 import logging
 
 from asgiref.sync import sync_to_async
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.mail import EmailMessage
 from django.core.validators import validate_email
@@ -183,3 +184,56 @@ async def agent_passages(request: HttpRequest) -> JsonResponse:
             ]
         }
     )
+
+
+# One email per key and problem in this window. The cache is per process, so a burst
+# across several core workers can still send one each.
+SPEECH_ALERT_WINDOW_SECONDS = 6 * 3600
+
+
+def _email_speech_alert_sync(key: str, problem: str, layers_left: int) -> bool:
+    if not settings.owner_email:
+        return False
+    if not cache.add(f"portfolio:speech-alert:{key}:{problem}", 1, SPEECH_ALERT_WINDOW_SECONDS):
+        return False
+    if layers_left:
+        headline = f"Cartesia key {key} is {problem}; {layers_left} fallback key(s) left"
+        action = "Replace it in /opt/nandex/.env and recreate the agent container before the rest run out."
+    else:
+        headline = f"Cartesia key {key} is {problem}; no speech keys left, voice is text only"
+        action = "Add a working key to /opt/nandex/.env (CARTESIA_API_KEY … CARTESIA_API_KEY_5) and recreate the agent container."
+    EmailMessage(
+        subject=f"[portfolio] {headline}",
+        body=f"{headline}.\n\n{action}\n",
+        to=[settings.owner_email],
+    ).send()
+    return True
+
+
+@csrf_exempt
+@require_POST
+async def agent_speech_key_alert(request: HttpRequest) -> JsonResponse:
+    """The voice agent found a Cartesia key it can't speak with. It sends a hint, never
+    the key itself."""
+    if not _has_agent_token(request):
+        return JsonResponse({"detail": "Not authorised"}, status=401)
+    body = _body(request)
+    key, problem, left = body.get("key"), body.get("problem"), body.get("layers_left")
+    if not (
+        isinstance(key, str)
+        and key
+        and isinstance(problem, str)
+        and problem
+        and isinstance(left, int)
+    ):
+        return JsonResponse({"detail": "key, problem and layers_left are required."}, status=400)
+    key, problem = key[:80], problem[:80]
+    logger.warning("Speech key %s is %s; %d left", key, problem, left)
+    try:
+        sent = await sync_to_async(_email_speech_alert_sync, thread_sensitive=True)(
+            key, problem, max(0, left)
+        )
+    except Exception:
+        logger.exception("Couldn't email the speech key alert for %s", key)
+        sent = False
+    return JsonResponse({"emailed": sent})

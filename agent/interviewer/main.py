@@ -17,7 +17,6 @@ from livekit.agents import (
     WorkerOptions,
     cli,
 )
-from livekit.agents.tts import TTS
 from livekit.agents.voice import events
 from livekit.plugins import silero
 
@@ -69,16 +68,13 @@ async def interview(ctx: JobContext, session_id: str) -> None:
         logger.warning(
             "Interviewing in %s -- the candidate will read, not hear", modality.describe()
         )
-    session = voice.build_session(ctx.proc.userdata["vad"], modality)
+    modality, chain = await voice.prepare_speech(modality, settings.voice_id)
+    session = voice.build_session(ctx.proc.userdata["vad"], modality, chain=chain)
+    # Only speaking. A transcription failure leaves the candidate able to type, and an
+    # LLM failure is the session's own to retry.
+    voice.watch_speech(session, chain)
 
     recorder = TranscriptRecorder(session_id)
-
-    @session.on("error")
-    def _speech_failed(event: events.ErrorEvent) -> None:
-        # Only speaking. A transcription failure leaves the candidate able to type, and
-        # an LLM failure is the session's own to retry.
-        if isinstance(event.source, TTS) and voice.is_permanent(event.error):
-            voice.drop_to_text(session, repr(event.error))
 
     @session.on("conversation_item_added")
     def _remember(event: events.ConversationItemAddedEvent) -> None:
