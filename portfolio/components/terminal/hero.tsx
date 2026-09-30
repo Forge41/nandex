@@ -197,7 +197,7 @@ export function HeroBar({ wide }: { wide: boolean }) {
 
           {wide && (
             <div
-              className="flex min-w-0 flex-[1_1_220px] flex-col gap-0.5 self-stretch border-l border-white/[.07] pl-[18px]"
+              className="hidden min-w-0 flex-[1_1_220px] flex-col gap-0.5 self-stretch border-l border-white/[.07] pl-[18px] min-[1280px]:flex"
               style={{ animation: "tHeroIn .6s cubic-bezier(.2,.8,.2,1) .2s both" }}
             >
               <blockquote className="m-0 min-w-0 max-w-[300px] font-sans text-[14px] italic leading-[1.45] tracking-[-.005em] text-tm-fg [text-wrap:pretty]">
