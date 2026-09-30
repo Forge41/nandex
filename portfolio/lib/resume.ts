@@ -23,3 +23,33 @@ export async function loadResume(
   }
   return { body: await readFallback(), source: "fallback" };
 }
+
+const DRIVE_TTL_MS = 60 * 60 * 1000;
+const RETRY_MS = 60 * 1000;
+
+/**
+ * One Drive fetch per hour per server process, shared by concurrent requests. A stale copy
+ * is served while the next one loads, and a failed refresh keeps the last Drive copy
+ * rather than swapping in the bundled one.
+ */
+export function cachedResume(load: () => Promise<ResumeFile>, now: () => number = Date.now) {
+  let entry: { file: ResumeFile; fresh: number } | null = null;
+  let inflight: Promise<ResumeFile> | null = null;
+
+  const refresh = () =>
+    (inflight ??= load()
+      .then((file) => {
+        const keep = file.source === "fallback" && entry?.file.source === "drive" ? entry.file : file;
+        entry = { file: keep, fresh: now() + (file.source === "drive" ? DRIVE_TTL_MS : RETRY_MS) };
+        return keep;
+      })
+      .finally(() => {
+        inflight = null;
+      }));
+
+  return async (): Promise<ResumeFile> => {
+    if (!entry) return refresh();
+    if (now() >= entry.fresh) void refresh().catch(() => {});
+    return entry.file;
+  };
+}

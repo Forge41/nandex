@@ -115,3 +115,18 @@ jobs:
         working-directory: portfolio
       - run: pnpm build
         working-directory: portfolio
+
+  # The server builds these on deploy; building them here first means a broken
+  # Dockerfile or Caddyfile fails the PR, not the deploy.
+  web-images:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          docker run --rm -v "$PWD/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            -e APP_HOST=api.example.com \
+            -e PORTFOLIO_SITE="porto.example.com, www.example.com" \
+            -e FRONTEND_SITE=app.example.com -e NANTEX_SITE=nantex.example.com \
+            caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile
+      - run: docker build -f deploy/Dockerfile.web --build-arg APP=frontend .
+      - run: docker build -f deploy/Dockerfile.web --build-arg APP=portfolio .

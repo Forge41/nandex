@@ -3,7 +3,6 @@
 .claude
 .agents
 .codex
-frontend
 dev
 docs
 **/.venv
@@ -16,3 +15,5 @@ docs
 !**/.env.example
 infra
 staticfiles
+**/.next
+**/*.tsbuildinfo

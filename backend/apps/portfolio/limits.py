@@ -15,8 +15,8 @@ from apps.portfolio.models import PortfolioQuery
 
 
 def client_key(request: HttpRequest) -> str:
-    # Leftmost X-Forwarded-For is the visitor as Netlify saw them. Spoofable, which is why
-    # the database-counted daily cap, not this, is the real ceiling.
+    # Leftmost X-Forwarded-For is the visitor as Caddy saw them; Caddy replaces any the
+    # visitor sent. The database-counted daily cap, not this, is still the real ceiling.
     forwarded = request.headers.get("X-Forwarded-For", "")
     ip = forwarded.split(",")[0].strip() or request.META.get("REMOTE_ADDR", "")
     return hashlib.sha256(f"{django_settings.SECRET_KEY}:{ip}".encode()).hexdigest()[:32]

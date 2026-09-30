@@ -72,11 +72,11 @@ never writes it, and the call emits a fraction of the tokens it used to.
 
 ```
 frontend/          Next.js app: chat UI + integrations marketplace
-portfolio/         Next.js app: the terminal portfolio, deployed as its own Netlify site
+portfolio/         Next.js app: the terminal portfolio, served from the EC2 box beside the API
   content/sources/  the portfolio's citable sources, seeded into retrieval
 packages/ui/       @nandex/ui: tokens, Tailwind theme and primitives both apps share
 deploy/            Dockerfiles and the production compose stack for the EC2 box
-infra/             Terraform: EC2, IAM/OIDC, and both Netlify sites
+infra/             Terraform: EC2, IAM/OIDC, and the legacy Netlify sites
 backend/
   config/           Django project (settings, urls, asgi)
   ai/               Anthropic client, model registry, prompts as .md files -- no Django import
@@ -355,7 +355,7 @@ curl -H "X-TPS-Secret: <value>" http://localhost:8000/apps
 ## Running the portfolio
 
 The portfolio shares the backend, the database and `@nandex/ui` with nandex, and deploys as its
-own Netlify site. `make serve-all` runs it on :3001 with everything else; on its own:
+own container on the same EC2 box. `make serve-all` runs it on :3001 with everything else; on its own:
 
 ```bash
 make seed-portfolio   # store + index portfolio/content/sources (idempotent)
@@ -381,21 +381,29 @@ make portfolio        # http://localhost:3001, proxies /api/* to BACKEND_ORIGIN
 | Piece | Runs on | Address |
 | --- | --- | --- |
 | API, workers, LiveKit agent, runner, Postgres | One EC2 instance (`ap-southeast-2`), `deploy/docker-compose.prod.yml` behind Caddy | `https://<eip>.nip.io` |
-| nandex frontend (AutoInterviewer) | Netlify site `nandex` | [autointerviewer.nandish.online](https://autointerviewer.nandish.online) |
-| Portfolio | Netlify site `nandisha-portfolio` | [porto.nandish.online](https://porto.nandish.online) (`nandish.online`, `www` and `contact.` redirect to it) |
+| nandex frontend (AutoInterviewer) | Same instance, `frontend` container | [autointerviewer.nandish.online](https://autointerviewer.nandish.online) (`interview.` redirects to it) |
+| Portfolio | Same instance, `portfolio` container | [porto.nandish.online](https://porto.nandish.online) (`nandish.online`, `www` and `contact.` redirect to it) |
+| nantex landing page | Same instance, static files served by Caddy | [nantex.nandish.online](https://nantex.nandish.online) |
 | Temporal, LiveKit | Temporal Cloud, LiveKit Cloud | — |
 | Email | Resend, sending from `contact.nandish.online` | — |
 
-- **Merging to `main` deploys.** `.github/workflows/deploy.yml` runs once CI passes and ships
-  only what the merge touched: the EC2 stack over SSM at the exact commit CI passed, then each
-  Netlify site with the Netlify CLI. Run it manually from the Actions tab to deploy everything.
-- **Infrastructure** is Terraform in `infra/` (EC2, IAM and GitHub OIDC, both Netlify sites and
-  their custom domains), planned on every PR and applied on merge by `infra.yml`.
+- **Merging to `main` deploys.** `.github/workflows/deploy.yml` runs once CI passes and, when the
+  merge touched the stack or either site, rebuilds it over SSM at the exact commit CI passed
+  (`deploy/Dockerfile.web` builds both Next.js apps). Run it manually to deploy everything.
+- **nantex's page** is copied from `NandishNaik01/nantex` main by `nantex-site.yml` every 30
+  minutes, or on a manual run.
+- **Site hostnames** are `PORTFOLIO_SITE`, `FRONTEND_SITE` and `NANTEX_SITE` in `/opt/nandex/.env`
+  (comma-separated, e.g. `porto.nandish.online, nandish.online, www.nandish.online,
+  contact.nandish.online`). Set one only once that site's DNS points at the instance, then
+  recreate `caddy`; until then Caddy serves it on a `*.localhost` name and asks Let's Encrypt
+  for nothing.
+- **Infrastructure** is Terraform in `infra/` (EC2, IAM and GitHub OIDC, and the Netlify sites
+  kept as a rollback until they are deleted), planned on every PR and applied on merge by
+  `infra.yml`.
 - **Runtime configuration** lives in one AWS Secrets Manager secret, `nandex/app-env`, pushed
   from `backend/.env` with `make aws-secrets` and rendered to `/opt/nandex/.env` on first boot.
-- **DNS** for `nandish.online` is at Hostinger (not in Terraform): `@` A `75.2.60.5`, CNAMEs for
-  `porto`, `www`, `contact` and `interview` to the Netlify sites, and Resend's DKIM, SPF and
-  DMARC records under `contact`.
+- **DNS** for `nandish.online` is at Hostinger (not in Terraform): the site names point at the
+  instance's Elastic IP, and Resend's DKIM, SPF and DMARC records live under `contact`.
 
 ## Contributing
 

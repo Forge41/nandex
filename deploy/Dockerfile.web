@@ -1,0 +1,40 @@
+# Either Next.js app (APP=frontend or APP=portfolio) as a standalone Node server.
+#
+# Built from the repository root because the pnpm workspace (lockfile, packages/ui) lives
+# there. /api/* rewrites are baked in at build time, so BACKEND_ORIGIN is a build arg: the
+# compose network's core, not the public nip.io name.
+
+FROM node:22-alpine AS build
+ARG APP
+ARG BACKEND_ORIGIN=http://core:8000
+ARG NEXT_PUBLIC_BOOKING_URL=""
+ARG NEXT_PUBLIC_RESUME_DRIVE_ID=""
+RUN corepack enable
+WORKDIR /repo
+
+# Dependencies resolve from the manifests alone, so this layer survives source changes.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY packages/ui/package.json packages/ui/
+COPY ${APP}/package.json ${APP}/
+RUN pnpm install --frozen-lockfile --filter "${APP}..."
+
+COPY packages/ui packages/ui
+COPY ${APP} ${APP}
+ENV NEXT_TELEMETRY_DISABLED=1 \
+    BACKEND_ORIGIN=${BACKEND_ORIGIN} \
+    NEXT_PUBLIC_BOOKING_URL=${NEXT_PUBLIC_BOOKING_URL} \
+    NEXT_PUBLIC_RESUME_DRIVE_ID=${NEXT_PUBLIC_RESUME_DRIVE_ID}
+RUN pnpm --filter ${APP} build \
+ && cp -r ${APP}/.next/static ${APP}/.next/standalone/${APP}/.next/static \
+ && if [ -d ${APP}/public ]; then cp -r ${APP}/public ${APP}/.next/standalone/${APP}/public; fi
+
+FROM node:22-alpine
+ARG APP
+ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0
+WORKDIR /app
+COPY --from=build --chown=node:node /repo/${APP}/.next/standalone ./
+# The server resolves content/ (the résumé fallback) against its working directory.
+WORKDIR /app/${APP}
+USER node
+EXPOSE 3000
+CMD ["node", "server.js"]
