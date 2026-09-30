@@ -97,7 +97,7 @@ export function Portrait({ size = 84, hint = true, radius = 22 }: { size?: numbe
 }
 
 /** `data-loader-target="sig"` is where the loader's signature lands; it is hidden on narrow heroes. */
-export function Signature({ size = 30 }: { size?: number }) {
+export function Signature({ size = 32 }: { size?: number }) {
   return (
     <span
       data-loader-target="sig"

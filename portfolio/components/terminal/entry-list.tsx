@@ -61,7 +61,7 @@ export function EntryList({ entries, thinking }: { entries: Entry[]; thinking: b
   return (
     <>
       {entries.map((e) => (
-        <div key={e.id} className="mb-2.5" style={{ animation: "tFade .18s ease-out" }}>
+        <div key={e.id} className="mb-2.5" style={{ animation: "tMsgIn .3s cubic-bezier(.2,.8,.2,1)" }}>
           <EntryView entry={e} />
         </div>
       ))}

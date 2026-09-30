@@ -60,15 +60,21 @@ export function TabStrip({ tab, onPick }: { tab: ResumeTab; onPick: (t: ResumeTa
   );
 }
 
-function RoleRow({ role, last, onOpen }: { role: Role; last: boolean; onOpen: () => void }) {
+function RoleRow({ role, index, last, onOpen }: { role: Role; index: number; last: boolean; onOpen: () => void }) {
   return (
     <button
       type="button"
       className="t-reset flex w-full gap-3 rounded-[14px] p-3 text-left transition-colors duration-150 hover:bg-white/[.05]"
+      style={{ animation: `tRowIn .55s cubic-bezier(.2,.8,.2,1) ${index * 0.12}s both` }}
       onClick={stop(onOpen)}
     >
       <span className="relative flex flex-none justify-center self-stretch pt-1.5" style={{ width: 10 }}>
-        {!last && <span className="absolute top-4 h-[calc(100%-8px)] w-px" style={{ background: "var(--t-border)" }} />}
+        {!last && (
+          <span
+            className="absolute top-4 h-[calc(100%-8px)] w-px origin-top"
+            style={{ background: "var(--t-border)", animation: `tLineIn .6s cubic-bezier(.2,.8,.2,1) ${0.25 + index * 0.12}s both` }}
+          />
+        )}
         <span
           className="relative size-[9px] flex-none rounded-full"
           style={
@@ -93,11 +99,12 @@ function RoleRow({ role, last, onOpen }: { role: Role; last: boolean; onOpen: ()
         </span>
         <span className="text-[12.5px] leading-[1.45] text-tm-sub [text-wrap:pretty]">{role.one}</span>
         <span className="mt-0.5 flex flex-wrap items-center gap-1.5">
-          {role.stack.map((s) => (
+          {role.stack.map((s, i) => (
             <span
               key={s}
               title={s}
               className="t-chip inline-flex size-7 items-center justify-center rounded-[9px]"
+              style={{ animation: `tJump .6s cubic-bezier(.2,.8,.2,1) ${0.3 + (index * role.stack.length + i) * 0.04}s both` }}
             >
               <TechMark label={s} size={15} />
             </span>
@@ -109,11 +116,14 @@ function RoleRow({ role, last, onOpen }: { role: Role; last: boolean; onOpen: ()
   );
 }
 
-function ProjectCard({ project, onOpen }: { project: Project; onOpen: () => void }) {
+function ProjectCard({ project, index, onOpen }: { project: Project; index: number; onOpen: () => void }) {
   const live = project.live;
   if (!live) return null;
   return (
-    <div className="flex min-w-0 flex-col overflow-hidden rounded-[18px] bg-white/[.035] shadow-[inset_0_1px_0_rgba(255,255,255,.08),inset_0_0_0_1px_rgba(255,255,255,.06)]">
+    <div
+      className="flex min-w-0 flex-col overflow-hidden rounded-[18px] bg-white/[.035] shadow-[inset_0_1px_0_rgba(255,255,255,.08),inset_0_0_0_1px_rgba(255,255,255,.06)]"
+      style={{ animation: `tTileIn .5s cubic-bezier(.2,.8,.2,1) ${index * 0.1}s both` }}
+    >
       <div className="flex h-7 flex-none items-center gap-1.5 border-b border-white/[.06] px-2.5">
         <span className="inline-flex gap-1" aria-hidden>
           {["rgba(255,255,255,.18)", "rgba(255,255,255,.12)", "rgba(255,255,255,.12)"].map((c, i) => (
@@ -159,8 +169,12 @@ function StackGrid() {
   const { submit } = useTerminal();
   return (
     <div className="flex flex-col gap-3">
-      {stackGroups.map((g) => (
-        <div key={g.label} className="rounded-[18px] bg-white/[.035] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.08),inset_0_0_0_1px_rgba(255,255,255,.06)]">
+      {stackGroups.map((g, gi) => (
+        <div
+          key={g.label}
+          className="rounded-[18px] bg-white/[.035] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.08),inset_0_0_0_1px_rgba(255,255,255,.06)]"
+          style={{ animation: `tTileIn .5s cubic-bezier(.2,.8,.2,1) ${gi * 0.08}s both` }}
+        >
           <div className="mb-2.5 font-sans text-[10.5px] font-semibold uppercase tracking-[.08em] text-tm-muted">{g.label}</div>
           <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill,minmax(68px,1fr))" }}>
             {g.items.map((item) => (
@@ -188,15 +202,15 @@ export function ResumePaneBody({ tab }: { tab: ResumeTab }) {
     return (
       <div className="flex flex-col rounded-[18px] bg-white/[.035] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,.08),inset_0_0_0_1px_rgba(255,255,255,.06)]">
         {experience.map((r, i) => (
-          <RoleRow key={r.id} role={r} last={i === experience.length - 1} onOpen={() => openDrawer({ kind: "role", id: r.id })} />
+          <RoleRow key={r.id} role={r} index={i} last={i === experience.length - 1} onOpen={() => openDrawer({ kind: "role", id: r.id })} />
         ))}
       </div>
     );
   if (tab === "projects")
     return (
       <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(210px,1fr))" }}>
-        {shelf.map((p) => (
-          <ProjectCard key={p.name} project={p} onOpen={() => openDrawer({ kind: "project", id: p.name })} />
+        {shelf.map((p, i) => (
+          <ProjectCard key={p.name} project={p} index={i} onOpen={() => openDrawer({ kind: "project", id: p.name })} />
         ))}
       </div>
     );

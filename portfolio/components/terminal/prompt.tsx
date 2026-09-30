@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef } from "react";
+import { forwardRef, useEffect, useState } from "react";
 
 import { modeOf, PROMPT_COLOR, PROMPT_SYMBOL } from "@/lib/commands/parse";
 import type { TerminalAction } from "@/lib/terminal/reducer";
@@ -31,6 +31,13 @@ export const Prompt = forwardRef<HTMLInputElement, PromptProps>(function Prompt(
   { input, acIdx, fitPending, sudoPending, thinking, showLanding, ghost, suggestions, isMobile, dispatch, submit, runSuggestion, onShortcuts, onVoice },
   inputRef,
 ) {
+  // The chips stagger in once. The row rotates every few seconds, and replaying the entrance
+  // on each rotation would blank the row for a third of a second each time.
+  const [intro, setIntro] = useState(true);
+  useEffect(() => {
+    const id = setTimeout(() => setIntro(false), 1200);
+    return () => clearTimeout(id);
+  }, []);
   const flags = { fitPending, sudoPending };
   const mode = modeOf(input, flags);
   const ac = acItems(input, flags);
@@ -115,11 +122,12 @@ export const Prompt = forwardRef<HTMLInputElement, PromptProps>(function Prompt(
         <div className="flex flex-col gap-1.5 px-[18px] pt-2 max-[859px]:px-2.5" style={{ animation: "tFade .3s" }}>
           <span className="font-sans text-[10px] font-semibold uppercase tracking-[.1em] text-tm-dim">Suggested questions</span>
           <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
-            {suggestions.slice(0, 6).map((t) => (
+            {suggestions.slice(0, 6).map((t, i) => (
               <button
                 key={t}
                 type="button"
                 className="t-reset t-chip flex flex-none items-center gap-2 rounded-full px-3.5 py-2 font-sans text-[12px] text-tm-sub transition-[background,color] duration-200 hover:bg-tm-hl hover:text-tm-fg"
+                style={intro ? { animation: `tChipIn .45s cubic-bezier(.2,.8,.2,1) ${0.35 + i * 0.07}s both` } : undefined}
                 onClick={(ev) => {
                   ev.stopPropagation();
                   runSuggestion(t);
@@ -131,7 +139,10 @@ export const Prompt = forwardRef<HTMLInputElement, PromptProps>(function Prompt(
           </div>
         </div>
       )}
-      <div className="relative z-[1] mx-[18px] mb-4 mt-2 flex items-center gap-2.5 max-[859px]:mx-2.5 max-[859px]:mb-3 max-[859px]:mt-1.5 max-[859px]:gap-2">
+      <div
+        className="relative z-[1] mx-[18px] mb-4 mt-2 flex items-center gap-2.5 max-[859px]:mx-2.5 max-[859px]:mb-3 max-[859px]:mt-1.5 max-[859px]:gap-2"
+        style={{ animation: "tInUp .55s cubic-bezier(.2,.8,.2,1) .6s both" }}
+      >
         <div className="t-glass relative flex min-h-[52px] min-w-0 flex-1 items-center gap-2.5 rounded-[18px] px-[18px] py-2 shadow-[inset_0_1px_0_rgba(255,255,255,.14),inset_0_0_0_1px_rgba(255,255,255,.07),0_18px_44px_rgba(0,0,0,.45)] max-[859px]:px-3.5">
           <span
             className="pointer-events-none absolute inset-0 rounded-[18px]"

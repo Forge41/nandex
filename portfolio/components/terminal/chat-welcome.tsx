@@ -13,7 +13,7 @@ export function ChatWelcome() {
       style={{ animation: "tHeroIn .55s cubic-bezier(.2,.8,.2,1) .16s both" }}
     >
       <div className="min-w-[200px] flex-1">
-        <div className="text-[15px] font-bold leading-[1.2] tracking-[-.01em] text-tm-fg">Ask me anything about Nandisha&apos;s work</div>
+        <div className="whitespace-nowrap text-sm font-semibold leading-[1.2] tracking-[-.01em] text-tm-fg">Ask me anything about Nandisha&apos;s work</div>
         <div className="mt-1 text-[12.5px] leading-[1.4] text-tm-sub [text-wrap:pretty]">
           Every answer cites the résumé. Prefer talking? Switch to voice.
         </div>

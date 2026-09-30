@@ -50,7 +50,7 @@ export const CommandEcho = memo(function CommandEcho({ entry }: { entry: EntryOf
 
 export const LinesBlock = memo(function LinesBlock({ entry }: { entry: EntryOf<"lines"> }) {
   return (
-    <pre className="m-0 overflow-x-auto whitespace-pre" style={{ font: "inherit" }}>
+    <pre className="m-0 overflow-x-auto whitespace-pre font-mono text-[12.5px] leading-[1.6]">
       {entry.lines.map((l, i) => (
         <Spans key={i} line={l} />
       ))}
@@ -60,7 +60,7 @@ export const LinesBlock = memo(function LinesBlock({ entry }: { entry: EntryOf<"
 
 export const ProseBlock = memo(function ProseBlock({ entry }: { entry: EntryOf<"prose"> }) {
   return (
-    <div className="whitespace-pre-wrap [overflow-wrap:anywhere]">
+    <div className="whitespace-pre-wrap text-[13px] leading-[1.55] [overflow-wrap:anywhere]">
       {entry.lines.map((l, i) => (
         <Spans key={i} line={l} />
       ))}
@@ -70,7 +70,7 @@ export const ProseBlock = memo(function ProseBlock({ entry }: { entry: EntryOf<"
 
 export const SudoPrompt = memo(function SudoPrompt({ entry }: { entry: EntryOf<"sudo"> }) {
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-2 font-mono text-[12.5px]">
       <span className="text-tm-sub">[sudo] password for visitor:</span>
       <span className="text-tm-fg">{entry.mask}</span>
       {!entry.mask && <TypingCaret height={14} style={{ background: "var(--t-fg)" }} />}
@@ -80,7 +80,7 @@ export const SudoPrompt = memo(function SudoPrompt({ entry }: { entry: EntryOf<"
 
 export const VoiceTurn = memo(function VoiceTurn({ entry }: { entry: EntryOf<"voiceTurn"> }) {
   return (
-    <div className="flex gap-2 text-tm-fg">
+    <div className="flex gap-2 font-mono text-[12.5px] text-tm-fg">
       <span className="text-tm-green">♪</span>
       <span className="[overflow-wrap:anywhere]">{entry.text}</span>
     </div>

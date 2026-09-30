@@ -59,16 +59,18 @@ function Activity() {
   );
 }
 
-/** The doodle that points at the résumé. Decoration, so it is hidden from the tree. */
+/** The doodle under the résumé button, curling up into it. Decoration, so it is hidden from the tree. */
 function ArrowDoodle() {
   return (
     <svg
-      viewBox="0 0 190 120"
-      width="54"
-      height="34"
+      viewBox="0 0 200 130"
       aria-hidden
-      className="pointer-events-none absolute -bottom-[26px] left-1/2 text-tm-accent"
+      className="pointer-events-none absolute z-30 overflow-visible text-tm-accent"
       style={{
+        top: "calc(100% + 24px)",
+        left: -15,
+        width: 58,
+        height: 38,
         filter: "drop-shadow(0 0 6px var(--t-hl))",
         transform: "scale(1,-1) rotate(14deg)",
         transformOrigin: "100% 0",
@@ -194,27 +196,25 @@ export function HeroBar({ wide }: { wide: boolean }) {
           </div>
 
           {wide && (
-            <div className="flex min-w-0 flex-[1_1_220px] flex-col gap-0.5 self-stretch">
+            <div className="flex min-w-0 flex-[1_1_220px] flex-col gap-0.5 self-stretch" style={{ animation: "tHeroIn .6s cubic-bezier(.2,.8,.2,1) .2s both" }}>
               <blockquote className="m-0 min-w-0 font-serif text-[13px] italic leading-[1.35] tracking-[-.005em] text-tm-fg [text-wrap:pretty]">
                 <span className="mr-0.5 align-[-.25em] text-[1.5em] leading-[0] text-tm-accent">“</span>
                 {QUOTE.join(" ")}
                 <span className="ml-0.5 align-[-.25em] text-[1.5em] leading-[0] text-tm-accent">”</span>
               </blockquote>
               <div className="mt-auto flex justify-end pr-1.5">
-                <Signature size={26} />
+                <Signature />
               </div>
             </div>
           )}
         </div>
 
-        {wide && (
-          <div className="flex min-w-0 flex-[1_1_300px]">
-            <Activity />
-          </div>
-        )}
+        <div className="flex min-w-0 flex-[1_1_300px]">
+          <Activity />
+        </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 pt-3.5">
+      <div className="flex flex-wrap items-center gap-2 pt-3.5" style={{ animation: "tHeroIn .55s cubic-bezier(.2,.8,.2,1) .12s both" }}>
         <button type="button" title="schedule a call" className={`t-reset ${ctaPrimary}`} onClick={stop(() => submit("/book"))}>
           <CalendarIcon />
           Book a call
@@ -234,7 +234,7 @@ export function HeroBar({ wide }: { wide: boolean }) {
           <ArrowDoodle />
         </span>
         <span className="flex-1" />
-        <Socials labelled={wide} />
+        <Socials labelled />
       </div>
     </div>
   );

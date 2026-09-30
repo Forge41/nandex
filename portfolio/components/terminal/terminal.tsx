@@ -705,7 +705,7 @@ export default function Terminal({
     <ApiContext.Provider value={api}>
       <ViewContext.Provider value={view}>
         <div
-          className="terminal-root dark fixed inset-0 flex flex-col bg-tm-bg font-mono text-tm-fg"
+          className="terminal-root dark fixed inset-0 flex flex-col bg-tm-bg font-sans text-tm-fg"
           style={{ ...themeVars, fontSize: isMobile ? 12.5 : 13, lineHeight: 1.6 }}
         >
           {loader && <SignatureLoader onDone={onLoaderDone} />}
