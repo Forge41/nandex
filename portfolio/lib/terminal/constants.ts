@@ -96,24 +96,21 @@ export const SPINNER = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏";
 
 export const READY_STATUS = "ask me anything · / commands · ! shell";
 
+// Natural language only: the chips are the first thing a visitor reads, and a shell
+// command there reads as noise to anyone who is not already inside the terminal.
 export const SUGGESTIONS: string[] = [
-  "what have you built with LiveKit?",
-  "how does the Harvey RAG pipeline work?",
-  "what are the Claude Code skills?",
-  "what is GenAlpha?",
-  "are you open to work?",
-  "how many years of experience?",
+  "how many years of experience do you have?",
+  "what are you working on right now?",
+  "are you open to new roles?",
+  "what did you build at Atomicwork?",
+  "what is your tech stack?",
+  "have you led a team or sprint?",
   "how do you evaluate LLM outputs?",
+  "what have you built with voice AI?",
   "tell me about the multi-agent engine",
-  "!git log --author=nandisha",
-  "!tree ~/career",
-  "!ls projects/",
-  "/fit",
-  "!cat skills.json | jq",
-  "what is AutoInterviewer?",
-  "!man nandisha",
-  "/book",
-  "/recruiter",
+  "what open-source work have you done?",
+  "what is your education?",
+  "how can I reach you?",
 ];
 
 export const TOUR = [

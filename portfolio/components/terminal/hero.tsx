@@ -1,13 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { sampleGrid, streaks } from "@/lib/github";
-import { LINKS } from "@/lib/terminal/constants";
-import { industry } from "@/lib/terminal/time";
+import { CAREER_START_IST, LINKS } from "@/lib/terminal/constants";
 import { ContribGraph } from "./contrib-graph";
 import { useTerminal, useTerminalView } from "./context";
-import { useNow } from "./hooks";
 import { CalendarIcon, CopyIcon, DownloadIcon, GithubIcon, LinkedinIcon, MailIcon, MicIcon, TickIcon } from "./icons";
 import { GreenDot, Portrait, QUOTE, Signature, stop } from "./identity";
 
@@ -18,15 +16,32 @@ const cta =
 const ctaPrimary =
   "inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-tm-accent px-[15px] font-sans text-[12.5px] font-semibold text-tm-bg shadow-[0_6px_18px_var(--t-hl),inset_0_1px_0_rgba(255,255,255,.25)] transition-all duration-150 hover:-translate-y-px hover:shadow-[0_10px_26px_var(--t-hl),inset_0_1px_0_rgba(255,255,255,.3)]";
 
+/** `2+ YEARS 119d 06:57:32.418` — the clock writes the DOM directly from a rAF loop; a state update per frame is not worth it for a caption. */
 function Uptime() {
-  const ind = industry(useNow());
+  const ref = useRef<HTMLSpanElement>(null);
+  const yearsRef = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    const start = new Date(CAREER_START_IST).getTime();
+    const pad = (n: number, l = 2) => String(n).padStart(l, "0");
+    let raf = 0;
+    const tick = () => {
+      const el = Date.now() - start;
+      const d = Math.floor(el / 864e5) % 365;
+      const h = Math.floor(el / 36e5) % 24;
+      const m = Math.floor(el / 6e4) % 60;
+      const s = Math.floor(el / 1e3) % 60;
+      if (yearsRef.current) yearsRef.current.textContent = `${Math.floor(el / (365 * 864e5))}+`;
+      if (ref.current) ref.current.textContent = `${d}d ${pad(h)}:${pad(m)}:${pad(s)}.${pad(el % 1000, 3)}`;
+      raf = requestAnimationFrame(tick);
+    };
+    tick();
+    return () => cancelAnimationFrame(raf);
+  }, []);
   return (
-    <span className="flex items-baseline gap-1.5 font-sans">
-      <span className="text-[17px] font-bold leading-none tracking-[-.02em] text-tm-fg">{ind.years}+</span>
-      <span className="text-[10.5px] uppercase tracking-[.08em] text-tm-muted">years</span>
-      <span className="text-[11px] tabular-nums text-tm-dim">
-        {ind.days}d {ind.clock}
-      </span>
+    <span className="flex items-baseline gap-2 font-sans">
+      <span ref={yearsRef} className="text-xl font-extrabold leading-none tracking-[-.02em] text-tm-fg" />
+      <span className="text-xs font-bold uppercase tracking-[.05em] text-tm-fg">Years</span>
+      <span ref={ref} title="time in industry since Jun 2024" className="min-w-[17ch] text-xs font-semibold tabular-nums text-tm-accent" />
     </span>
   );
 }
