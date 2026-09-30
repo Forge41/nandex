@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useEffect, useRef, useState } from "react";
 
 import { experience, projects, stackGroups } from "@/content/data";
 import { grepFor, shortLabel } from "@/lib/terminal/marks";
@@ -60,24 +61,18 @@ export function TabStrip({ tab, onPick }: { tab: ResumeTab; onPick: (t: ResumeTa
   );
 }
 
-function RoleRow({ role, index, last, onOpen }: { role: Role; index: number; last: boolean; onOpen: () => void }) {
+function RoleRow({ role, index, onOpen }: { role: Role; index: number; onOpen: () => void }) {
   return (
     <button
       type="button"
-      className="t-reset grid w-full flex-1 grid-cols-[14px_minmax(0,1fr)_auto] content-center items-start gap-4 overflow-hidden rounded-[14px] px-4 py-3.5 text-left transition-colors duration-150 hover:bg-white/[.05]"
+      className="t-reset grid w-full flex-1 grid-cols-[14px_minmax(0,1fr)_auto] content-center items-start gap-4 rounded-[14px] px-4 py-3.5 text-left transition-colors duration-150 hover:bg-white/[.05]"
       style={{ animation: `tRowIn .55s cubic-bezier(.2,.8,.2,1) ${index * 0.12}s both` }}
       onClick={stop(onOpen)}
     >
       <span className="relative flex justify-center self-stretch pt-[5px]">
-        {index > 0 && <span className="absolute -top-3.5 bottom-[calc(100%-5px)] left-[calc(50%-.5px)] w-px bg-white/[.12]" />}
-        {!last && (
-          <span
-            className="absolute -bottom-3.5 left-[calc(50%-.5px)] top-3.5 w-px origin-top"
-            style={{ background: "linear-gradient(var(--t-accent),rgba(255,255,255,.12) 40%)", animation: `tLineIn .6s cubic-bezier(.2,.8,.2,1) ${0.25 + index * 0.12}s both` }}
-          />
-        )}
         <span
-          className="relative size-[9px] flex-none rounded-full"
+          data-timeline-dot
+          className="relative z-20 size-[9px] flex-none rounded-full"
           style={
             role.current
               ? { background: "var(--t-accent)", boxShadow: "0 0 0 3px var(--t-hl)" }
@@ -197,16 +192,65 @@ function StackGrid() {
   );
 }
 
+/**
+ * One line from the first dot's centre to the last's, measured after layout. The rows centre
+ * their content within a stretched track, so a per-row segment can never reach the row's
+ * edge; measuring the dots is the only way the line meets every one of them.
+ */
+function Timeline({ host }: { host: React.RefObject<HTMLDivElement | null> }) {
+  const [box, setBox] = useState<{ left: number; top: number; height: number } | null>(null);
+  useEffect(() => {
+    const el = host.current;
+    if (!el) return;
+    // Offsets rather than client rects: the rows slide in from -16px, and a rect taken
+    // mid-animation would put the line 16px left of where the dots settle.
+    const centre = (dot: HTMLElement) => {
+      let x = dot.offsetWidth / 2;
+      let y = dot.offsetHeight / 2;
+      for (let n: HTMLElement | null = dot; n && n !== el; n = n.offsetParent as HTMLElement | null) {
+        x += n.offsetLeft;
+        y += n.offsetTop;
+      }
+      return { x, y };
+    };
+    const measure = () => {
+      const dots = el.querySelectorAll<HTMLElement>("[data-timeline-dot]");
+      if (dots.length < 2) return setBox(null);
+      const a = centre(dots[0]);
+      const b = centre(dots[dots.length - 1]);
+      setBox({ left: a.x - 0.5, top: a.y, height: b.y - a.y });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [host]);
+  if (!box) return null;
+  return (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute z-10 w-px origin-top"
+      style={{ ...box, background: "linear-gradient(var(--t-accent),rgba(255,255,255,.12) 18%)", animation: "tLineIn .6s cubic-bezier(.2,.8,.2,1) .25s both" }}
+    />
+  );
+}
+
+function ExperienceList() {
+  const { openDrawer } = useTerminal();
+  const host = useRef<HTMLDivElement>(null);
+  return (
+    <div ref={host} className="relative flex flex-1 flex-col rounded-[18px] bg-white/[.035] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,.08),inset_0_0_0_1px_rgba(255,255,255,.06)]">
+      <Timeline host={host} />
+      {experience.map((r, i) => (
+        <RoleRow key={r.id} role={r} index={i} onOpen={() => openDrawer({ kind: "role", id: r.id })} />
+      ))}
+    </div>
+  );
+}
+
 export function ResumePaneBody({ tab }: { tab: ResumeTab }) {
   const { openDrawer } = useTerminal();
-  if (tab === "experience")
-    return (
-      <div className="flex flex-1 flex-col rounded-[18px] bg-white/[.035] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,.08),inset_0_0_0_1px_rgba(255,255,255,.06)]">
-        {experience.map((r, i) => (
-          <RoleRow key={r.id} role={r} index={i} last={i === experience.length - 1} onOpen={() => openDrawer({ kind: "role", id: r.id })} />
-        ))}
-      </div>
-    );
+  if (tab === "experience") return <ExperienceList />;
   if (tab === "projects")
     return (
       <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(210px,1fr))" }}>
