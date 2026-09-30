@@ -126,7 +126,7 @@ export const Prompt = forwardRef<HTMLInputElement, PromptProps>(function Prompt(
               <button
                 key={t}
                 type="button"
-                className="t-reset t-chip flex flex-none items-center gap-2 rounded-full px-3.5 py-2 font-sans text-[12px] text-tm-sub transition-[background,color] duration-200 hover:bg-tm-hl hover:text-tm-fg"
+                className="t-reset t-chip flex h-[31px] flex-none items-center rounded-full px-[13px] font-sans text-[12.5px] text-tm-sub transition-[background,color] duration-200 hover:bg-tm-hl hover:text-tm-fg"
                 style={intro ? { animation: `tChipIn .45s cubic-bezier(.2,.8,.2,1) ${0.35 + i * 0.07}s both` } : undefined}
                 onClick={(ev) => {
                   ev.stopPropagation();
@@ -180,7 +180,7 @@ export const Prompt = forwardRef<HTMLInputElement, PromptProps>(function Prompt(
               autoComplete="off"
               autoCapitalize="off"
               className="relative min-w-0 flex-1 border-0 bg-transparent p-0 text-[13px] text-tm-fg"
-              style={{ caretColor: "var(--t-accent)", fontSize: isMobile ? 16 : 13 }}
+              style={{ caretColor: "var(--t-accent)", fontSize: isMobile ? 16 : 14 }}
             />
           </div>
         </div>

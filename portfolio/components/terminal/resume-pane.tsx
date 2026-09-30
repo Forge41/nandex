@@ -41,7 +41,7 @@ export function TabStrip({ tab, onPick }: { tab: ResumeTab; onPick: (t: ResumeTa
             type="button"
             role="tab"
             aria-selected={on}
-            className="t-reset inline-flex h-8 items-center gap-1.5 rounded-[11px] px-3 font-sans text-[12.5px] font-semibold transition-colors duration-150"
+            className="t-reset inline-flex h-8 items-center gap-2 rounded-[11px] px-3.5 font-sans text-[13px] font-semibold transition-colors duration-150"
             style={{
               background: on ? "rgba(255,255,255,.07)" : "transparent",
               boxShadow: on ? "inset 0 0 0 1px rgba(255,255,255,.08)" : "none",
@@ -64,7 +64,7 @@ function RoleRow({ role, index, last, onOpen }: { role: Role; index: number; las
   return (
     <button
       type="button"
-      className="t-reset flex w-full flex-1 gap-3 rounded-[14px] p-3 text-left transition-colors duration-150 hover:bg-white/[.05]"
+      className="t-reset flex w-full flex-1 gap-4 rounded-[14px] px-4 py-3.5 text-left transition-colors duration-150 hover:bg-white/[.05]"
       style={{ animation: `tRowIn .55s cubic-bezier(.2,.8,.2,1) ${index * 0.12}s both` }}
       onClick={stop(onOpen)}
     >
@@ -86,7 +86,7 @@ function RoleRow({ role, index, last, onOpen }: { role: Role; index: number; las
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-1.5 font-sans">
         <span className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-semibold text-tm-fg">
+          <span className="text-[14px] font-semibold text-tm-fg">
             {role.role} · {role.org}
           </span>
           {role.current && (

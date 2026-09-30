@@ -196,8 +196,11 @@ export function HeroBar({ wide }: { wide: boolean }) {
           </div>
 
           {wide && (
-            <div className="flex min-w-0 flex-[1_1_220px] flex-col gap-0.5 self-stretch" style={{ animation: "tHeroIn .6s cubic-bezier(.2,.8,.2,1) .2s both" }}>
-              <blockquote className="m-0 min-w-0 font-serif text-sm italic leading-[1.35] tracking-[-.005em] text-tm-fg [text-wrap:pretty]">
+            <div
+              className="flex min-w-0 flex-[1_1_220px] flex-col gap-0.5 self-stretch border-l border-white/[.07] pl-[18px]"
+              style={{ animation: "tHeroIn .6s cubic-bezier(.2,.8,.2,1) .2s both" }}
+            >
+              <blockquote className="m-0 min-w-0 max-w-[300px] font-sans text-[14px] italic leading-[1.45] tracking-[-.005em] text-tm-fg [text-wrap:pretty]">
                 <span className="mr-0.5 align-[-.25em] text-[1.5em] leading-[0] text-tm-accent">“</span>
                 {QUOTE.join(" ")}
                 <span className="ml-0.5 align-[-.25em] text-[1.5em] leading-[0] text-tm-accent">”</span>
@@ -214,7 +217,7 @@ export function HeroBar({ wide }: { wide: boolean }) {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 pt-3.5" style={{ animation: "tHeroIn .55s cubic-bezier(.2,.8,.2,1) .12s both" }}>
+      <div className="flex flex-wrap items-center gap-2 border-t border-white/[.07] pt-3.5" style={{ animation: "tHeroIn .55s cubic-bezier(.2,.8,.2,1) .12s both" }}>
         <button type="button" title="schedule a call" className={`t-reset ${ctaPrimary}`} onClick={stop(() => submit("/book"))}>
           <CalendarIcon />
           Book a call
