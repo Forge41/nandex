@@ -5,7 +5,34 @@ export type AnswerPara = AnswerSeg[];
 
 export type Answer = { keys: string[]; paras: AnswerPara[] };
 
-export type Project = { name: string; title: string; year: string; one: string; src: string; stack: string[] };
+/** `live` is what promotes a project onto the Projects shelf; the rest stay in `!ls projects/`. */
+export type Project = {
+  name: string;
+  title: string;
+  year: string;
+  one: string;
+  src: string;
+  stack: string[];
+  label?: string;
+  live?: { url: string; host: string; shot: string };
+  repo?: string;
+  did?: string[];
+};
+
+export type Role = {
+  id: string;
+  role: string;
+  org: string;
+  client?: string;
+  when: string;
+  current?: boolean;
+  one: string;
+  src: string;
+  stack: string[];
+  did: string[];
+};
+
+export type StackGroup = { label: string; items: string[] };
 
 export type Commit = { hash: string; date: string; msg: string; tag?: string };
 

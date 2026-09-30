@@ -1,13 +1,14 @@
 import { gitlog, history, manpage, projects, ps, skills, tree } from "@/content/data";
 import { isTheme, LINKS, THEMES } from "@/lib/terminal/constants";
+import type { ResumeTab } from "@/lib/terminal/reducer";
 import { err, L, lines, LS, prose } from "@/lib/terminal/lines";
 import { uptime } from "@/lib/terminal/time";
 import type { EntryBody, Line, MessageDraft, ThemeName } from "@/lib/terminal/types";
 import type { Source } from "@/lib/types";
 
 export const SHELL_COMMANDS: [string, string][] = [
-  ["whoami", "portrait + intro  (--real for the photo)"],
-  ["neofetch", "re-render the info panel"],
+  ["whoami", "jump to the profile card  (--real for the photo)"],
+  ["neofetch", "open the info panel"],
   ["ls projects/", "project list"],
   ["cat projects/<name>.md", "full project write-up"],
   ["tree ~/career", "career timeline"],
@@ -38,7 +39,7 @@ export const SLASH_COMMANDS: [string, string][] = [
   ["sources", "documents I answer from"],
   ["export", "download conversation as markdown"],
   ["share", "copy a link that replays this conversation"],
-  ["recruiter", "one-screen summary for people who won't type"],
+  ["recruiter", "experience, projects and stack — no typing"],
   ["tour", "run every command, one after another"],
   ["autointerviewer", "open AutoInterviewer, my AI interviewer"],
   ["nantex", "LaTeX live preview CLI + MCP server"],
@@ -73,7 +74,9 @@ export type Effect =
   | { type: "gui" }
   | { type: "export" }
   | { type: "share" }
-  | { type: "recruiter" }
+  | { type: "hero" }
+  | { type: "info" }
+  | { type: "resumeTab"; tab: ResumeTab }
   | { type: "message"; initial: MessageDraft }
   | { type: "reload" };
 
@@ -161,8 +164,12 @@ function grep(c: string, sources: Source[]): EntryBody {
 const isManHeading = (l: string) => /^[A-Z ]+\(?1?\)?$|^[A-Z][A-Z ]+$/.test(l.trim()) && l === l.trim();
 
 export function runShell(c: string, ctx: CommandContext): Effect[] {
-  if (/^whoami( --real)?$/.test(c)) return [push(c.includes("--real") ? { kind: "photo" } : { kind: "whoami" })];
-  if (c === "neofetch") return [push({ kind: "whoami" })];
+  // The hero is permanent chrome now, so whoami points at it rather than printing a second copy.
+  if (/^whoami( --real)?$/.test(c))
+    return c.includes("--real")
+      ? [push({ kind: "photo" })]
+      : [push(prose([LS([["that's me, up there ↑ ", "muted"], ["— tap the photo to talk, or ask me anything.", "sub"]])])), { type: "hero" }];
+  if (c === "neofetch") return [{ type: "info" }];
   if (/^ls( projects\/?)?$/.test(c))
     return [push(lines(projects.map((p) => LS([[p.name.padEnd(20) + ".md", "blue"], ["  " + p.one, "sub"]]))))];
   if (/^cat projects\//.test(c)) {
@@ -339,7 +346,10 @@ export function runSlash(name: string, arg: string, ctx: CommandContext): Effect
     case "share":
       return [{ type: "share" }];
     case "recruiter":
-      return [{ type: "recruiter" }];
+      return [
+        push(prose([L("experience, projects and stack are in the panel on the left — no typing needed.", "muted")])),
+        { type: "resumeTab", tab: "experience" },
+      ];
     case "autointerviewer":
     case "interview":
       return [

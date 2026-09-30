@@ -2,7 +2,7 @@
 
 import { LINKS } from "@/lib/terminal/constants";
 import { uptime } from "@/lib/terminal/time";
-import { GreenDot } from "./entries/whoami";
+import { GreenDot } from "./identity";
 import { useNow } from "./hooks";
 import { ChevronLeftIcon, FileIcon, GithubIcon, GridIcon, LinkedinIcon, MailIcon } from "./icons";
 

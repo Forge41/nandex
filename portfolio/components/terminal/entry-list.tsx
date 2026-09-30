@@ -8,7 +8,6 @@ import { AiAnswer } from "./entries/ai-answer";
 import { BookCard } from "./entries/contact-entries";
 import { FitPrompt, FitResult } from "./entries/fit-entries";
 import { CommandEcho, LinesBlock, PhotoEntry, ProseBlock, SudoPrompt, VoiceTurn } from "./entries/text-entries";
-import { Whoami } from "./entries/whoami";
 
 function Thinking() {
   const [tick, setTick] = useState(0);
@@ -41,8 +40,6 @@ const EntryView = memo(function EntryView({ entry }: { entry: Entry }) {
       return <LinesBlock entry={entry} />;
     case "prose":
       return <ProseBlock entry={entry} />;
-    case "whoami":
-      return <Whoami />;
     case "photo":
       return <PhotoEntry />;
     case "ai":

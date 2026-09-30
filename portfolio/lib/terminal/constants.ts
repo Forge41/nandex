@@ -176,64 +176,6 @@ export const SKILL_GRID = [
   { k: "eval & infra", items: ["Docker", "Kubernetes", "Terraform", "LangSmith"] },
 ];
 
-export const RECRUITER_TAGS = [
-  "Python",
-  "TypeScript",
-  "FastAPI",
-  "pgvector",
-  "Temporal",
-  "LiveKit",
-  "MCP",
-  "LangGraph",
-  "Anthropic SDK",
-  "Kubernetes",
-];
-
-export const TRACE_SRC = [
-  "def mount(node, depth=0):",
-  "    open(node)  # read",
-  "    for child in node.children:",
-  "        mount(child, depth + 1)",
-  "    node.ready = True",
-  "",
-  'mount(fs["~/nandisha"])',
-];
-
-export type MountNode = { n: string; c?: MountNode[] };
-
-export const MOUNT_TREE: MountNode = {
-  n: "~/nandisha",
-  c: [
-    { n: "resume.pdf" },
-    { n: "summary.md" },
-    { n: "skills.json" },
-    {
-      n: "projects/",
-      c: [
-        { n: "harvey-rag.md" },
-        { n: "workflow-engine.md" },
-        { n: "voice-legal-rag.md" },
-        { n: "genalpha-cli.md" },
-        { n: "autointerviewer.md" },
-      ],
-    },
-    {
-      n: "career/",
-      c: [{ n: "think41/", c: [{ n: "intern" }, { n: "sde-i" }, { n: "sde-ii" }] }, { n: "open-source/" }, { n: "education/" }],
-    },
-    { n: "agent/", c: [{ n: "retrieval" }, { n: "citations" }, { n: "voice" }] },
-  ],
-};
-
-export const BOOT_LOG = [
-  "Mounting ~/nandisha",
-  "Loading resume.pdf (1 page, 8 sections)",
-  "Loading summary.md",
-  "Embedding 11 chunks → pgvector",
-  "Starting agent · model=claude · retrieval=hybrid(bm25+dense)",
-  "Reached target portfolio.target",
-];
-
 export const CAREER_START = "2024-06-03";
 export const CAREER_START_IST = "2024-06-03T09:00:00+05:30";
 

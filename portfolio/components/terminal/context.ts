@@ -2,7 +2,7 @@
 
 import { createContext, useContext, type Dispatch } from "react";
 
-import type { TerminalAction } from "@/lib/terminal/reducer";
+import type { DrawerTarget, TerminalAction } from "@/lib/terminal/reducer";
 import type { MessageDraft, ThemeName } from "@/lib/terminal/types";
 import type { Source } from "@/lib/types";
 
@@ -19,17 +19,15 @@ export type TerminalApi = {
   fitTypeMode: () => void;
   fitFile: (file: File) => void;
   sendMessage: (draft: MessageDraft) => void;
-  randomCommit: (kind: "pr" | "skill") => void;
   openVoice: () => void;
   openShare: () => void;
   openResume: () => void;
+  openDrawer: (target: DrawerTarget) => void;
 };
 
 export type TerminalView = {
   theme: ThemeName;
   isMobile: boolean;
-  prCount: number;
-  skillCount: number;
   contrib: number[] | null;
   landing: boolean;
 };
@@ -38,8 +36,6 @@ export const ApiContext = createContext<TerminalApi | null>(null);
 export const ViewContext = createContext<TerminalView>({
   theme: "default",
   isMobile: false,
-  prCount: 1080,
-  skillCount: 600,
   contrib: null,
   landing: true,
 });

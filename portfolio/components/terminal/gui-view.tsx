@@ -4,10 +4,9 @@ import { Badge } from "@nandex/ui/badge";
 import { Tag } from "@nandex/ui/tag";
 import Image from "next/image";
 
-import { projects } from "@/content/data";
+import { experience, projects } from "@/content/data";
 import { LINKS } from "@/lib/terminal/constants";
 import type { Source } from "@/lib/types";
-import { experience } from "./overlays";
 
 const btn = "inline-flex cursor-pointer items-center rounded-sm px-3 py-1.5 text-sm font-medium no-underline transition-colors";
 const primary = `${btn} bg-btn-inverted text-content-on-interactive hover:bg-btn-inverted-hover`;
@@ -73,12 +72,15 @@ export function GuiView({
         <section className="flex flex-col gap-3.5">
           <h2 className="t-h3">Experience</h2>
           <div className="flex flex-col border-t border-line">
-            {experience(byId).map((x) => (
-              <div key={x.title} className="grid gap-x-5 gap-y-1.5 border-b border-line py-3.5 sm:grid-cols-[150px_1fr]">
+            {experience.map((x) => (
+              <div key={x.id} className="grid gap-x-5 gap-y-1.5 border-b border-line py-3.5 sm:grid-cols-[150px_1fr]">
                 <div className="t-small text-content-muted">{x.when}</div>
                 <div>
-                  <div className="font-medium">{x.title}</div>
-                  <div className="t-small mt-1 text-pretty text-content-subtle">{x.text}</div>
+                  <div className="font-medium">
+                    {x.role}, {x.org}
+                    {x.client ? ` · client ${x.client}` : ""}
+                  </div>
+                  <div className="t-small mt-1 text-pretty text-content-subtle">{byId[x.src]?.text ?? x.one}</div>
                 </div>
               </div>
             ))}

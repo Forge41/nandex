@@ -3,8 +3,10 @@ import { READY_STATUS } from "./constants";
 import type { AnswerBody, DebugInfo, Entry, EntryBody, MessageDraft, ThemeName } from "./types";
 
 export type Connection = "checking" | "live" | "offline";
-export type Panel = "gui" | "recruiter" | "shareOpen" | "resumeOpen";
+export type Panel = "gui" | "shareOpen" | "resumeOpen";
 export type StreamTarget = "answer" | "assessment";
+export type ResumeTab = "experience" | "projects" | "stack";
+export type DrawerTarget = { kind: "role" | "project"; id: string };
 
 export type TerminalState = {
   entries: Entry[];
@@ -23,7 +25,6 @@ export type TerminalState = {
   verbose: boolean;
   viewerId: string | null;
   gui: boolean;
-  recruiter: boolean;
   shareOpen: boolean;
   resumeOpen: boolean;
   message: MessageDraft | null;
@@ -31,10 +32,12 @@ export type TerminalState = {
   infoCollapsed: boolean;
   infoCollapsedBeforeVoice: boolean;
   infoSheet: boolean;
+  resumeTab: ResumeTab;
+  resumeSheet: boolean;
+  drawer: DrawerTarget | null;
+  heroPing: number;
   statusMsg: string;
   connection: Connection;
-  prCount: number;
-  skillCount: number;
   tick: number;
 };
 
@@ -55,7 +58,6 @@ export const initialState: TerminalState = {
   verbose: false,
   viewerId: null,
   gui: false,
-  recruiter: false,
   shareOpen: false,
   resumeOpen: false,
   message: null,
@@ -63,10 +65,12 @@ export const initialState: TerminalState = {
   infoCollapsed: true,
   infoCollapsedBeforeVoice: false,
   infoSheet: false,
+  resumeTab: "experience",
+  resumeSheet: false,
+  drawer: null,
+  heroPing: 0,
   statusMsg: READY_STATUS,
   connection: "checking",
-  prCount: 1080,
-  skillCount: 600,
   tick: 0,
 };
 
@@ -105,7 +109,10 @@ export type TerminalAction =
   | { type: "STATUS"; msg: string }
   | { type: "CONNECTION"; state: Connection }
   | { type: "TICK" }
-  | { type: "COMMIT"; kind: "pr" | "skill" };
+  | { type: "RESUME_TAB"; tab: ResumeTab; sheet?: boolean }
+  | { type: "RESUME_SHEET"; open: boolean }
+  | { type: "DRAWER"; target: DrawerTarget | null }
+  | { type: "HERO_PING" };
 
 export const emptyAnswer = (valid: string[] = []): AnswerBody => ({ paras: [], raw: "", valid, streaming: true });
 
@@ -134,7 +141,7 @@ export function terminalReducer(state: TerminalState, action: TerminalAction): T
       return { ...state, message: null };
 
     case "CLEAR":
-      return { ...state, entries: [], viewerId: null, landing: true, input: "", thinking: false, streamingId: null };
+      return { ...state, entries: [], viewerId: null, drawer: null, landing: true, input: "", thinking: false, streamingId: null };
 
     case "INPUT":
       return { ...state, input: action.value, acIdx: 0 };
@@ -147,6 +154,7 @@ export function terminalReducer(state: TerminalState, action: TerminalAction): T
         histIdx: -1,
         landing: false,
         infoSheet: false,
+        resumeSheet: false,
         sugSeed: state.sugSeed + 1,
         history: action.silent ? state.history : [...state.history.filter((h) => h !== action.text), action.text].slice(-50),
       };
@@ -239,12 +247,12 @@ export function terminalReducer(state: TerminalState, action: TerminalAction): T
       return { ...state, viewerId: null };
 
     case "PANEL":
-      return { ...state, [action.panel]: action.open, ...(action.panel === "recruiter" && action.open ? { landing: false } : {}) };
+      return { ...state, [action.panel]: action.open };
 
     case "VOICE":
       if (action.on === state.voice) return state;
       return action.on
-        ? { ...state, voice: true, infoCollapsedBeforeVoice: state.infoCollapsed, infoCollapsed: true, viewerId: null, statusMsg: "voice: just talk · esc to end" }
+        ? { ...state, voice: true, infoCollapsedBeforeVoice: state.infoCollapsed, infoCollapsed: true, viewerId: null, drawer: null, resumeSheet: false, statusMsg: "voice: just talk · esc to end" }
         : { ...state, voice: false, infoCollapsed: state.infoCollapsedBeforeVoice, statusMsg: READY_STATUS };
 
     case "TOGGLE_INFO":
@@ -268,7 +276,16 @@ export function terminalReducer(state: TerminalState, action: TerminalAction): T
       };
     }
 
-    case "COMMIT":
-      return action.kind === "pr" ? { ...state, prCount: state.prCount + 1 } : { ...state, skillCount: state.skillCount + 1 };
+    case "RESUME_TAB":
+      return { ...state, resumeTab: action.tab, ...(action.sheet === undefined ? {} : { resumeSheet: action.sheet }) };
+
+    case "RESUME_SHEET":
+      return { ...state, resumeSheet: action.open };
+
+    case "DRAWER":
+      return { ...state, drawer: action.target };
+
+    case "HERO_PING":
+      return { ...state, heroPing: state.heroPing + 1, resumeSheet: false };
   }
 }

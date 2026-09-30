@@ -40,7 +40,6 @@ export type EntryBody =
   | { kind: "cmd"; mode: PromptMode | "voice"; text: string }
   | { kind: "lines"; lines: Line[] }
   | { kind: "prose"; lines: Line[] }
-  | { kind: "whoami" }
   | { kind: "photo" }
   | { kind: "ai"; answer: AnswerBody; debug: DebugInfo | null; showDebug: boolean; inlineId: string | null }
   | { kind: "fitPrompt"; status: string }

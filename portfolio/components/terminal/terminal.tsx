@@ -11,8 +11,8 @@ import { runShell, runSlash, shortcutsEntry, bookEffects, type CommandContext, t
 import { analyzeFit } from "@/lib/fit/analyze";
 import { readJobDescription } from "@/lib/fit/read-file";
 import { loadContributions } from "@/lib/github";
-import { BOOTED_KEY, COMMITS, DEFAULT_BG, LINKS, MAX_JD_CHARS, READY_STATUS, THEMES, TOUR } from "@/lib/terminal/constants";
-import { L, LS, err, lines, prose } from "@/lib/terminal/lines";
+import { BOOTED_KEY, DEFAULT_BG, LINKS, MAX_JD_CHARS, READY_STATUS, THEMES, TOUR } from "@/lib/terminal/constants";
+import { L, LS, err, prose } from "@/lib/terminal/lines";
 import { emptyAnswer, initialState, terminalReducer, type TerminalState } from "@/lib/terminal/reducer";
 import { decodeReplay, encodeReplay, exportMarkdown, shareableCommands } from "@/lib/terminal/share";
 import { ghost as ghostFor, suggest } from "@/lib/terminal/suggest";
@@ -20,17 +20,21 @@ import { clockLabel, uptime } from "@/lib/terminal/time";
 import type { DebugInfo, EntryBody, MessageDraft, PromptMode } from "@/lib/terminal/types";
 import type { Source } from "@/lib/types";
 import type { VoiceTurn } from "@/lib/voice/transcripts";
+import { ChatWelcome } from "./chat-welcome";
 import { ApiContext, ViewContext, type TerminalApi, type TerminalView } from "./context";
+import { DetailDrawer } from "./detail-drawer";
 import { EntryList } from "./entry-list";
 import { GuiView } from "./gui-view";
+import { HeroBar, HeroCompact } from "./hero";
 import { useIsMobile, useIsNarrow } from "./hooks";
 import { ChevronIcon } from "./icons";
 import { InfoPane } from "./info-pane";
 import { MessageModal } from "./entries/contact-entries";
-import { RecruiterView, ResumeModal, ShareModal } from "./overlays";
+import { ResumeModal, ShareModal } from "./overlays";
 import { Prompt } from "./prompt";
-import { RaceLoader } from "./race-loader";
 import { Rail } from "./rail";
+import { ResumePane, ResumePaneBody, TabStrip } from "./resume-pane";
+import { SignatureLoader } from "./signature-loader";
 import { SourceViewer } from "./source-viewer";
 import { StatusLine } from "./status-line";
 import { VoiceMode } from "./voice-mode";
@@ -168,8 +172,6 @@ export default function Terminal({
 
   function start() {
     dispatch({ type: "STATUS", msg: READY_STATUS });
-    echo("!whoami", "shell");
-    push({ kind: "whoami" });
     after(80, focus);
     if (hashHandled.current) return;
     hashHandled.current = true;
@@ -184,7 +186,7 @@ export default function Terminal({
         replay.forEach((c, i) => after(600 + i * 1500, () => submit(c, true)));
       });
     }
-    if (/recruiter/.test(hash)) after(300, () => dispatch({ type: "PANEL", panel: "recruiter", open: true }));
+    if (/recruiter/.test(hash)) after(300, () => dispatch({ type: "RESUME_TAB", tab: "experience", sheet: true }));
   }
 
   function clear() {
@@ -386,23 +388,6 @@ export default function Terminal({
     push(prose([LS([["✓ ", "green"], ["mail draft opened with your message. Send it and I'll reply within a day.", "base"]])]));
   }
 
-  function randomCommit(kind: "pr" | "skill") {
-    const s = latest.current;
-    const hash = Array.from({ length: 7 }, () => "0123456789abcdef"[Math.floor(Math.random() * 16)]).join("");
-    const msg = COMMITS[Math.floor(Math.random() * COMMITS.length)];
-    const files = 1 + Math.floor(Math.random() * 6);
-    const ins = 8 + Math.floor(Math.random() * 180);
-    const del = Math.floor(Math.random() * 60);
-    dispatch({ type: "COMMIT", kind });
-    push(
-      lines([
-        LS([[`[main ${hash}] `, "accent"], [msg, "base"]]),
-        LS([[` ${files} file${files > 1 ? "s" : ""} changed, `, "muted"], [`${ins} insertions(+)`, "green"], [", ", "muted"], [`${del} deletions(-)`, "red"]]),
-        LS([[kind === "pr" ? ` → merged PR #${s.prCount + 1}` : ` → skill #${s.skillCount + 1} registered`, "dim"]]),
-      ]),
-    );
-  }
-
   function openVoice() {
     if (latest.current.voice) return;
     dispatch({ type: "VOICE", on: true });
@@ -513,8 +498,14 @@ export default function Terminal({
         case "share":
           share();
           break;
-        case "recruiter":
-          dispatch({ type: "PANEL", panel: "recruiter", open: true });
+        case "hero":
+          dispatch({ type: "HERO_PING" });
+          break;
+        case "info":
+          if (latest.current.infoCollapsed || isMobile) dispatch(isMobile ? { type: "SHEET", open: true } : { type: "TOGGLE_INFO" });
+          break;
+        case "resumeTab":
+          dispatch({ type: "RESUME_TAB", tab: fx.tab, sheet: isMobile });
           break;
       }
     }
@@ -570,9 +561,9 @@ export default function Terminal({
     after(50, start);
   }
 
-  const impl = useRef({ submit, focus, openSource, openPane, fitTypeMode, fitFile, sendMessage, randomCommit, openVoice, loaderDone });
+  const impl = useRef({ submit, focus, openSource, openPane, fitTypeMode, fitFile, sendMessage, openVoice, loaderDone });
   useLayoutEffect(() => {
-    impl.current = { submit, focus, openSource, openPane, fitTypeMode, fitFile, sendMessage, randomCommit, openVoice, loaderDone };
+    impl.current = { submit, focus, openSource, openPane, fitTypeMode, fitFile, sendMessage, openVoice, loaderDone };
   });
 
   const api = useMemo<TerminalApi>(
@@ -589,17 +580,17 @@ export default function Terminal({
       fitTypeMode: () => impl.current.fitTypeMode(),
       fitFile: (f) => void impl.current.fitFile(f),
       sendMessage: (d) => void impl.current.sendMessage(d),
-      randomCommit: (k) => impl.current.randomCommit(k),
       openVoice: () => impl.current.openVoice(),
       openShare: () => dispatch({ type: "PANEL", panel: "shareOpen", open: true }),
       openResume: () => dispatch({ type: "PANEL", panel: "resumeOpen", open: true }),
+      openDrawer: (target) => dispatch({ type: "DRAWER", target }),
     }),
     [sources, byId],
   );
 
   const view = useMemo<TerminalView>(
-    () => ({ theme: state.theme, isMobile, prCount: state.prCount, skillCount: state.skillCount, contrib, landing: state.landing }),
-    [state.theme, isMobile, state.prCount, state.skillCount, contrib, state.landing],
+    () => ({ theme: state.theme, isMobile, contrib, landing: state.landing }),
+    [state.theme, isMobile, contrib, state.landing],
   );
 
   const onGlobalKey = useEffectEvent((ev: KeyboardEvent) => {
@@ -610,8 +601,15 @@ export default function Terminal({
       if (esc) closePanel("shareOpen");
       return;
     }
-    if (s.recruiter) {
-      if (esc) closePanel("recruiter");
+    if (s.drawer) {
+      if (esc) {
+        dispatch({ type: "DRAWER", target: null });
+        after(50, focus);
+      }
+      return;
+    }
+    if (s.resumeSheet) {
+      if (esc) dispatch({ type: "RESUME_SHEET", open: false });
       return;
     }
     if (s.resumeOpen) {
@@ -688,7 +686,7 @@ export default function Terminal({
 
   const onLoaderDone = useMemo(() => () => impl.current.loaderDone(), []);
 
-  function closePanel(panel: "shareOpen" | "recruiter" | "resumeOpen" | "gui") {
+  function closePanel(panel: "shareOpen" | "resumeOpen" | "gui") {
     dispatch({ type: "PANEL", panel, open: false });
     after(50, focus);
   }
@@ -698,7 +696,9 @@ export default function Terminal({
   const suggestions = suggest(suggestState(s));
   const squeezed = (s.viewerId != null || s.voice) && narrow;
   const showInfoPane = isMobile ? s.infoSheet : !s.infoCollapsed && !squeezed;
-  const showRail = !isMobile && s.infoCollapsed && !s.voice && !s.gui && !s.recruiter && !s.viewerId;
+  const showRail = !isMobile && s.infoCollapsed && !s.voice && !s.gui && !s.viewerId;
+  // At most two side panes: the résumé pane yields to a right-hand pane once things get narrow.
+  const showResumePane = !isMobile && !s.voice && !(narrow && (s.viewerId != null || !s.infoCollapsed));
   const themeVars = (THEMES[s.theme] ?? {}) as React.CSSProperties;
 
   return (
@@ -708,12 +708,24 @@ export default function Terminal({
           className="terminal-root dark fixed inset-0 flex flex-col bg-tm-bg font-mono text-tm-fg"
           style={{ ...themeVars, fontSize: isMobile ? 12.5 : 13, lineHeight: 1.6 }}
         >
-          {loader && <RaceLoader isMobile={isMobile} onDone={onLoaderDone} />}
+          {loader && <SignatureLoader onDone={onLoaderDone} />}
 
-          <div className="relative flex min-h-0 flex-1">
+          {!s.voice && !s.gui && (
+            <div
+              className="relative z-[2] flex-none px-4 pb-1 pt-4 max-[859px]:px-2.5 max-[859px]:pt-2.5"
+              style={{ animation: s.heroPing ? "tNudge .9s ease-in-out" : undefined }}
+              key={s.heroPing}
+            >
+              <div data-screen-label="Hero">{isMobile ? <HeroCompact /> : <HeroBar wide={!narrow} />}</div>
+            </div>
+          )}
+
+          <div data-screen-label="Split" className="relative flex min-h-0 flex-1">
+            {showResumePane && <ResumePane tab={s.resumeTab} onPick={(tab) => dispatch({ type: "RESUME_TAB", tab })} />}
+
             <section
-              data-screen-label="Terminal"
-              aria-label="terminal"
+              data-screen-label="Chat"
+              aria-label="chat"
               className="@container relative flex min-w-0 flex-1 flex-col bg-tm-bg"
               onClick={() => {
                 if (!window.getSelection()?.toString()) focus();
@@ -732,21 +744,10 @@ export default function Terminal({
                 className="pointer-events-none absolute inset-0 z-0 opacity-35"
                 style={{ background: "repeating-linear-gradient(180deg,rgba(255,255,255,.035) 0 1px,transparent 1px 3px)" }}
               />
+
               {isMobile && (
-                <div className="relative z-[1] flex h-[30px] flex-none items-center gap-2 border-b border-tm-border px-3 text-[11px] uppercase tracking-[.08em] text-tm-muted">
-                  <span className="truncate">nandisha@portfolio: ~</span>
-                  <span className="flex-1" />
-                  <button
-                    type="button"
-                    className="t-reset inline-flex h-[30px] items-center gap-1.5 px-1 text-[11px] uppercase tracking-[.08em] text-tm-sub"
-                    aria-expanded={s.infoSheet}
-                    onClick={(ev) => {
-                      ev.stopPropagation();
-                      dispatch({ type: "SHEET", open: !s.infoSheet });
-                    }}
-                  >
-                    {s.infoSheet ? "close" : "≡ info"}
-                  </button>
+                <div data-screen-label="Recruiter bar" className="relative z-[2] flex flex-none gap-1.5 overflow-x-auto px-2.5 pb-1.5 pt-1 [scrollbar-width:none]">
+                  <TabStrip tab={s.resumeTab} onPick={(tab) => dispatch({ type: "RESUME_TAB", tab, sheet: true })} />
                 </div>
               )}
 
@@ -754,11 +755,12 @@ export default function Terminal({
                 ref={scrollRef}
                 role="log"
                 aria-live="polite"
-                aria-label="terminal output"
+                aria-label="conversation"
                 className="relative z-[1] min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
-                style={{ padding: isMobile ? "12px 12px 8px" : "14px 18px 8px" }}
+                style={{ padding: isMobile ? "8px 12px 8px" : "14px 18px 8px" }}
               >
                 <div ref={contentRef}>
+                  {s.landing && <ChatWelcome />}
                   <EntryList entries={s.entries} thinking={s.thinking} />
                 </div>
               </div>
@@ -770,7 +772,7 @@ export default function Terminal({
                 fitPending={s.fitPending}
                 sudoPending={s.sudoPending}
                 thinking={s.thinking}
-                showLanding={s.landing && !s.thinking && !s.input && !s.voice && !loader}
+                showLanding={!s.thinking && !s.input && !s.voice && !loader}
                 ghost={s.thinking ? "" : ghostFor(suggestState(s))}
                 suggestions={suggestions}
                 isMobile={isMobile}
@@ -800,7 +802,7 @@ export default function Terminal({
               <Rail onExpand={() => dispatch({ type: "TOGGLE_INFO" })} onResume={() => dispatch({ type: "PANEL", panel: "resumeOpen", open: true })} />
             )}
 
-            {showInfoPane && !isMobile && !s.voice && !s.gui && !s.recruiter && !s.viewerId && (
+            {showInfoPane && !isMobile && !s.voice && !s.gui && !s.viewerId && (
               <button
                 type="button"
                 title="hide info pane"
@@ -825,6 +827,39 @@ export default function Terminal({
                 onOpenResume={() => dispatch({ type: "PANEL", panel: "resumeOpen", open: true })}
               />
             )}
+
+            {isMobile && s.resumeSheet && (
+              <>
+                <div className="absolute inset-0 z-[38] bg-black/55" style={{ animation: "tFade .2s" }} onClick={() => dispatch({ type: "RESUME_SHEET", open: false })} />
+                <div
+                  data-screen-label="Recruiter panel"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="résumé"
+                  className="absolute inset-x-0 bottom-0 top-10 z-[39] flex min-h-0 flex-col rounded-t-[20px] bg-tm-panel shadow-[0_-20px_60px_rgba(0,0,0,.6)]"
+                  style={{ animation: "tSheetUp .28s cubic-bezier(.2,.8,.2,1)" }}
+                >
+                  <div className="flex flex-none items-center justify-center pb-1 pt-2.5">
+                    <span className="h-1 w-9 rounded-full bg-white/20" aria-hidden />
+                  </div>
+                  <div className="flex flex-none items-center gap-2 px-3 pb-2">
+                    <TabStrip tab={s.resumeTab} onPick={(tab) => dispatch({ type: "RESUME_TAB", tab })} />
+                    <span className="flex-1" />
+                    <button
+                      type="button"
+                      aria-label="close"
+                      className="t-reset t-chip inline-flex size-8 items-center justify-center rounded-full text-tm-muted"
+                      onClick={() => dispatch({ type: "RESUME_SHEET", open: false })}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
+                    <ResumePaneBody tab={s.resumeTab} />
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           <StatusLine
@@ -832,18 +867,17 @@ export default function Terminal({
             theme={s.theme}
             statusMsg={s.statusMsg}
             isMobile={isMobile}
-            viewerOpen={s.viewerId != null}
+            panes={1 + (showResumePane ? 1 : 0) + (s.viewerId != null ? 1 : 0) + (showInfoPane ? 1 : 0)}
             verbose={s.verbose}
             connection={s.connection}
           />
 
-          {s.recruiter && (
-            <RecruiterView
-              theme={s.theme}
-              onExit={() => closePanel("recruiter")}
-              onBook={() => {
-                dispatch({ type: "PANEL", panel: "recruiter", open: false });
-                after(80, () => submit("/book"));
+          {s.drawer && (
+            <DetailDrawer
+              target={s.drawer}
+              onClose={() => {
+                dispatch({ type: "DRAWER", target: null });
+                after(50, focus);
               }}
             />
           )}

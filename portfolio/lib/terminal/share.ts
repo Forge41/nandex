@@ -43,14 +43,13 @@ export function exportMarkdown(entries: Entry[], byId: Record<string, { doc: str
         case "lines":
         case "prose":
           return "```\n" + e.lines.map(lineText).join("\n") + "\n```";
-        case "whoami":
-          return whoami;
         default:
           return "";
       }
     })
     .filter(Boolean)
     .join("\n\n");
-  return "# Conversation with nandisha@portfolio\n\n" + md;
+  // The profile is chrome rather than an entry, so it heads the export instead of appearing inline.
+  return "# Conversation with nandisha@portfolio\n\n" + whoami + "\n\n---\n\n" + md;
 }
 

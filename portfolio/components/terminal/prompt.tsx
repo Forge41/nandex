@@ -112,22 +112,23 @@ export const Prompt = forwardRef<HTMLInputElement, PromptProps>(function Prompt(
         </div>
       )}
       {showLanding && (
-        <div className="flex flex-col px-[18px] pt-2 min-[860px]:mr-[124px] max-[859px]:px-2.5" style={{ animation: "tFade .3s" }}>
-          {suggestions.slice(0, isMobile ? 2 : 3).map((t) => (
-            <button
-              key={t}
-              type="button"
-              className="t-reset t-glass mb-1.5 flex items-center gap-2.5 rounded-[18px] px-4 py-[9px] text-[12.5px] text-tm-sub shadow-[inset_0_1px_0_rgba(255,255,255,.1),inset_0_0_0_1px_rgba(255,255,255,.06)] transition-[background,color,transform] duration-200 hover:translate-x-1 hover:bg-tm-hl hover:text-tm-fg"
-              onClick={(ev) => {
-                ev.stopPropagation();
-                runSuggestion(t);
-              }}
-            >
-              <span className="flex-none text-tm-dim">›</span>
-              <span className="min-w-0 flex-1 truncate">{t}</span>
-              <span className={kbd}>⏎</span>
-            </button>
-          ))}
+        <div className="flex flex-col gap-1.5 px-[18px] pt-2 max-[859px]:px-2.5" style={{ animation: "tFade .3s" }}>
+          <span className="font-sans text-[10px] font-semibold uppercase tracking-[.1em] text-tm-dim">Suggested questions</span>
+          <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+            {suggestions.slice(0, 6).map((t) => (
+              <button
+                key={t}
+                type="button"
+                className="t-reset t-chip flex flex-none items-center gap-2 rounded-full px-3.5 py-2 font-sans text-[12px] text-tm-sub transition-[background,color] duration-200 hover:bg-tm-hl hover:text-tm-fg"
+                onClick={(ev) => {
+                  ev.stopPropagation();
+                  runSuggestion(t);
+                }}
+              >
+                <span className="whitespace-nowrap">{t}</span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
       <div className="relative z-[1] mx-[18px] mb-4 mt-2 flex items-center gap-2.5 max-[859px]:mx-2.5 max-[859px]:mb-3 max-[859px]:mt-1.5 max-[859px]:gap-2">

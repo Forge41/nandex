@@ -295,6 +295,43 @@ body {
     transform: translateY(1.5px);
   }
 }
+@keyframes tHeroIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* The signature writes itself left to right; the clip has slack so the descenders are not sheared. */
+@keyframes tInk {
+  0% {
+    clip-path: inset(-20% 100% -20% -4%);
+    opacity: 0.6;
+  }
+  8% {
+    opacity: 1;
+  }
+  100% {
+    clip-path: inset(-20% -4% -20% -4%);
+    opacity: 1;
+  }
+}
+@keyframes tDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes tSheetUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
 @keyframes tRingOut {
   0% {
     transform: scale(1);

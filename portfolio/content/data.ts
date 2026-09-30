@@ -1,4 +1,5 @@
-import type { Answer, Commit, Project, Skills } from "@/lib/types";
+import { LINKS } from "@/lib/terminal/constants";
+import type { Answer, Commit, Project, Role, Skills, StackGroup } from "@/lib/types";
 
 export const sourceOrder = [
   "resume-summary",
@@ -298,17 +299,33 @@ export const projects: Project[] = [
     name: "autointerviewer",
     title: "AutoInterviewer",
     year: "2026",
+    label: "AI interview room",
     one: "Resume → tailored interview plan in 5s; 1,000 concurrent live voice interviews.",
     src: "resume-autointerviewer",
     stack: ["Python", "Django", "Temporal", "pgvector", "Next.js", "LiveKit", "Terraform", "AWS"],
+    live: { url: LINKS.autointerviewer, host: "autointerviewer.nandish.online", shot: "/shots/autointerviewer.jpg" },
+    repo: "https://github.com/NandishNaik01/nandex",
+    did: [
+      "Turns a résumé into a tailored interview plan in 5 seconds, then runs it as a live LiveKit voice interview with sandboxed coding and SQL rounds.",
+      "Scaled to 1,000 concurrent interviews at 300ms live-audio round-trip latency.",
+      "A 35% interview-to-offer conversion lift for pilot recruiters.",
+    ],
   },
   {
     name: "nantex",
     title: "nantex",
     year: "2026",
+    label: "open source · CLI",
     one: "LaTeX live preview in the browser, no TeX install. CLI + MCP server on PyPI.",
     src: "resume-nantex",
     stack: ["Python", "Typer", "SSE", "FastMCP", "PyPI"],
+    live: { url: LINKS.nantex, host: "nantex.nandish.online", shot: "/shots/nantex.jpg" },
+    repo: "https://github.com/NandishNaik01/nantex",
+    did: [
+      "Live-compiles .tex to PDF in seconds with no local LaTeX install.",
+      "Compiled 1,000+ page-equivalents in 5 minutes across users.",
+      "Published to PyPI; adopted by 30+ friends to compile their own résumés.",
+    ],
   },
   {
     name: "rq-mucai",
@@ -494,4 +511,60 @@ export const manpage: string[] = [
   "       !ls projects/, !git log, /book",
   "",
   "Think41 / Harvey.ai              September 2026                     NANDISHA(1)",
+];
+
+export const experience: Role[] = [
+  {
+    id: "sde2",
+    role: "SDE-II",
+    org: "Think41",
+    client: "Harvey.ai",
+    when: "Apr 2026 – Present",
+    current: true,
+    one: "Built Harvey.ai's end-to-end RAG pipeline for document-grounded legal research, scaling to 1M+ documents across 300+ tenants.",
+    src: "resume-sde2",
+    stack: ["Python", "pgvector", "Anthropic SDK", "OpenAI SDK", "Temporal"],
+    did: [
+      "Semantic chunking, OpenAI text-embedding-3-large, pgvector hybrid BM25 + vector retrieval, re-ranking, low-latency streaming inference.",
+      "1M+ documents and 80K+ docs per sync session, across 300+ tenants at 100+ users each.",
+      "An import pipeline syncing documents from third-party apps, on-demand and scheduled, batched for scale.",
+    ],
+  },
+  {
+    id: "sde1",
+    role: "SDE-I",
+    org: "Think41",
+    client: "Atomicwork",
+    when: "Feb 2025 – Mar 2026",
+    one: "Led a 5-engineer Integration Team and built a service hosting 20+ custom MCP servers with zero downtime.",
+    src: "resume-sde1",
+    stack: ["Python", "FastAPI", "MCP", "FastMCP", "Docker"],
+    did: [
+      "Shipped 20+ third-party integrations — HRMS (Workday, Keka, Rippling), ticketing, telecom.",
+      "Designed and built a Third-Party MCP Server Service hosting custom-built MCP servers, scaling to 20+ with zero downtime.",
+    ],
+  },
+  {
+    id: "intern",
+    role: "Intern",
+    org: "Think41",
+    when: "Jun 2024 – Jan 2025",
+    one: "Designed and built MUCAI, a multi-persona conversational AI bot scaled to 100+ personas and 1,000+ concurrent sessions.",
+    src: "resume-intern",
+    stack: ["Python", "Deepgram", "Cartesia", "ElevenLabs", "LiveKit"],
+    did: [
+      "Configurable STT/TTS across Deepgram, Cartesia, OpenAI, ElevenLabs, Sarvam and Gemini behind one multi-provider integration layer.",
+      "System-prompt-driven persona switching per SKU and use-case.",
+      "100+ personas and 1,000+ concurrent sessions for JPMC use-cases, on-prem hosted, client-aware via conversation history and screen-aware via real-time frame processing.",
+    ],
+  },
+];
+
+export const stackGroups: StackGroup[] = [
+  { label: "Languages & backend", items: [...skills.languages, ...skills.backend] },
+  { label: "GenAI", items: skills.genai },
+  { label: "RAG & retrieval", items: ["pgvector", "Pinecone", "Qdrant", "FAISS", "hybrid BM25+dense", "re-ranking"] },
+  { label: "Agentic", items: skills.agentic },
+  { label: "Voice", items: skills.voice },
+  { label: "Eval & infra", items: ["LangSmith", "Ragas", "AWS Bedrock", "Azure OpenAI", "GCP Vertex AI", "Docker", "Kubernetes", "Terraform"] },
 ];
