@@ -37,7 +37,7 @@ function Activity() {
   const grid = contrib ?? sample;
   const st = useMemo(() => streaks(grid), [grid]);
   return (
-    <div className="flex min-w-0 flex-col gap-2">
+    <div className="flex min-w-0 flex-1 flex-col gap-2">
       <div className="flex flex-none items-center gap-2">
         <span className="inline-flex items-center gap-2 font-sans text-[10.5px] font-semibold uppercase tracking-[.06em] text-tm-muted">
           <GithubIcon size={13} />

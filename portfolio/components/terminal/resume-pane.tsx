@@ -64,15 +64,15 @@ function RoleRow({ role, index, last, onOpen }: { role: Role; index: number; las
   return (
     <button
       type="button"
-      className="t-reset flex w-full flex-1 gap-4 rounded-[14px] px-4 py-3.5 text-left transition-colors duration-150 hover:bg-white/[.05]"
+      className="t-reset grid w-full flex-1 grid-cols-[14px_minmax(0,1fr)_auto] content-center items-start gap-4 rounded-[14px] px-4 py-3.5 text-left transition-colors duration-150 hover:bg-white/[.05]"
       style={{ animation: `tRowIn .55s cubic-bezier(.2,.8,.2,1) ${index * 0.12}s both` }}
       onClick={stop(onOpen)}
     >
-      <span className="relative flex flex-none justify-center self-stretch pt-1.5" style={{ width: 10 }}>
+      <span className="relative flex justify-center self-stretch pt-[5px]">
         {!last && (
           <span
-            className="absolute top-4 h-[calc(100%-8px)] w-px origin-top"
-            style={{ background: "var(--t-border)", animation: `tLineIn .6s cubic-bezier(.2,.8,.2,1) ${0.25 + index * 0.12}s both` }}
+            className="absolute left-[calc(50%-.5px)] top-3.5 -bottom-[30px] w-px origin-top"
+            style={{ background: "linear-gradient(var(--t-accent),rgba(255,255,255,.12) 40%)", animation: `tLineIn .6s cubic-bezier(.2,.8,.2,1) ${0.25 + index * 0.12}s both` }}
           />
         )}
         <span
@@ -111,7 +111,7 @@ function RoleRow({ role, index, last, onOpen }: { role: Role; index: number; las
           ))}
         </span>
       </span>
-      <span className="flex-none pt-0.5 text-lg leading-none text-tm-dim">›</span>
+      <span className="pt-0.5 text-lg leading-none text-tm-dim">›</span>
     </button>
   );
 }

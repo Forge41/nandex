@@ -143,14 +143,31 @@ export const Prompt = forwardRef<HTMLInputElement, PromptProps>(function Prompt(
         className="relative z-[1] mx-[18px] mb-4 mt-2 flex items-center gap-2.5 max-[859px]:mx-2.5 max-[859px]:mb-3 max-[859px]:mt-1.5 max-[859px]:gap-2"
         style={{ animation: "tInUp .55s cubic-bezier(.2,.8,.2,1) .6s both" }}
       >
-        <div className="t-glass relative flex min-h-[52px] min-w-0 flex-1 items-center gap-2.5 rounded-[18px] px-[18px] py-2 shadow-[inset_0_1px_0_rgba(255,255,255,.14),inset_0_0_0_1px_rgba(255,255,255,.07),0_18px_44px_rgba(0,0,0,.45)] max-[859px]:px-3.5">
+        <div className="t-glass relative isolate flex min-h-[52px] min-w-0 flex-1 items-center gap-2.5 rounded-[18px] px-[18px] py-2 shadow-[inset_0_1px_0_rgba(255,255,255,.14),inset_0_0_0_1px_rgba(255,255,255,.07),0_18px_44px_rgba(0,0,0,.45)] max-[859px]:px-3.5">
           <span
             className="pointer-events-none absolute inset-0 rounded-[18px]"
             style={{ background: "radial-gradient(ellipse 70% 160% at 30% 100%,var(--t-hl),transparent 70%)", animation: "tBreathe 4.5s ease-in-out infinite" }}
           />
           <span
-            className="pointer-events-none absolute inset-x-[18px] top-0 h-px opacity-60"
-            style={{ background: "linear-gradient(90deg,transparent,var(--t-accent),transparent)", animation: "tSweep 6s ease-in-out infinite" }}
+            aria-hidden
+            className="pointer-events-none absolute -inset-px rounded-[19px] p-px opacity-90"
+            style={{
+              background:
+                "conic-gradient(from var(--t-ang),transparent 0deg,color-mix(in oklch,var(--t-accent) 20%,transparent) 60deg,var(--t-accent) 110deg,color-mix(in oklch,var(--t-accent) 20%,transparent) 160deg,transparent 220deg,transparent 360deg)",
+              WebkitMask: "linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0)",
+              WebkitMaskComposite: "xor",
+              maskComposite: "exclude",
+              animation: "tEdgeSpin 6s linear infinite",
+            }}
+          />
+          <span
+            aria-hidden
+            className="pointer-events-none absolute -inset-1.5 -z-10 rounded-[24px]"
+            style={{
+              background: "conic-gradient(from var(--t-ang),transparent 0deg,transparent 60deg,var(--t-hl) 110deg,transparent 160deg,transparent 360deg)",
+              filter: "blur(10px)",
+              animation: "tEdgeSpin 6s linear infinite",
+            }}
           />
           <span className="relative flex-none font-semibold" style={{ color: PROMPT_COLOR[mode] }} aria-hidden>
             {PROMPT_SYMBOL[mode]}

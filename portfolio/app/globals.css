@@ -273,17 +273,6 @@ body {
     opacity: 0.9;
   }
 }
-@keyframes tSweep {
-  0% {
-    transform: translateX(-60%);
-  }
-  50% {
-    transform: translateX(60%);
-  }
-  100% {
-    transform: translateX(-60%);
-  }
-}
 @keyframes tChevron {
   0%,
   100% {
