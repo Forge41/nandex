@@ -1,5 +1,5 @@
-# The deployed stack. One EC2 instance in ap-southeast-2 runs all of this; the
-# frontend is on Netlify, Temporal and LiveKit are managed.
+# The deployed stack. One EC2 instance in ap-southeast-2 runs all of this, the two
+# Next.js sites and nantex's static page included; Temporal and LiveKit are managed.
 #
 # Brought up by infra/user_data.sh on first boot and by SSM Run Command thereafter:
 #   docker compose -f deploy/docker-compose.prod.yml --env-file /opt/nandex/.env up -d --build
@@ -17,10 +17,44 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+      # nantex's static page; .github/workflows/nantex-site.yml keeps it current.
+      - /opt/nandex/nantex:/srv/nantex:ro
     environment:
       # <public-ip>.nip.io, written by user_data. Caddy gets a Let's Encrypt
-      # certificate for it, which is what lets Netlify proxy to this over HTTPS.
+      # certificate for it.
       APP_HOST: ${APP_HOST}
+      # Each site's hostnames, set in /opt/nandex/.env once its DNS points here. Until
+      # then the default is a plain-HTTP localhost name, so Caddy never asks Let's
+      # Encrypt for a name that still resolves to Netlify and trips its failure limit.
+      PORTFOLIO_SITE: ${PORTFOLIO_SITE:-http://porto.localhost}
+      FRONTEND_SITE: ${FRONTEND_SITE:-http://autointerviewer.localhost}
+      NANTEX_SITE: ${NANTEX_SITE:-http://nantex.localhost}
+    depends_on:
+      - core
+      - frontend
+      - portfolio
+
+  # AutoInterviewer. /api/* is rewritten to core inside the compose network.
+  frontend:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.web
+      args:
+        APP: frontend
+    restart: unless-stopped
+    mem_limit: 512m
+    depends_on:
+      - core
+
+  portfolio:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.web
+      args:
+        APP: portfolio
+        NEXT_PUBLIC_BOOKING_URL: ${NEXT_PUBLIC_BOOKING_URL:-}
+    restart: unless-stopped
+    mem_limit: 512m
     depends_on:
       - core
 

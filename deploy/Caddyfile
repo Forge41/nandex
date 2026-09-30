@@ -1,13 +1,58 @@
-# TLS for the API. Netlify proxies /api/* here, and that hop crosses the public
-# internet, so it needs a real certificate -- Caddy gets one from Let's Encrypt for
-# the nip.io hostname automatically.
+# TLS for the API and the three sites, all from Let's Encrypt. The sites' addresses come
+# from the environment (docker-compose.prod.yml says why they default to localhost).
+
+(site) {
+	encode zstd gzip
+	header -Server
+}
 
 {$APP_HOST} {
-	encode zstd gzip
+	import site
 
 	# The plan screen streams; buffering it would defeat the point of the checklist
 	# arriving step by step.
 	reverse_proxy core:8000 {
 		flush_interval -1
 	}
+}
+
+{$PORTFOLIO_SITE} {
+	import site
+
+	@contact host contact.nandish.online
+	redir @contact https://porto.nandish.online/contact 301
+	@alias host nandish.online www.nandish.online
+	redir @alias https://porto.nandish.online{uri} 301
+
+	# Answers stream through Next's /api rewrite.
+	reverse_proxy portfolio:3000 {
+		flush_interval -1
+	}
+}
+
+{$FRONTEND_SITE} {
+	import site
+
+	@renamed host interview.nandish.online
+	redir @renamed https://autointerviewer.nandish.online{uri} 301
+
+	reverse_proxy frontend:3000 {
+		flush_interval -1
+	}
+}
+
+{$NANTEX_SITE} {
+	import site
+
+	# From the page's own site/_headers, which Netlify used to apply.
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		Content-Security-Policy "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://pypi.org; img-src 'self' data:"
+	}
+	@page path / /index.html
+	header @page Cache-Control "public, max-age=300"
+
+	root * /srv/nantex/current
+	file_server
 }
