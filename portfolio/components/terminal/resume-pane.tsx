@@ -64,7 +64,7 @@ function RoleRow({ role, index, last, onOpen }: { role: Role; index: number; las
   return (
     <button
       type="button"
-      className="t-reset flex w-full gap-3 rounded-[14px] p-3 text-left transition-colors duration-150 hover:bg-white/[.05]"
+      className="t-reset flex w-full flex-1 gap-3 rounded-[14px] p-3 text-left transition-colors duration-150 hover:bg-white/[.05]"
       style={{ animation: `tRowIn .55s cubic-bezier(.2,.8,.2,1) ${index * 0.12}s both` }}
       onClick={stop(onOpen)}
     >
@@ -200,7 +200,7 @@ export function ResumePaneBody({ tab }: { tab: ResumeTab }) {
   const { openDrawer } = useTerminal();
   if (tab === "experience")
     return (
-      <div className="flex flex-col rounded-[18px] bg-white/[.035] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,.08),inset_0_0_0_1px_rgba(255,255,255,.06)]">
+      <div className="flex flex-1 flex-col rounded-[18px] bg-white/[.035] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,.08),inset_0_0_0_1px_rgba(255,255,255,.06)]">
         {experience.map((r, i) => (
           <RoleRow key={r.id} role={r} index={i} last={i === experience.length - 1} onOpen={() => openDrawer({ kind: "role", id: r.id })} />
         ))}
@@ -223,8 +223,8 @@ export function ResumePane({ tab, onPick }: { tab: ResumeTab; onPick: (t: Resume
     <section
       data-screen-label="Recruiter panel"
       aria-label="résumé"
-      className="t-glass flex min-h-0 min-w-0 flex-[0_0_44%] flex-col overflow-y-auto overflow-x-hidden rounded-[20px] px-[18px] pb-5"
-      style={{ animation: "tHeroIn .55s cubic-bezier(.2,.8,.2,1) .16s both" }}
+      className="t-glass flex min-h-0 min-w-0 flex-col overflow-y-auto overflow-x-hidden rounded-[20px] px-[18px] pb-5"
+      style={{ flex: "0 0 min(44%, 600px)", animation: "tHeroIn .55s cubic-bezier(.2,.8,.2,1) .16s both" }}
     >
       <div
         className="sticky -top-px z-[3] -mx-[18px] mb-3.5 flex items-center gap-3 rounded-t-[20px] border-b border-white/[.05] px-[18px] pb-2.5 pt-4 backdrop-blur-xl"
