@@ -65,10 +65,47 @@ describe("terminalReducer", () => {
     expect(s).toMatchObject({ voice: false, infoCollapsed: false });
   });
 
-  it("keeps the PR and skill counts fixed as the clock ticks", () => {
-    let s = initialState;
-    for (let i = 0; i < 30; i++) s = r(s, { type: "TICK" });
-    expect(s).toMatchObject({ prCount: initialState.prCount, skillCount: initialState.skillCount });
+  it("clears the drawer and sheet when voice takes the screen", () => {
+    const open = { ...initialState, drawer: { kind: "role" as const, id: "sde2" }, resumeSheet: true };
+    expect(r(open, { type: "VOICE", on: true })).toMatchObject({ drawer: null, resumeSheet: false });
+  });
+
+  it("switches résumé tab without disturbing the conversation", () => {
+    let s = r(initialState, { type: "PUSH", id: 1, entry: { kind: "prose", lines: [] } });
+    s = r(s, { type: "SUBMITTED", text: "hi", silent: false });
+    const before = s.entries;
+    s = r(s, { type: "RESUME_TAB", tab: "projects" });
+    expect(s.resumeTab).toBe("projects");
+    expect(s.entries).toBe(before);
+    expect(s.landing).toBe(false);
+  });
+
+  it("opens the sheet only when a tab switch asks for it", () => {
+    expect(r(initialState, { type: "RESUME_TAB", tab: "stack" }).resumeSheet).toBe(false);
+    expect(r(initialState, { type: "RESUME_TAB", tab: "stack", sheet: true }).resumeSheet).toBe(true);
+  });
+
+  it("keeps chat state when a drawer opens and closes", () => {
+    let s = r(initialState, { type: "SUBMITTED", text: "what is nantex?", silent: false });
+    s = r(s, { type: "DRAWER", target: { kind: "project", id: "nantex" } });
+    expect(s.drawer).toEqual({ kind: "project", id: "nantex" });
+    expect(s.history).toEqual(["what is nantex?"]);
+    s = r(s, { type: "DRAWER", target: null });
+    expect(s.drawer).toBeNull();
+    expect(s.history).toEqual(["what is nantex?"]);
+  });
+
+  it("closes the sheet on submit so the answer is visible", () => {
+    const s = r({ ...initialState, resumeSheet: true }, { type: "SUBMITTED", text: "hi", silent: false });
+    expect(s.resumeSheet).toBe(false);
+  });
+
+  it("pings the hero without touching the entries", () => {
+    let s = r(initialState, { type: "PUSH", id: 1, entry: { kind: "prose", lines: [] } });
+    const before = s.entries;
+    s = r(s, { type: "HERO_PING" });
+    expect(s.heroPing).toBe(1);
+    expect(s.entries).toBe(before);
   });
 
   it("starts with the info pane collapsed to the rail", () => {

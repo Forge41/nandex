@@ -17,7 +17,7 @@ export function StatusLine({
   theme,
   statusMsg,
   isMobile,
-  viewerOpen,
+  panes,
   verbose,
   connection,
 }: {
@@ -25,7 +25,7 @@ export function StatusLine({
   theme: ThemeName;
   statusMsg: string;
   isMobile: boolean;
-  viewerOpen: boolean;
+  panes: number;
   verbose: boolean;
   connection: Connection;
 }) {
@@ -54,7 +54,7 @@ export function StatusLine({
       </span>
       {!isMobile && <span className="whitespace-nowrap px-2.5 text-tm-muted">? for shortcuts</span>}
       <span className="whitespace-nowrap border-l border-tm-border px-2.5 text-tm-dim">
-        {isMobile ? "mobile" : `${viewerOpen ? "3 panes" : "2 panes"} · ${verbose ? "verbose" : "quiet"}`}
+        {isMobile ? "mobile" : `${panes} panes · ${verbose ? "verbose" : "quiet"}`}
       </span>
     </div>
   );

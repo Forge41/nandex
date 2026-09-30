@@ -273,17 +273,6 @@ body {
     opacity: 0.9;
   }
 }
-@keyframes tSweep {
-  0% {
-    transform: translateX(-60%);
-  }
-  50% {
-    transform: translateX(60%);
-  }
-  100% {
-    transform: translateX(-60%);
-  }
-}
 @keyframes tChevron {
   0%,
   100% {
@@ -293,6 +282,149 @@ body {
   50% {
     opacity: 1;
     transform: translateY(1.5px);
+  }
+}
+@property --t-ang {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+@keyframes tEdgeSpin {
+  to {
+    --t-ang: 360deg;
+  }
+}
+@keyframes tRowIn {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes tLineIn {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+@keyframes tMsgIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes tChipIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes tJump {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.5);
+  }
+  55% {
+    opacity: 1;
+    transform: translateY(-6px) scale(1.1);
+  }
+  78% {
+    transform: translateY(2px) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes tTileIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes tInUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes tHeroIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* The signature writes itself left to right; the clip has slack so the descenders are not sheared. */
+@keyframes tInk {
+  0% {
+    clip-path: inset(-20% 100% -20% -4%);
+    opacity: 0.6;
+  }
+  8% {
+    opacity: 1;
+  }
+  100% {
+    clip-path: inset(-20% -4% -20% -4%);
+    opacity: 1;
+  }
+}
+@keyframes tDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes tResBlink {
+  0%,
+  100% {
+  }
+  35% {
+    background: color-mix(in oklch, var(--t-accent) 30%, transparent);
+    color: var(--t-fg);
+    box-shadow:
+      0 0 0 2px var(--t-accent),
+      0 0 26px var(--t-hl);
+  }
+}
+@keyframes tArrowNudge {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 4px -3px;
+  }
+}
+@keyframes tSheetUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
   }
 }
 @keyframes tRingOut {

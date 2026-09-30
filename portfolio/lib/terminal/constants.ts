@@ -96,24 +96,21 @@ export const SPINNER = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏";
 
 export const READY_STATUS = "ask me anything · / commands · ! shell";
 
+// Natural language only: the chips are the first thing a visitor reads, and a shell
+// command there reads as noise to anyone who is not already inside the terminal.
 export const SUGGESTIONS: string[] = [
-  "what have you built with LiveKit?",
-  "how does the Harvey RAG pipeline work?",
-  "what are the Claude Code skills?",
-  "what is GenAlpha?",
-  "are you open to work?",
-  "how many years of experience?",
+  "how many years of experience do you have?",
+  "what are you working on right now?",
+  "are you open to new roles?",
+  "what did you build at Atomicwork?",
+  "what is your tech stack?",
+  "have you led a team or sprint?",
   "how do you evaluate LLM outputs?",
+  "what have you built with voice AI?",
   "tell me about the multi-agent engine",
-  "!git log --author=nandisha",
-  "!tree ~/career",
-  "!ls projects/",
-  "/fit",
-  "!cat skills.json | jq",
-  "what is AutoInterviewer?",
-  "!man nandisha",
-  "/book",
-  "/recruiter",
+  "what open-source work have you done?",
+  "what is your education?",
+  "how can I reach you?",
 ];
 
 export const TOUR = [
@@ -174,64 +171,6 @@ export const SKILL_GRID = [
   { k: "genai & rag", items: ["LangGraph", "Anthropic SDK", "pgvector", "Qdrant"] },
   { k: "agentic & voice", items: ["MCP", "Temporal", "LiveKit", "Deepgram"] },
   { k: "eval & infra", items: ["Docker", "Kubernetes", "Terraform", "LangSmith"] },
-];
-
-export const RECRUITER_TAGS = [
-  "Python",
-  "TypeScript",
-  "FastAPI",
-  "pgvector",
-  "Temporal",
-  "LiveKit",
-  "MCP",
-  "LangGraph",
-  "Anthropic SDK",
-  "Kubernetes",
-];
-
-export const TRACE_SRC = [
-  "def mount(node, depth=0):",
-  "    open(node)  # read",
-  "    for child in node.children:",
-  "        mount(child, depth + 1)",
-  "    node.ready = True",
-  "",
-  'mount(fs["~/nandisha"])',
-];
-
-export type MountNode = { n: string; c?: MountNode[] };
-
-export const MOUNT_TREE: MountNode = {
-  n: "~/nandisha",
-  c: [
-    { n: "resume.pdf" },
-    { n: "summary.md" },
-    { n: "skills.json" },
-    {
-      n: "projects/",
-      c: [
-        { n: "harvey-rag.md" },
-        { n: "workflow-engine.md" },
-        { n: "voice-legal-rag.md" },
-        { n: "genalpha-cli.md" },
-        { n: "autointerviewer.md" },
-      ],
-    },
-    {
-      n: "career/",
-      c: [{ n: "think41/", c: [{ n: "intern" }, { n: "sde-i" }, { n: "sde-ii" }] }, { n: "open-source/" }, { n: "education/" }],
-    },
-    { n: "agent/", c: [{ n: "retrieval" }, { n: "citations" }, { n: "voice" }] },
-  ],
-};
-
-export const BOOT_LOG = [
-  "Mounting ~/nandisha",
-  "Loading resume.pdf (1 page, 8 sections)",
-  "Loading summary.md",
-  "Embedding 11 chunks → pgvector",
-  "Starting agent · model=claude · retrieval=hybrid(bm25+dense)",
-  "Reached target portfolio.target",
 ];
 
 export const CAREER_START = "2024-06-03";

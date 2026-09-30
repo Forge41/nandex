@@ -7,7 +7,7 @@ import { GITHUB_USER, LINKS, SKILL_GRID, ICONS } from "@/lib/terminal/constants"
 import { industry } from "@/lib/terminal/time";
 import { useNow } from "./hooks";
 import { FileIcon, GithubIcon, LinkedinIcon, MailIcon } from "./icons";
-import { GreenDot } from "./entries/whoami";
+import { GreenDot } from "./identity";
 import { ResumePage } from "./resume-page";
 
 const MONO: Record<string, string> = { SQL: "SQ" };

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Instrument_Serif, Inter, JetBrains_Mono, Mrs_Saint_Delafield } from "next/font/google";
+import { Instrument_Serif, Inter, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -9,7 +10,8 @@ const instrumentSerif = Instrument_Serif({
   style: ["normal", "italic"],
   variable: "--font-instrument-serif",
 });
-const signature = Mrs_Saint_Delafield({ subsets: ["latin"], weight: "400", variable: "--font-signature" });
+// Bastliga One (Madhaline Studio), personal-use licence — this is a personal portfolio.
+const signature = localFont({ src: "../public/fonts/BastligaOne.otf", weight: "400", variable: "--font-signature", display: "swap" });
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   weight: ["400", "500", "600"],

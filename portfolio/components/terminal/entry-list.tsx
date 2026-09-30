@@ -8,7 +8,6 @@ import { AiAnswer } from "./entries/ai-answer";
 import { BookCard } from "./entries/contact-entries";
 import { FitPrompt, FitResult } from "./entries/fit-entries";
 import { CommandEcho, LinesBlock, PhotoEntry, ProseBlock, SudoPrompt, VoiceTurn } from "./entries/text-entries";
-import { Whoami } from "./entries/whoami";
 
 function Thinking() {
   const [tick, setTick] = useState(0);
@@ -41,8 +40,6 @@ const EntryView = memo(function EntryView({ entry }: { entry: Entry }) {
       return <LinesBlock entry={entry} />;
     case "prose":
       return <ProseBlock entry={entry} />;
-    case "whoami":
-      return <Whoami />;
     case "photo":
       return <PhotoEntry />;
     case "ai":
@@ -64,7 +61,7 @@ export function EntryList({ entries, thinking }: { entries: Entry[]; thinking: b
   return (
     <>
       {entries.map((e) => (
-        <div key={e.id} className="mb-2.5" style={{ animation: "tFade .18s ease-out" }}>
+        <div key={e.id} className="mb-2.5" style={{ animation: "tMsgIn .3s cubic-bezier(.2,.8,.2,1)" }}>
           <EntryView entry={e} />
         </div>
       ))}

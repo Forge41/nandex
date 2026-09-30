@@ -39,10 +39,9 @@ export function AnswerText({ answer, entryId }: { answer: AnswerBody; entryId?: 
         </p>
       )}
       {order.length > 0 && !answer.streaming && (
-        <div className="mt-2.5 flex flex-wrap items-center gap-1.5 border-t border-white/[.07] pt-2 font-sans text-[11.5px] tracking-[-.005em] text-tm-muted">
-          <span className="mr-1 text-tm-dim">Sources</span>
+        <div className="mt-2.5 flex flex-col gap-1 border-t border-white/[.07] pt-2 font-sans text-[11.5px] tracking-[-.005em]">
           {order.map((id, i) => (
-            <SourceChip key={id} n={i + 1} id={id} source={byId[id]} onOpen={() => openSource(id, entryId)} />
+            <SourceRow key={id} n={i + 1} id={id} source={byId[id]} onOpen={() => openSource(id, entryId)} />
           ))}
         </div>
       )}
@@ -50,15 +49,16 @@ export function AnswerText({ answer, entryId }: { answer: AnswerBody; entryId?: 
   );
 }
 
-function SourceChip({ n, id, source, onOpen }: { n: number; id: string; source?: Source; onOpen: () => void }) {
+/** The footnote under an answer: the number the inline chip used, then the document it came from. */
+function SourceRow({ n, id, source, onOpen }: { n: number; id: string; source?: Source; onOpen: () => void }) {
   const [hover, setHover] = useState(false);
   const snippet = source ? (source.text.length > 160 ? source.text.slice(0, 160).trimEnd() + "…" : source.text) : "";
   return (
-    <span className="relative inline-block">
+    <span className="relative block">
       <button
         type="button"
         aria-label={`source ${n}: ${source ? `${source.doc} › ${source.title}` : id}`}
-        className="t-reset t-chip inline-flex size-[26px] items-center justify-center rounded-lg text-[11.5px] font-bold tabular-nums text-tm-accent transition-all duration-150 hover:-translate-y-px hover:bg-tm-accent hover:text-tm-bg"
+        className="t-reset group flex w-full items-baseline gap-2 rounded-md px-1 py-0.5 text-left transition-colors duration-150 hover:bg-tm-hl"
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
         onFocus={() => setHover(true)}
@@ -69,7 +69,16 @@ function SourceChip({ n, id, source, onOpen }: { n: number; id: string; source?:
           onOpen();
         }}
       >
-        {n}
+        <span className="inline-flex size-[17px] flex-none items-center justify-center rounded-[4px] border border-tm-dim text-[10px] font-bold tabular-nums text-tm-accent group-hover:border-tm-accent">
+          {n}
+        </span>
+        <span className="flex-none text-tm-accent">{source?.doc ?? id}</span>
+        {source && (
+          <>
+            <span className="flex-none text-tm-dim">›</span>
+            <span className="min-w-0 flex-1 truncate text-tm-sub">{source.title}</span>
+          </>
+        )}
       </button>
       {hover && source && (
         <span
