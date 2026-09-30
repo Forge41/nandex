@@ -710,62 +710,51 @@ export default function Terminal({
         >
           {loader && <SignatureLoader onDone={onLoaderDone} />}
 
-          {!s.voice && !s.gui && (
-            <div
-              className="relative z-[2] flex-none px-4 pb-1 pt-4 max-[859px]:px-2.5 max-[859px]:pt-2.5"
-              style={{ animation: s.heroPing ? "tNudge .9s ease-in-out" : undefined }}
-              key={s.heroPing}
-            >
-              <div data-screen-label="Hero">{isMobile ? <HeroCompact /> : <HeroBar wide={!narrow} />}</div>
-            </div>
-          )}
+          <div className="relative flex min-h-0 flex-1">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+              {!s.voice && !s.gui && (
+                <div
+                  className="relative z-[2] flex-none px-[18px] pb-3 pt-3.5 max-[859px]:px-2.5 max-[859px]:pb-2 max-[859px]:pt-2.5"
+                  style={{ animation: s.heroPing ? "tNudge .9s ease-in-out" : undefined }}
+                  key={s.heroPing}
+                >
+                  <div data-screen-label="Hero">{isMobile ? <HeroCompact /> : <HeroBar wide={!narrow} />}</div>
+                </div>
+              )}
 
-          <div data-screen-label="Split" className="relative flex min-h-0 flex-1">
-            {showResumePane && <ResumePane tab={s.resumeTab} onPick={(tab) => dispatch({ type: "RESUME_TAB", tab })} />}
-
-            <section
-              data-screen-label="Chat"
-              aria-label="chat"
-              className="@container relative flex min-w-0 flex-1 flex-col bg-tm-bg"
-              onClick={() => {
-                if (!window.getSelection()?.toString()) focus();
-              }}
-            >
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-0 z-0"
-                style={{
-                  background:
-                    "radial-gradient(ellipse 80% 55% at 18% -10%,var(--t-hl),transparent 60%),radial-gradient(ellipse 60% 50% at 100% 110%,rgba(255,255,255,.05),transparent 60%),linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,0) 40%)",
-                }}
-              />
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-0 z-0 opacity-35"
-                style={{ background: "repeating-linear-gradient(180deg,rgba(255,255,255,.035) 0 1px,transparent 1px 3px)" }}
-              />
-
-              {isMobile && (
-                <div data-screen-label="Recruiter bar" className="relative z-[2] flex flex-none gap-1.5 overflow-x-auto px-2.5 pb-1.5 pt-1 [scrollbar-width:none]">
+              {isMobile && !s.voice && !s.gui && (
+                <div data-screen-label="Recruiter bar" className="relative z-[2] flex flex-none gap-1.5 overflow-x-auto px-2.5 pb-2 [scrollbar-width:none]">
                   <TabStrip tab={s.resumeTab} onPick={(tab) => dispatch({ type: "RESUME_TAB", tab, sheet: true })} />
                 </div>
               )}
 
-              <div
-                ref={scrollRef}
-                role="log"
-                aria-live="polite"
-                aria-label="conversation"
-                className="relative z-[1] min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
-                style={{ padding: isMobile ? "8px 12px 8px" : "14px 18px 8px" }}
-              >
-                <div ref={contentRef}>
-                  {s.landing && <ChatWelcome />}
-                  <EntryList entries={s.entries} thinking={s.thinking} />
-                </div>
-              </div>
+              <div data-screen-label="Split" className="relative flex min-h-0 flex-1 gap-3 px-[18px] pb-4 max-[859px]:px-2.5 max-[859px]:pb-2.5">
+                {showResumePane && <ResumePane tab={s.resumeTab} onPick={(tab) => dispatch({ type: "RESUME_TAB", tab })} />}
 
-              <Prompt
+                <section
+                  data-screen-label="Chat"
+                  aria-label="chat"
+                  className="@container t-glass relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[20px]"
+                  style={{ animation: "tHeroIn .55s cubic-bezier(.2,.8,.2,1) .1s both" }}
+                  onClick={() => {
+                    if (!window.getSelection()?.toString()) focus();
+                  }}
+                >
+                  <div
+                    ref={scrollRef}
+                    role="log"
+                    aria-live="polite"
+                    aria-label="conversation"
+                    className="relative z-[1] min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
+                    style={{ padding: isMobile ? "12px 12px 8px" : "14px 18px 8px" }}
+                  >
+                    <div ref={contentRef}>
+                      {s.landing && <ChatWelcome />}
+                      <EntryList entries={s.entries} thinking={s.thinking} />
+                    </div>
+                  </div>
+
+                  <Prompt
                 ref={inputRef}
                 input={s.input}
                 acIdx={s.acIdx}
@@ -782,7 +771,9 @@ export default function Terminal({
                 onShortcuts={() => push(shortcutsEntry())}
                 onVoice={openVoice}
               />
-            </section>
+                </section>
+              </div>
+            </div>
 
             {s.voice && (
               <VoiceMode

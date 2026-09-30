@@ -39,6 +39,26 @@ export const DownloadIcon = ({ size = 13 }: IconProps) => (
   </svg>
 );
 
+export const CalendarIcon = ({ size = 14 }: IconProps) => (
+  <svg {...stroke(size, 2)}>
+    <rect x="3" y="5" width="18" height="16" rx="2" />
+    <path d="M16 3v4M8 3v4M3 11h18" />
+  </svg>
+);
+
+export const CopyIcon = ({ size = 14 }: IconProps) => (
+  <svg {...stroke(size, 2)}>
+    <rect x="9" y="9" width="12" height="12" rx="2" />
+    <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+  </svg>
+);
+
+export const TickIcon = ({ size = 14 }: IconProps) => (
+  <svg {...stroke(size, 2.4)}>
+    <path d="m5 12 5 5 9-10" />
+  </svg>
+);
+
 export const FileIcon = ({ size = 14 }: IconProps) => (
   <svg {...stroke(size)}>
     <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />

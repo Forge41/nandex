@@ -5,7 +5,7 @@ import Image from "next/image";
 import { experience, projects, stackGroups } from "@/content/data";
 import { grepFor, shortLabel } from "@/lib/terminal/marks";
 import type { Project, Role } from "@/lib/types";
-import { useTerminal, useTerminalView } from "./context";
+import { useTerminal } from "./context";
 import { stop } from "./identity";
 import { TechMark } from "./tech-mark";
 
@@ -203,17 +203,19 @@ export function ResumePaneBody({ tab }: { tab: ResumeTab }) {
   return <StackGrid />;
 }
 
-/** Desktop: the left half of the split. Mobile renders the same body inside a bottom sheet. */
+/** Desktop: the left 44% of the split, a glass card of its own. Mobile renders the same body inside a bottom sheet. */
 export function ResumePane({ tab, onPick }: { tab: ResumeTab; onPick: (t: ResumeTab) => void }) {
-  const { isMobile } = useTerminalView();
   return (
     <section
       data-screen-label="Recruiter panel"
       aria-label="résumé"
-      className="flex min-h-0 min-w-0 flex-col overflow-y-auto overflow-x-hidden px-4 pb-4"
-      style={{ flex: isMobile ? "1 1 auto" : "0 0 clamp(320px,38%,460px)" }}
+      className="t-glass flex min-h-0 min-w-0 flex-[0_0_44%] flex-col overflow-y-auto overflow-x-hidden rounded-[20px] px-[18px] pb-5"
+      style={{ animation: "tHeroIn .55s cubic-bezier(.2,.8,.2,1) .16s both" }}
     >
-      <div className="sticky -top-px z-[3] -mx-4 mb-3 flex items-center gap-3 border-b border-white/[.05] px-4 pb-2.5 pt-3.5 backdrop-blur-xl" style={{ background: "color-mix(in oklch,var(--t-bg) 86%,transparent)" }}>
+      <div
+        className="sticky -top-px z-[3] -mx-[18px] mb-3.5 flex items-center gap-3 rounded-t-[20px] border-b border-white/[.05] px-[18px] pb-2.5 pt-4 backdrop-blur-xl"
+        style={{ background: "color-mix(in oklch,var(--t-bg) 86%,transparent)" }}
+      >
         <TabStrip tab={tab} onPick={onPick} />
       </div>
       <ResumePaneBody tab={tab} />

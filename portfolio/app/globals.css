@@ -324,6 +324,27 @@ body {
     stroke-dashoffset: 0;
   }
 }
+@keyframes tResBlink {
+  0%,
+  100% {
+  }
+  35% {
+    background: color-mix(in oklch, var(--t-accent) 30%, transparent);
+    color: var(--t-fg);
+    box-shadow:
+      0 0 0 2px var(--t-accent),
+      0 0 26px var(--t-hl);
+  }
+}
+@keyframes tArrowNudge {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 4px -3px;
+  }
+}
 @keyframes tSheetUp {
   from {
     transform: translateY(100%);

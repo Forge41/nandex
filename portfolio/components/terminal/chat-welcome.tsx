@@ -9,7 +9,7 @@ export function ChatWelcome() {
   return (
     <div
       data-screen-label="Chat welcome"
-      className="t-glass mb-3 flex flex-wrap items-center gap-3 rounded-[18px] p-3.5 font-sans"
+      className="t-glass mb-3 flex flex-wrap items-center gap-3.5 rounded-[18px] px-4 py-3.5 font-sans"
       style={{ animation: "tHeroIn .55s cubic-bezier(.2,.8,.2,1) .16s both" }}
     >
       <div className="min-w-[200px] flex-1">
