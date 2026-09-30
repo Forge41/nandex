@@ -1,8 +1,5 @@
-# Ships main once CI has passed on it: the EC2 stack over SSM, and each Netlify site
-# with the Netlify CLI. Only what the merge touched is deployed; a manual run deploys all.
-#
-# The Netlify sites are not linked to the repository, so Netlify never builds on its own
-# and this is the only thing that deploys them.
+# Ships main once CI has passed on it: the EC2 stack over SSM, the two Next.js sites
+# included. Nothing runs when the merge touched none of it; a manual run deploys all.
 name: Deploy
 
 on:
@@ -24,8 +21,6 @@ concurrency:
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}
   SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
-  NETLIFY_SITE_ID: c32e2008-85eb-4629-987e-96a763818c82
-  NETLIFY_PORTFOLIO_SITE_ID: 85010f58-0132-4f97-8c74-5807831488af
 
 jobs:
   changes:
@@ -61,9 +56,11 @@ jobs:
             echo "portfolio=$(touched "^portfolio/|$shared")"
           } >> "$GITHUB_OUTPUT"
 
-  backend:
+  server:
     needs: changes
-    if: needs.changes.outputs.backend == 'true'
+    if: >-
+      needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true' ||
+      needs.changes.outputs.portfolio == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
@@ -87,7 +84,13 @@ jobs:
             "cd /opt/nandex/app",
             "git fetch --depth 1 origin \($sha)",
             "git reset --hard FETCH_HEAD",
+            # One image at a time: two Next.js builds beside the Python images, in
+            # parallel, would crowd the runner and the database out of memory.
+            "export COMPOSE_PARALLEL_LIMIT=1",
             "docker compose -f deploy/docker-compose.prod.yml --env-file /opt/nandex/.env up -d --build --remove-orphans",
+            # A changed Caddyfile is a bind mount, so up leaves the running Caddy on the old one.
+            "docker compose -f deploy/docker-compose.prod.yml --env-file /opt/nandex/.env exec -T caddy caddy reload --config /etc/caddy/Caddyfile",
+            "for s in frontend portfolio; do for i in $(seq 1 30); do docker compose -f deploy/docker-compose.prod.yml --env-file /opt/nandex/.env exec -T $s wget -qO /dev/null http://127.0.0.1:3000/ && break; [ $i = 30 ] && { echo \"$s never answered\"; exit 1; }; sleep 2; done; done",
             "docker image prune -f"
           ]}')
           cmd=$(aws ssm send-command \
@@ -118,30 +121,3 @@ jobs:
           echo "$url never answered" >&2
           exit 1
 
-  netlify:
-    needs: [changes, backend]
-    # After the backend, so a page is never live ahead of the API it calls; still runs
-    # when the backend had nothing to deploy.
-    if: >-
-      !cancelled() && needs.backend.result != 'failure' &&
-      (needs.changes.outputs.frontend == 'true' || needs.changes.outputs.portfolio == 'true')
-    runs-on: ubuntu-latest
-    env:
-      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_API_TOKEN }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ env.SHA }}
-      # Version from packageManager in the root package.json.
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile
-      - run: npm install -g netlify-cli@27
-      - if: needs.changes.outputs.frontend == 'true'
-        run: netlify deploy --build --prod --site "$NETLIFY_SITE_ID" --filter frontend --message "${SHA:0:7}"
-      - if: needs.changes.outputs.portfolio == 'true'
-        run: netlify deploy --build --prod --site "$NETLIFY_PORTFOLIO_SITE_ID" --filter portfolio --message "${SHA:0:7}"

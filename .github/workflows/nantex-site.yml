@@ -1,0 +1,63 @@
+# Keeps nantex.nandish.online current: the server copies site/ from NandishNaik01/nantex
+# main into a release directory and switches Caddy's `current` link to it, so a request
+# never sees half a copy. Nothing changes when main has not moved.
+#
+# nantex's own workflow still targets Netlify; until it triggers this, a change there
+# is live within half an hour, or at once with a manual run.
+name: nantex site
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: nantex-site
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Sync over SSM
+        run: |
+          id=$(aws ec2 describe-instances \
+            --filters Name=tag:Name,Values=nandex-app Name=instance-state-name,Values=running \
+            --query 'Reservations[0].Instances[0].InstanceId' --output text)
+          [ "$id" != None ] || { echo "no running nandex-app instance" >&2; exit 1; }
+          params=$(jq -nc '{commands: [
+            "set -euo pipefail",
+            "root=/opt/nandex/nantex",
+            "mkdir -p $root/releases",
+            "sha=$(git ls-remote https://github.com/NandishNaik01/nantex.git refs/heads/main | cut -c1-12)",
+            "[ -n \"$sha\" ]",
+            "if [ \"$(readlink $root/current || true)\" = \"releases/$sha\" ]; then echo \"already at $sha\"; exit 0; fi",
+            "tmp=$(mktemp -d)",
+            "git clone --quiet --depth 1 https://github.com/NandishNaik01/nantex.git $tmp/repo",
+            "rm -rf $root/releases/$sha && cp -r $tmp/repo/site $root/releases/$sha && rm -rf $tmp",
+            "chmod -R a+rX $root/releases/$sha",
+            "ln -sfn releases/$sha $root/current.new && mv -T $root/current.new $root/current",
+            "cd $root/releases && ls -1t | tail -n +4 | xargs -r rm -rf",
+            "echo \"nantex site at $sha\""
+          ]}')
+          cmd=$(aws ssm send-command --instance-ids "$id" --document-name AWS-RunShellScript \
+            --comment "nantex site" --timeout-seconds 300 --parameters "$params" \
+            --query Command.CommandId --output text)
+          for _ in $(seq 1 30); do
+            status=$(aws ssm get-command-invocation --command-id "$cmd" --instance-id "$id" \
+              --query Status --output text 2>/dev/null || echo Pending)
+            case "$status" in Success|Failed|Cancelled|TimedOut) break ;; esac
+            sleep 5
+          done
+          aws ssm get-command-invocation --command-id "$cmd" --instance-id "$id" \
+            --query '[StandardOutputContent,StandardErrorContent]' --output text | tail -20
+          [ "$status" = Success ] || { echo "sync finished as $status" >&2; exit 1; }
